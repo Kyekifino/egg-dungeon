@@ -10,24 +10,16 @@
   <div id="app">
     <div id="header">
       <span id="title">EGG DUNGEON</span>
-      <span id="controls">WASD / Arrows: move &nbsp;·&nbsp; F: feed egg &nbsp;·&nbsp; R: new game</span>
+      <span id="controls">WASD/Arrows: move &nbsp;·&nbsp; 1-5: select food &nbsp;·&nbsp; F: feed &nbsp;·&nbsp; R: new game</span>
     </div>
 
-    <div id="game-view">
+    <div id="game-area">
       <pre id="viewport"></pre>
       <div id="sidebar">
 
         <div class="panel">
           <div class="panel-title">INVENTORY</div>
           <div id="inv-list"></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">THE EGG</div>
-          <pre id="egg-stage"></pre>
-          <div id="egg-bar"></div>
-          <div id="egg-fed"></div>
-          <div id="egg-hint"></div>
         </div>
 
         <div class="panel">
@@ -38,8 +30,9 @@
       </div>
     </div>
 
-    <div id="hatch-view" hidden>
-      <div id="hatch-content"></div>
+    <div id="bottom-panel">
+      <pre id="egg-display"></pre>
+      <div id="egg-info"></div>
     </div>
   </div>
 

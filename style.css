@@ -7,7 +7,7 @@ body {
   font-family: 'Courier New', Courier, monospace;
   font-size: 15px;
   line-height: 1.2;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,6 +27,7 @@ body {
   justify-content: space-between;
   align-items: baseline;
   padding: 0 2px;
+  width: 660px;
 }
 
 #title {
@@ -39,23 +40,24 @@ body {
 
 #controls {
   font-size: 0.72rem;
-  color: #555;
+  color: #444;
 }
 
-/* ── Main game view ───────────────────────────────────────── */
-#game-view {
+/* ── Game area ────────────────────────────────────────────── */
+#game-area {
   display: flex;
   gap: 10px;
+  width: 660px;
 }
 
 /* ── Viewport ─────────────────────────────────────────────── */
 #viewport {
-  width: 450px;   /* 50 chars × 9px */
-  height: 396px;  /* 22 rows × 18px */
+  width: 450px;
+  height: 396px;
   overflow: hidden;
   flex-shrink: 0;
   background: #050505;
-  border: 1px solid #1e1e1e;
+  border: 1px solid #1a1a1a;
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
@@ -67,130 +69,118 @@ body {
 }
 
 .panel {
-  border: 1px solid #1e1e1e;
+  border: 1px solid #1a1a1a;
   padding: 6px 8px;
 }
 
 .panel-title {
-  color: #555;
+  color: #444;
   font-size: 0.68rem;
   letter-spacing: 0.2em;
   margin-bottom: 5px;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid #181818;
   padding-bottom: 3px;
 }
 
 /* ── Inventory ────────────────────────────────────────────── */
 #inv-list div {
   font-size: 0.85rem;
-  padding: 1px 0;
-}
-
-/* ── Egg panel ────────────────────────────────────────────── */
-#egg-stage {
-  font-size: 0.82rem;
-  line-height: 1.25;
-  text-align: center;
-  margin: 4px 0 2px;
-}
-
-#egg-bar {
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  margin: 4px 0 2px;
-}
-
-#egg-fed {
-  font-size: 0.75rem;
-  color: #666;
-}
-
-#egg-hint {
-  font-size: 0.7rem;
-  color: #444;
-  margin-top: 3px;
+  padding: 2px 0;
+  white-space: pre;
 }
 
 /* ── Log ──────────────────────────────────────────────────── */
 #log {
-  max-height: 120px;
+  max-height: 200px;
   overflow-y: auto;
   scrollbar-width: none;
 }
-
 #log::-webkit-scrollbar { display: none; }
 
 .log-line {
   font-size: 0.75rem;
-  color: #666;
+  color: #555;
   padding: 1px 0;
-  white-space: pre-wrap;
   word-break: break-word;
 }
+.log-line:last-child { color: #888; }
 
-.log-line:last-child {
-  color: #999;
-}
-
-/* ── Hatch screen ─────────────────────────────────────────── */
-#hatch-view {
+/* ── Bottom panel ─────────────────────────────────────────── */
+#bottom-panel {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 28px;
   width: 660px;
-  min-height: 430px;
-  border: 1px solid #1e1e1e;
+  min-height: 210px;
+  padding: 12px 18px;
+  border: 1px solid #1a1a1a;
   background: #050505;
 }
 
-#hatch-content {
+#egg-display {
+  font-size: 0.92rem;
+  line-height: 1.3;
+  flex-shrink: 0;
+  min-width: 200px;
   text-align: center;
 }
 
-#hatch-title {
-  font-size: 1rem;
-  letter-spacing: 0.3em;
-  color: #f0e060;
-  text-shadow: 0 0 12px #f0e06088;
-  margin-bottom: 16px;
-  animation: pulse 1.5s ease-in-out infinite;
+#egg-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-#creature-art {
-  display: inline-block;
-  font-size: 1rem;
-  line-height: 1.3;
-  text-align: left;
-  margin-bottom: 14px;
-}
-
-#creature-name {
-  font-size: 1.05rem;
-  margin-bottom: 8px;
+#egg-bar {
+  font-size: 0.9rem;
   letter-spacing: 0.05em;
 }
 
-#creature-traits {
+#egg-fed-count {
   font-size: 0.75rem;
-  color: #666;
-  margin-bottom: 18px;
+  color: #555;
 }
 
-#creature-diet {
+#feed-hint {
+  font-size: 0.78rem;
+  color: #f0e060;
+  min-height: 1.1em;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+#anim-label {
+  font-size: 0.85rem;
+  color: #f0e060;
+  letter-spacing: 0.2em;
+  animation: pulse 0.5s ease-in-out infinite;
+}
+
+#creature-name-display {
+  font-size: 1rem;
+  margin-bottom: 2px;
+}
+
+#creature-traits-display {
+  font-size: 0.78rem;
+  color: #555;
+}
+
+#creature-diet-display {
   font-size: 0.72rem;
-  color: #444;
-  margin-bottom: 16px;
+  color: #3a3a3a;
 }
 
-#hatch-restart {
+#restart-hint {
   font-size: 0.75rem;
   color: #444;
+  margin-top: 6px;
   animation: pulse 2s ease-in-out infinite;
 }
 
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes pulse {
-  0%, 100% { opacity: 0.6; }
+  0%, 100% { opacity: 0.5; }
   50%       { opacity: 1; }
 }
 

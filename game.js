@@ -7,9 +7,9 @@
 // ── Config ───────────────────────────────────────────────────────
 const DW = 72, DH = 36;
 const VW = 50, VH = 22;
-const LIGHT_R = 6;
+const LIGHT_R  = 6;
 const FOOD_NEEDED = 10;
-const MAX_LOG = 7;
+const MAX_LOG  = 8;
 
 // ── Food definitions ──────────────────────────────────────────────
 const FOOD_INFO = {
@@ -20,7 +20,10 @@ const FOOD_INFO = {
   ',': { name: 'Grain',    key: 'grain',    color: '#d0a040' },
 };
 const FOOD_CHARS = Object.keys(FOOD_INFO);
-const FOOD_ORDER = ['meat', 'fish', 'berries', 'mushroom', 'grain'];
+
+// Food order for display / selection
+const FOOD_KEYS = ['meat', 'fish', 'berries', 'mushroom', 'grain'];
+const FOOD_KEY_MAP = { '1': 'meat', '2': 'fish', '3': 'berries', '4': 'mushroom', '5': 'grain' };
 
 // ── Cell colours ──────────────────────────────────────────────────
 const CLR = {
@@ -40,59 +43,92 @@ const pick    = arr => arr[rand(0, arr.length)];
 const cap     = s => s.charAt(0).toUpperCase() + s.slice(1);
 const escHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+function hexDim(hex, factor) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const f = v => Math.round(v * factor).toString(16).padStart(2, '0');
+  return `#${f(r)}${f(g)}${f(b)}`;
+}
+
 // ================================================================
-//  EGG STAGE ART
+//  EGG STAGE ART  (10 lines each, matching creature art height)
 // ================================================================
 
 const EGG_STAGES = [
   { // 0 fed — pristine
-    color: '#c8b840',
+    color: '#a09028',
     art: [
-      "   _____   ",
-      "  /     \\  ",
-      " |       | ",
-      " |       | ",
-      "  \\_____/  ",
+      "              ",
+      "   ________   ",
+      "  /        \\  ",
+      " |          | ",
+      " |          | ",
+      " |          | ",
+      "  \\________/  ",
+      "              ",
+      "              ",
+      "              ",
     ],
   },
   { // 1–3 fed — warm
-    color: '#e0c030',
+    color: '#d0a820',
     art: [
-      "   _____   ",
-      "  / · · \\  ",
-      " | · · · | ",
-      " |  · ·  | ",
-      "  \\_____/  ",
+      "              ",
+      "   ________   ",
+      "  / ·  · · \\  ",
+      " | · ·  ·   | ",
+      " |  · · ·   | ",
+      " | ·  · · · | ",
+      "  \\________/  ",
+      "              ",
+      "              ",
+      "              ",
     ],
   },
   { // 4–6 fed — cracking
-    color: '#e89020',
+    color: '#e08810',
     art: [
-      "   __v__   ",
-      "  /  |  \\  ",
-      " | v | v | ",
-      " |  \\|/  | ",
-      "  \\_____/  ",
+      "              ",
+      "   ___v____   ",
+      "  /   |    \\  ",
+      " | v  |     | ",
+      " |    v     | ",
+      " |    |  v  | ",
+      "  \\___v____/  ",
+      "              ",
+      "              ",
+      "              ",
     ],
   },
   { // 7–9 fed — shattering
-    color: '#e05010',
+    color: '#e05800',
     art: [
-      "  _/\\_/_   ",
-      " / \\ v /\\  ",
-      "|  /\\/  \\| ",
-      "| /  \\/v | ",
-      " \\/______/ ",
+      "      *       ",
+      "   __/\\_____  ",
+      "  /v  \\ v   \\ ",
+      " |  /\\ \\   v| ",
+      " | /  \\/\\   | ",
+      " |/   / \\v  | ",
+      "  \\/\\_/  \\_/  ",
+      "      *       ",
+      "              ",
+      "              ",
     ],
   },
   { // 10 fed — glowing
     color: '#ffffff',
     art: [
-      "  *_____*  ",
-      " */ * * \\* ",
-      " |* * * *| ",
-      " |* * * *| ",
-      "  \\*___*/  ",
+      "    *   *     ",
+      "  *_________* ",
+      " */ · * · · \\*",
+      " |* · · * · *|",
+      "*|· * · · * ·|*",
+      " |* · * · · *|",
+      " *\\· · * · /*",
+      "  *_________* ",
+      "    *   *     ",
+      "              ",
     ],
   },
 ];
@@ -103,6 +139,65 @@ function getEggStage(fed) {
   if (fed >= 4)  return 2;
   if (fed >= 1)  return 1;
   return 0;
+}
+
+// ================================================================
+//  HATCH ANIMATION FRAMES
+// ================================================================
+
+const ANIM_CRACK1 = [
+  "    *   *     ",
+  "  *__v_v___*  ",
+  " */ · v · · \\*",
+  " |· v · · · | ",
+  "*|· · v · · |*",
+  " |· · · v · | ",
+  " *\\· · v · /* ",
+  "  *___v____*  ",
+  "    *   *     ",
+  "              ",
+];
+
+const ANIM_CRACK2 = [
+  "  *   *   *   ",
+  "  _/\\*_/\\___  ",
+  " /  \\*/  \\  \\ ",
+  "|*  /\\*   |  |",
+  "| */  \\*  |  |",
+  "|*   /  \\*|  |",
+  " \\*/    \\*/  /",
+  "  *___*___*   ",
+  "  *   *   *   ",
+  "              ",
+];
+
+const ANIM_BURST = [
+  " *  * * * *   ",
+  "* * * * * * * ",
+  " * * * * * *  ",
+  "* * * * * * * ",
+  " * * * * * *  ",
+  "* * * * * * * ",
+  " * * * * * *  ",
+  "* * * * * * * ",
+  " *  * * * *   ",
+  "              ",
+];
+
+function buildAnimSequence(creature) {
+  const s4 = EGG_STAGES[4].art;
+  return [
+    { lines: s4,             color: '#ffffff',                    delay: 320 },
+    { lines: s4,             color: '#ffff88',                    delay: 200 },
+    { lines: ANIM_CRACK1,    color: '#ffaa00',                    delay: 180 },
+    { lines: ANIM_CRACK2,    color: '#ff6600',                    delay: 150 },
+    { lines: ANIM_BURST,     color: '#ffffff',                    delay: 130 },
+    { lines: ANIM_BURST,     color: '#ffcc88',                    delay: 100 },
+    { lines: creature.lines, color: hexDim(creature.color, 0.22), delay: 220 },
+    { lines: creature.lines, color: hexDim(creature.color, 0.50), delay: 200 },
+    { lines: creature.lines, color: hexDim(creature.color, 0.78), delay: 260 },
+    { lines: creature.lines, color: creature.color,               delay: 0   },
+  ];
 }
 
 // ================================================================
@@ -165,7 +260,7 @@ function generateDungeon() {
     }
   }
 
-  // Extra loops
+  // Extra loops for navigability
   for (let i = 0; i < 2; i++) {
     const ai = rand(0, rooms.length);
     let bi = rand(0, rooms.length - 1);
@@ -188,7 +283,7 @@ function generateDungeon() {
   const eggPos  = roomCenter(eggRoom);
   grid[eggPos.y][eggPos.x] = 'Θ';
 
-  // Scatter food
+  // Scatter food in non-egg rooms
   rooms.forEach((r, i) => {
     if (i === eggIdx) return;
     const n = rand(2, 5);
@@ -285,7 +380,6 @@ const BASES = {
   ],
 };
 
-// Alternate variants per type for more variety
 const BASE_VARIANTS = {
   meat: [
     "     /\\      /\\     ",
@@ -355,19 +449,19 @@ const CREATURE_COLOR = {
 };
 
 const NAME_POOLS = {
-  meat:     { pre: ['Fang','Claw','Blood','Iron','Snarl','Gore'],    suf: ['claw','fang','jaw','bite','rend','crush']   },
-  fish:     { pre: ['Scale','Fin','Wave','Tide','Depth','Brine'],    suf: ['fin','scale','gill','drift','slick','eel']  },
-  berries:  { pre: ['Wing','Sky','Crest','Dawn','Bright','Ember'],   suf: ['wing','feather','beak','song','gust','ash'] },
-  mushroom: { pre: ['Spore','Gloom','Shade','Murk','Glow','Dread'],  suf: ['spore','cap','stalk','eye','mold','void']   },
-  grain:    { pre: ['Fluff','Meadow','Downy','Plump','Soft','Round'],suf: ['ear','tuft','seed','puff','hay','mane']     },
+  meat:     { pre: ['Fang','Claw','Blood','Iron','Snarl','Gore'],    suf: ['claw','fang','jaw','bite','rend','crush']    },
+  fish:     { pre: ['Scale','Fin','Wave','Tide','Depth','Brine'],    suf: ['fin','scale','gill','drift','slick','eel']   },
+  berries:  { pre: ['Wing','Sky','Crest','Dawn','Bright','Ember'],   suf: ['wing','feather','beak','song','gust','ash']  },
+  mushroom: { pre: ['Spore','Gloom','Shade','Murk','Glow','Dread'],  suf: ['spore','cap','stalk','eye','mold','void']    },
+  grain:    { pre: ['Fluff','Meadow','Downy','Plump','Soft','Round'],suf: ['ear','tuft','seed','puff','hay','mane']      },
 };
 
 const TITLE_POOLS = {
-  meat:     ['the Fierce', 'the Relentless', 'the Savage', 'the Hungry', 'the Feral'],
-  fish:     ['the Swift',  'the Deep',       'the Slippery','the Silent','the Ancient'],
-  berries:  ['the Radiant','the Free',       'the Wandering','the Bright','the Blazing'],
-  mushroom: ['the Eerie',  'the Ancient',    'the Strange', 'the Watchful','the Dreaming'],
-  grain:    ['the Fluffy', 'the Gentle',     'the Round',   'the Warm',   'the Plump'],
+  meat:     ['the Fierce','the Relentless','the Savage','the Hungry','the Feral'],
+  fish:     ['the Swift', 'the Deep',      'the Slippery','the Silent','the Ancient'],
+  berries:  ['the Radiant','the Free',     'the Wandering','the Bright','the Blazing'],
+  mushroom: ['the Eerie', 'the Ancient',   'the Strange','the Watchful','the Dreaming'],
+  grain:    ['the Fluffy','the Gentle',    'the Round','the Warm','the Plump'],
 };
 
 const TRAIT_NAMES = {
@@ -387,43 +481,27 @@ function generateCreature(eggInv) {
   const dom = ranked[0] || 'grain';
   const sec = ranked[1] || null;
 
-  // Randomly pick base or variant
   const useVariant = Math.random() < 0.5 && BASE_VARIANTS[dom];
   const lines = (useVariant ? BASE_VARIANTS[dom] : BASES[dom]).map(l => l);
 
-  // Secondary food modifies one line
   if (sec && sec !== dom) {
     switch (sec) {
-      case 'mushroom': // extra eyes on head line
-        lines[2] = lines[2].replace(/[·.]/g, 'O').replace('()', '(O)');
-        break;
-      case 'berries': // wings on mid body
-        lines[4] = '~' + lines[4].trim().padEnd(18) + '~';
-        break;
-      case 'fish': // dorsal fin on top
-        lines[0] = '        ~~~~~       ';
-        break;
-      case 'meat': // claws on feet
-        lines[9] = lines[9].replace(/\(([A-Za-z])/g, '/($1').replace(/([A-Za-z])\)/g, '$1)\\');
-        break;
-      case 'grain': // fluffy belly
-        lines[6] = lines[6].replace(/[-=|]/g, '~');
-        break;
+      case 'mushroom': lines[2] = lines[2].replace('.', 'O').replace('()', '(O)'); break;
+      case 'berries':  lines[4] = '~' + lines[4].trim() + '~'; break;
+      case 'fish':     lines[0] = '         ~~~        '; break;
+      case 'meat':     lines[9] = lines[9].replace(/\(([A-Za-z])/g, '/($1'); break;
+      case 'grain':    lines[6] = lines[6].replace(/[-=|]/g, '~'); break;
     }
   }
 
-  // Name
-  const np  = NAME_POOLS[dom];
-  const pre = pick(np.pre);
-  const suf = sec ? pick(NAME_POOLS[sec].suf) : pick(np.suf);
+  const np    = NAME_POOLS[dom];
+  const pre   = pick(np.pre);
+  const suf   = sec ? pick(NAME_POOLS[sec].suf) : pick(np.suf);
   const title = pick(TITLE_POOLS[dom]);
   const name  = cap(pre + suf) + ' ' + title;
 
-  // Traits
   const traits = ranked.map(k => TRAIT_NAMES[k]);
-
-  // Diet summary
-  const diet = Object.entries(eggInv)
+  const diet   = Object.entries(eggInv)
     .filter(([, v]) => v > 0)
     .map(([k, v]) => `${v}x ${k}`)
     .join(', ');
@@ -435,18 +513,16 @@ function generateCreature(eggInv) {
 //  GAME STATE
 // ================================================================
 
-let G = null;
+let G            = null;
+let animCancelled = false;         // cancels in-flight animation on restart
+let selectedFood = 'meat';         // persists across games
 
 function emptyInv() {
   return { meat: 0, fish: 0, berries: 0, mushroom: 0, grain: 0 };
 }
 
 function newGame() {
-  // Reset view state first
-  document.getElementById('game-view').hidden = false;
-  document.getElementById('hatch-view').hidden = true;
-  document.getElementById('hatch-content').innerHTML = '';
-
+  animCancelled = true;            // stop any running animation
   const { grid, rooms, eggPos, startPos } = generateDungeon();
   G = {
     grid,
@@ -458,9 +534,11 @@ function newGame() {
     inventory: emptyInv(),
     eggInv:    emptyInv(),
     eggFed:    0,
-    phase:     'playing',
+    phase:     'playing',          // 'playing' | 'animating' | 'hatched'
     creature:  null,
-    log: ['You stand before the Egg.', 'Bring it food and feed it (F)!'],
+    animFrames: [],
+    animFrame:  0,
+    log: ['You stand before the Egg.', 'Collect food and feed it (F)!'],
   };
   updateFOV();
   render();
@@ -480,9 +558,8 @@ function updateFOV() {
   for (let dy = -LIGHT_R - 1; dy <= LIGHT_R + 1; dy++) {
     for (let dx = -LIGHT_R - 1; dx <= LIGHT_R + 1; dx++) {
       const nx = px + dx, ny = py + dy;
-      if (nx >= 0 && nx < DW && ny >= 0 && ny < DH) {
+      if (nx >= 0 && nx < DW && ny >= 0 && ny < DH)
         if (Math.hypot(dx, dy) <= LIGHT_R) revealed[ny][nx] = true;
-      }
     }
   }
 }
@@ -521,10 +598,9 @@ function tryFeed() {
     return;
   }
 
-  // Feed one item at a time, in fixed priority order
-  const key = FOOD_ORDER.find(k => G.inventory[k] > 0);
-  if (!key) {
-    addLog('You have no food to offer!');
+  const key = selectedFood;
+  if (G.inventory[key] === 0) {
+    addLog(`No ${key} in your inventory! (select with 1-5)`);
     render();
     return;
   }
@@ -534,17 +610,42 @@ function tryFeed() {
   G.eggFed++;
   addLog(`You feed the egg ${key}. (${G.eggFed}/${FOOD_NEEDED})`);
 
-  render(); // show updated count (including 10/10) before hatching
+  render(); // show updated state (including 10/10) before hatching
 
   if (G.eggFed >= FOOD_NEEDED) {
-    setTimeout(hatch, 900);
+    setTimeout(startHatch, 900);
   }
 }
 
-function hatch() {
-  G.phase    = 'hatched';
-  G.creature = generateCreature(G.eggInv);
-  render();
+function startHatch() {
+  G.creature   = generateCreature(G.eggInv);
+  G.phase      = 'animating';
+  G.animFrames = buildAnimSequence(G.creature);
+  G.animFrame  = 0;
+  animCancelled = false;
+  addLog('THE EGG HATCHES!');
+  runAnimFrame();
+}
+
+function runAnimFrame() {
+  if (animCancelled) return;
+
+  const frame = G.animFrames[G.animFrame];
+  renderAnimFrame(frame);
+
+  if (frame.delay === 0) {
+    // Last frame — settle into hatched state
+    setTimeout(() => {
+      if (!animCancelled) {
+        G.phase = 'hatched';
+        render();
+      }
+    }, 400);
+    return;
+  }
+
+  G.animFrame++;
+  setTimeout(runAnimFrame, frame.delay);
 }
 
 // ================================================================
@@ -581,68 +682,89 @@ function renderViewport() {
   return html;
 }
 
-function renderNormal() {
-  document.getElementById('game-view').hidden = false;
-  document.getElementById('hatch-view').hidden = true;
+function renderInventory() {
+  let html = '';
+  FOOD_KEYS.forEach((key, idx) => {
+    const ch      = FOOD_CHARS.find(c => FOOD_INFO[c].key === key);
+    const info    = FOOD_INFO[ch];
+    const count   = G.inventory[key];
+    const isSel   = selectedFood === key;
+    const baseClr = count > 0 ? info.color : '#2e2e2e';
+    const bg      = isSel ? 'background:#151515;' : '';
+    const marker  = isSel ? '►' : ' ';
+    html += `<div style="color:${baseClr};${bg}">${marker}${idx + 1} ${ch} ${key.padEnd(8)} x${count}</div>`;
+  });
+  document.getElementById('inv-list').innerHTML = html;
+}
 
-  document.getElementById('viewport').innerHTML = renderViewport();
+function renderLog() {
+  const el = document.getElementById('log');
+  el.innerHTML = G.log.map(m => `<div class="log-line">&gt; ${escHtml(m)}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
 
-  // Inventory
-  let invHtml = '';
-  for (const [ch, info] of Object.entries(FOOD_INFO)) {
-    const count = G.inventory[info.key];
-    const color = count > 0 ? info.color : '#333';
-    invHtml += `<div style="color:${color}">${escHtml(ch)} ${info.name.padEnd(8)} x${count}</div>`;
-  }
-  document.getElementById('inv-list').innerHTML = invHtml;
-
-  // Egg stage art
+function renderBottomPlaying() {
   const stage = EGG_STAGES[getEggStage(G.eggFed)];
-  const eggArtHtml = stage.art
-    .map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`)
-    .join('\n');
-  document.getElementById('egg-stage').innerHTML = eggArtHtml;
+  document.getElementById('egg-display').innerHTML =
+    stage.art.map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
 
-  // Progress bar
   const pct    = Math.min(1, G.eggFed / FOOD_NEEDED);
   const filled = Math.floor(pct * 10);
   const bar    = '█'.repeat(filled) + '░'.repeat(10 - filled);
   const barClr = pct >= 1 ? '#ffffff' : (pct > 0 ? '#c09030' : '#333');
-  document.getElementById('egg-bar').innerHTML = `<span style="color:${barClr}">${bar}</span>`;
-  document.getElementById('egg-fed').textContent = `${G.eggFed} / ${FOOD_NEEDED} fed`;
 
-  // Proximity hint
-  const dist = Math.abs(G.px - G.eggPos.x) + Math.abs(G.py - G.eggPos.y);
-  document.getElementById('egg-hint').textContent = dist <= 1 ? 'Press F to feed!' : '';
+  const selCh   = FOOD_CHARS.find(c => FOOD_INFO[c].key === selectedFood);
+  const selInfo = FOOD_INFO[selCh];
+  const selCount = G.inventory[selectedFood];
+  const dist    = Math.abs(G.px - G.eggPos.x) + Math.abs(G.py - G.eggPos.y);
 
-  // Log
-  const logEl = document.getElementById('log');
-  logEl.innerHTML = G.log.map(m => `<div class="log-line">&gt; ${escHtml(m)}</div>`).join('');
-  logEl.scrollTop = logEl.scrollHeight;
+  document.getElementById('egg-info').innerHTML = `
+    <div id="egg-bar"><span style="color:${barClr}">${bar}</span></div>
+    <div id="egg-fed-count">${G.eggFed} / ${FOOD_NEEDED} fed</div>
+    <div style="margin-top:4px;font-size:0.78rem;color:#444">
+      Selected: <span style="color:${selInfo.color}">${selCh} ${selectedFood}</span>
+      &nbsp;(x${selCount})
+    </div>
+    <div id="feed-hint">${dist <= 1 ? 'Press F to feed!' : ''}</div>
+  `;
 }
 
-function renderHatch() {
-  document.getElementById('game-view').hidden = true;
-  document.getElementById('hatch-view').hidden = false;
+function renderAnimFrame(frame) {
+  document.getElementById('egg-display').innerHTML =
+    frame.lines.map(l => `<span style="color:${frame.color}">${escHtml(l)}</span>`).join('\n');
 
+  const bar = '█'.repeat(10);
+  document.getElementById('egg-info').innerHTML = `
+    <div id="egg-bar"><span style="color:#ffffff">${bar}</span></div>
+    <div id="egg-fed-count">${FOOD_NEEDED} / ${FOOD_NEEDED} fed</div>
+    <div id="anim-label" style="margin-top:8px;">HATCHING...</div>
+  `;
+}
+
+function renderBottomHatched() {
   const { creature } = G;
-  const artHtml = creature.lines
-    .map(l => `<span style="color:${creature.color}">${escHtml(l)}</span>`)
-    .join('\n');
+  document.getElementById('egg-display').innerHTML =
+    creature.lines.map(l => `<span style="color:${creature.color}">${escHtml(l)}</span>`).join('\n');
 
-  document.getElementById('hatch-content').innerHTML = `
-    <div id="hatch-title">✦ &nbsp; THE EGG HATCHES &nbsp; ✦</div>
-    <pre id="creature-art">${artHtml}</pre>
-    <div id="creature-name" style="color:${creature.color}">&ldquo;${escHtml(creature.name)}&rdquo;</div>
-    <div id="creature-traits">Traits: ${creature.traits.join(' &middot; ')}</div>
-    <div id="creature-diet">Diet: ${escHtml(creature.diet)}</div>
-    <div id="hatch-restart">Press R to hatch another</div>
+  document.getElementById('egg-info').innerHTML = `
+    <div id="creature-name-display" style="color:${creature.color}">
+      &ldquo;${escHtml(creature.name)}&rdquo;
+    </div>
+    <div id="creature-traits-display">${creature.traits.join(' &middot; ')}</div>
+    <div id="creature-diet-display">${escHtml(creature.diet)}</div>
+    <div id="restart-hint">Press R to hatch another</div>
   `;
 }
 
 function render() {
-  if (G.phase === 'hatched') renderHatch();
-  else renderNormal();
+  if (G.phase === 'animating') return; // animation drives its own bottom panel updates
+
+  document.getElementById('viewport').innerHTML = renderViewport();
+  renderInventory();
+  renderLog();
+
+  if (G.phase === 'playing')  renderBottomPlaying();
+  if (G.phase === 'hatched')  renderBottomHatched();
 }
 
 // ================================================================
@@ -650,15 +772,19 @@ function render() {
 // ================================================================
 
 const MOVE_KEYS = {
-  ArrowUp:    [ 0, -1], ArrowDown:  [ 0,  1],
-  ArrowLeft:  [-1,  0], ArrowRight: [ 1,  0],
-  w: [0,-1], s: [0,1], a: [-1,0], d: [1,0],
-  W: [0,-1], S: [0,1], A: [-1,0], D: [1,0],
+  ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0],
+  w:[0,-1], s:[0,1], a:[-1,0], d:[1,0],
+  W:[0,-1], S:[0,1], A:[-1,0], D:[1,0],
 };
 
 document.addEventListener('keydown', e => {
   if (e.key === 'r' || e.key === 'R') { newGame(); return; }
   if (e.key === 'f' || e.key === 'F') { tryFeed(); return; }
+  if (FOOD_KEY_MAP[e.key]) {
+    selectedFood = FOOD_KEY_MAP[e.key];
+    if (G && G.phase === 'playing') render();
+    return;
+  }
   const mv = MOVE_KEYS[e.key];
   if (mv) { e.preventDefault(); tryMove(mv[0], mv[1]); }
 });
