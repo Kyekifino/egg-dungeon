@@ -1,0 +1,203 @@
+/* ── Reset & base ─────────────────────────────────────────── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #080808;
+  color: #c8c4a8;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 15px;
+  line-height: 1.2;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ── App shell ────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+#header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 2px;
+}
+
+#title {
+  color: #f0e060;
+  font-size: 1.1rem;
+  letter-spacing: 0.3em;
+  text-shadow: 0 0 10px #f0e06066;
+  animation: flicker 6s infinite;
+}
+
+#controls {
+  font-size: 0.72rem;
+  color: #555;
+}
+
+/* ── Main game view ───────────────────────────────────────── */
+#game-view {
+  display: flex;
+  gap: 10px;
+}
+
+/* ── Viewport ─────────────────────────────────────────────── */
+#viewport {
+  width: 450px;   /* 50 chars × 9px */
+  height: 396px;  /* 22 rows × 18px */
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #050505;
+  border: 1px solid #1e1e1e;
+}
+
+/* ── Sidebar ──────────────────────────────────────────────── */
+#sidebar {
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel {
+  border: 1px solid #1e1e1e;
+  padding: 6px 8px;
+}
+
+.panel-title {
+  color: #555;
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  margin-bottom: 5px;
+  border-bottom: 1px solid #1a1a1a;
+  padding-bottom: 3px;
+}
+
+/* ── Inventory ────────────────────────────────────────────── */
+#inv-list div {
+  font-size: 0.85rem;
+  padding: 1px 0;
+}
+
+/* ── Egg panel ────────────────────────────────────────────── */
+#egg-mini {
+  font-size: 1.6rem;
+  color: #f0e060;
+  text-align: center;
+  text-shadow: 0 0 12px #f0e06088;
+  animation: pulse 2s ease-in-out infinite;
+  margin: 4px 0;
+}
+
+#egg-bar {
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  margin: 4px 0 2px;
+}
+
+#egg-fed {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+#egg-hint {
+  font-size: 0.7rem;
+  color: #444;
+  margin-top: 3px;
+}
+
+/* ── Log ──────────────────────────────────────────────────── */
+#log {
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+#log::-webkit-scrollbar { display: none; }
+
+.log-line {
+  font-size: 0.75rem;
+  color: #666;
+  padding: 1px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-line:last-child {
+  color: #999;
+}
+
+/* ── Hatch screen ─────────────────────────────────────────── */
+#hatch-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 660px;
+  height: 430px;
+  border: 1px solid #1e1e1e;
+  background: #050505;
+}
+
+#hatch-content {
+  text-align: center;
+}
+
+#hatch-title {
+  font-size: 1rem;
+  letter-spacing: 0.3em;
+  color: #f0e060;
+  text-shadow: 0 0 12px #f0e06088;
+  margin-bottom: 16px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+#creature-art {
+  display: inline-block;
+  font-size: 1rem;
+  line-height: 1.3;
+  text-align: left;
+  margin-bottom: 14px;
+}
+
+#creature-name {
+  font-size: 1.05rem;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+#creature-traits {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 18px;
+}
+
+#creature-diet {
+  font-size: 0.72rem;
+  color: #444;
+  margin-bottom: 16px;
+}
+
+#hatch-restart {
+  font-size: 0.75rem;
+  color: #444;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ── Animations ───────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+@keyframes flicker {
+  0%, 92%, 94%, 96%, 100% { opacity: 1; }
+  93%  { opacity: 0.5; }
+  95%  { opacity: 0.8; }
+}
