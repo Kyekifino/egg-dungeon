@@ -87,13 +87,11 @@ body {
 }
 
 /* ── Egg panel ────────────────────────────────────────────── */
-#egg-mini {
-  font-size: 1.6rem;
-  color: #f0e060;
+#egg-stage {
+  font-size: 0.82rem;
+  line-height: 1.25;
   text-align: center;
-  text-shadow: 0 0 12px #f0e06088;
-  animation: pulse 2s ease-in-out infinite;
-  margin: 4px 0;
+  margin: 4px 0 2px;
 }
 
 #egg-bar {
@@ -140,7 +138,7 @@ body {
   align-items: center;
   justify-content: center;
   width: 660px;
-  height: 430px;
+  min-height: 430px;
   border: 1px solid #1e1e1e;
   background: #050505;
 }

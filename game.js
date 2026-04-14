@@ -5,10 +5,10 @@
 // ================================================================
 
 // ── Config ───────────────────────────────────────────────────────
-const DW = 72, DH = 36;          // dungeon dimensions (cols, rows)
-const VW = 50, VH = 22;          // viewport size
-const LIGHT_R = 6;                // sight radius
-const FOOD_NEEDED = 10;           // items needed to hatch
+const DW = 72, DH = 36;
+const VW = 50, VH = 22;
+const LIGHT_R = 6;
+const FOOD_NEEDED = 10;
 const MAX_LOG = 7;
 
 // ── Food definitions ──────────────────────────────────────────────
@@ -20,8 +20,9 @@ const FOOD_INFO = {
   ',': { name: 'Grain',    key: 'grain',    color: '#d0a040' },
 };
 const FOOD_CHARS = Object.keys(FOOD_INFO);
+const FOOD_ORDER = ['meat', 'fish', 'berries', 'mushroom', 'grain'];
 
-// ── Cell colours (in-light / revealed-but-dim) ────────────────────
+// ── Cell colours ──────────────────────────────────────────────────
 const CLR = {
   bright: {
     '#': '#777', '.': '#2e2e2e', 'Θ': '#fff080', '@': '#ffffff',
@@ -34,10 +35,75 @@ const CLR = {
 };
 
 // ── Utilities ─────────────────────────────────────────────────────
-const rand   = (a, b) => Math.floor(Math.random() * (b - a)) + a;
-const pick   = arr => arr[rand(0, arr.length)];
-const cap    = s => s.charAt(0).toUpperCase() + s.slice(1);
+const rand    = (a, b) => Math.floor(Math.random() * (b - a)) + a;
+const pick    = arr => arr[rand(0, arr.length)];
+const cap     = s => s.charAt(0).toUpperCase() + s.slice(1);
 const escHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// ================================================================
+//  EGG STAGE ART
+// ================================================================
+
+const EGG_STAGES = [
+  { // 0 fed — pristine
+    color: '#c8b840',
+    art: [
+      "   _____   ",
+      "  /     \\  ",
+      " |       | ",
+      " |       | ",
+      "  \\_____/  ",
+    ],
+  },
+  { // 1–3 fed — warm
+    color: '#e0c030',
+    art: [
+      "   _____   ",
+      "  / · · \\  ",
+      " | · · · | ",
+      " |  · ·  | ",
+      "  \\_____/  ",
+    ],
+  },
+  { // 4–6 fed — cracking
+    color: '#e89020',
+    art: [
+      "   __v__   ",
+      "  /  |  \\  ",
+      " | v | v | ",
+      " |  \\|/  | ",
+      "  \\_____/  ",
+    ],
+  },
+  { // 7–9 fed — shattering
+    color: '#e05010',
+    art: [
+      "  _/\\_/_   ",
+      " / \\ v /\\  ",
+      "|  /\\/  \\| ",
+      "| /  \\/v | ",
+      " \\/______/ ",
+    ],
+  },
+  { // 10 fed — glowing
+    color: '#ffffff',
+    art: [
+      "  *_____*  ",
+      " */ * * \\* ",
+      " |* * * *| ",
+      " |* * * *| ",
+      "  \\*___*/  ",
+    ],
+  },
+];
+
+function getEggStage(fed) {
+  if (fed >= 10) return 4;
+  if (fed >= 7)  return 3;
+  if (fed >= 4)  return 2;
+  if (fed >= 1)  return 1;
+  return 0;
+}
 
 // ================================================================
 //  DUNGEON GENERATION
@@ -83,10 +149,10 @@ function generateDungeon() {
     }
   }
 
-  if (rooms.length < 2) return generateDungeon(); // retry if too few rooms
+  if (rooms.length < 2) return generateDungeon();
 
-  // Sort left-to-right, then connect sequentially
   rooms.sort((a, b) => roomCenter(a).x - roomCenter(b).x);
+
   for (let i = 1; i < rooms.length; i++) {
     const a = roomCenter(rooms[i - 1]);
     const b = roomCenter(rooms[i]);
@@ -99,7 +165,7 @@ function generateDungeon() {
     }
   }
 
-  // Extra loops for navigability
+  // Extra loops
   for (let i = 0; i < 2; i++) {
     const ai = rand(0, rooms.length);
     let bi = rand(0, rooms.length - 1);
@@ -118,10 +184,11 @@ function generateDungeon() {
     if (d < eggDist) { eggIdx = i; eggDist = d; }
   });
 
-  const eggPos = roomCenter(rooms[eggIdx]);
+  const eggRoom = rooms[eggIdx];
+  const eggPos  = roomCenter(eggRoom);
   grid[eggPos.y][eggPos.x] = 'Θ';
 
-  // Scatter food in non-egg rooms
+  // Scatter food
   rooms.forEach((r, i) => {
     if (i === eggIdx) return;
     const n = rand(2, 5);
@@ -129,16 +196,24 @@ function generateDungeon() {
     for (let t = 0; t < n * 10 && placed < n; t++) {
       const fx = rand(r.x + 1, r.x + r.w - 1);
       const fy = rand(r.y + 1, r.y + r.h - 1);
-      if (grid[fy][fx] === '.') {
-        grid[fy][fx] = pick(FOOD_CHARS);
-        placed++;
-      }
+      if (grid[fy][fx] === '.') { grid[fy][fx] = pick(FOOD_CHARS); placed++; }
     }
   });
 
-  // Player starts in first non-egg room
-  const startIdx = eggIdx === 0 ? 1 : 0;
-  const startPos = roomCenter(rooms[startIdx]);
+  // Player starts in the egg room, offset from the egg
+  let startPos = null;
+  for (let dx = -eggRoom.w; dx <= eggRoom.w && !startPos; dx++) {
+    for (let dy = -eggRoom.h; dy <= eggRoom.h && !startPos; dy++) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = eggPos.x + dx, ny = eggPos.y + dy;
+      if (nx >= eggRoom.x && nx < eggRoom.x + eggRoom.w &&
+          ny >= eggRoom.y && ny < eggRoom.y + eggRoom.h &&
+          grid[ny][nx] === '.') {
+        startPos = { x: nx, y: ny };
+      }
+    }
+  }
+  if (!startPos) startPos = { x: eggPos.x + 1, y: eggPos.y };
 
   return { grid, rooms, eggPos, startPos };
 }
@@ -147,52 +222,130 @@ function generateDungeon() {
 //  CREATURE GENERATION
 // ================================================================
 
-// Base ASCII art per dominant food (7 lines, ~13 chars each)
 const BASES = {
   meat: [
-    "    /\\  /\\   ",
-    "   ( >':< )  ",
-    "   /|    |\\  ",
-    "  ( |####| ) ",
-    "   \\|    |/  ",
-    "    /|  |\\   ",
-    "   /_|  |_\\  ",
+    "      /\\    /\\      ",
+    "     (  \\  //  )    ",
+    "    ( >=':':=< )    ",
+    "    /|   ()   |\\    ",
+    "   / |  /##\\  | \\   ",
+    "  (  | |####| |  )  ",
+    "   \\ |  \\##/  | /   ",
+    "    \\|         |/   ",
+    "     /|  ||  |\\     ",
+    "    /_\\__|  |__/\\   ",
   ],
   fish: [
-    "    ~~~~~    ",
-    " ><(  . . )> ",
-    "  /~~~~~~~\\  ",
-    " ( ~~~~~~~ ) ",
-    "  \\~~~~~~/>< ",
-    "    ~~~~~    ",
-    "             ",
+    "         ~~~        ",
+    "   ><(  o . o  )><  ",
+    "    /~~~~~~~~~~~\\   ",
+    "   | ~~~~~~~~~~~ |  ",
+    "  (  ~~~~~~~~~~~  ) ",
+    "   | ~~~~~~~~~~~ |  ",
+    "    \\~~~~~~~~~~~/   ",
+    "     )~~~~~~~~~(    ",
+    "    /    ~~~    \\   ",
+    "   ><(         )><  ",
   ],
   berries: [
-    "  /\\/\\/\\    ",
-    "   (^v^  )   ",
-    " ~[       ]~ ",
-    " ~[ ===== ]~ ",
-    " ~[       ]~ ",
-    "   /Y   Y\\   ",
-    "  //     \\\\  ",
+    "    /\\/\\/\\/\\      ",
+    "   /\\/\\/\\/\\/\\     ",
+    "    ( ^v^    )      ",
+    "   ~[          ]~   ",
+    "   ~[  =======  ]~  ",
+    "   ~[  =======  ]~  ",
+    "   ~[          ]~   ",
+    "    /Y        Y\\    ",
+    "   / |        | \\   ",
+    "  // |        | \\\\  ",
   ],
   mushroom: [
-    "  ..oOOo..   ",
-    "  (Oo  oO)   ",
-    "   (      )  ",
-    "  (oOOOOOo)  ",
-    "   (      )  ",
-    "    | || |   ",
-    "   (_)  (_)  ",
+    "    ..oOOOo..       ",
+    "   oO        Oo     ",
+    "  ( Oo  OO  oO )    ",
+    "  (  O  ()  O  )    ",
+    "   (            )   ",
+    "  (oOOOOOOOOOOOo)   ",
+    "   (            )   ",
+    "   ( |        | )   ",
+    "   ( |        | )   ",
+    "   (_/        \\_)   ",
   ],
   grain: [
-    " /|      |\\  ",
-    "(  \\    /  ) ",
-    "  ( uwu  )   ",
-    "   { ~~~ }   ",
-    "   {     }   ",
-    "    |   |    ",
-    "   (U) (U)   ",
+    "   /|          |\\   ",
+    "  / |          | \\  ",
+    " (  \\          /  ) ",
+    "   ( u        u )   ",
+    "   {           }    ",
+    "   {  ~~~~~~~  }    ",
+    "   {           }    ",
+    "    |  |    |  |    ",
+    "    |  |    |  |    ",
+    "   (U)(        )(U) ",
+  ],
+};
+
+// Alternate variants per type for more variety
+const BASE_VARIANTS = {
+  meat: [
+    "     /\\      /\\     ",
+    "    ( _\\    /_ )    ",
+    "   ( >':::::< )     ",
+    "   /  ) (  ( )  \\   ",
+    "  / / |  ##  | \\ \\  ",
+    " (  ( |######|  ) ) ",
+    "  \\ \\ |  ##  | / /  ",
+    "   \\  )      (  /   ",
+    "    \\ /| || |\\ /    ",
+    "     V_|    |_V     ",
+  ],
+  fish: [
+    "      ~~~ ~~~       ",
+    "  ><<( o   o )>>    ",
+    "   /~~~~~~~~~~~~~\\  ",
+    "  / ~~~~~~~~~~~~~ \\ ",
+    " ( ~~~~~~~~~~~~~~~) ",
+    "  \\ ~~~~~~~~~~~~~ / ",
+    "   \\~~~~~~~~~~~~~/  ",
+    "    \\   ~~~~~   /   ",
+    "     ><(     )><    ",
+    "      ~~ ~~~ ~~     ",
+  ],
+  berries: [
+    "  /\\/\\  /\\/\\       ",
+    "  (  \\/\\/  )       ",
+    "  ( >^v^<  )        ",
+    " ~=[         ]=~    ",
+    " ~=[ ======= ]=~    ",
+    " ~=[ ======= ]=~    ",
+    " ~=[         ]=~    ",
+    "   / Y     Y \\      ",
+    "  /  |     |  \\     ",
+    " /Y  |     |  Y\\    ",
+  ],
+  mushroom: [
+    "  ...oOOOOo...      ",
+    " oO          Oo     ",
+    "( Oo oO  Oo oO )    ",
+    "(  O  ()()  O  )    ",
+    " (              )   ",
+    "(  oOOOOOOOOOo  )   ",
+    " (              )   ",
+    "  \\  |      |  /    ",
+    "   \\ |      | /     ",
+    "    \\|      |/      ",
+  ],
+  grain: [
+    "  /||          ||\\  ",
+    " / ||          || \\ ",
+    "(   \\          /   )",
+    "  ( uw        wu )  ",
+    "   {            }   ",
+    "   {  ~~~~~~~~  }   ",
+    "   {            }   ",
+    "    \\  |    |  /    ",
+    "     \\ |    | /     ",
+    "     (U)    (U)     ",
   ],
 };
 
@@ -202,19 +355,19 @@ const CREATURE_COLOR = {
 };
 
 const NAME_POOLS = {
-  meat:     { pre: ['Fang','Claw','Blood','Iron','Snarl'],   suf: ['claw','fang','jaw','bite','rend']   },
-  fish:     { pre: ['Scale','Fin','Wave','Tide','Depth'],     suf: ['fin','scale','gill','drift','slick']},
-  berries:  { pre: ['Wing','Sky','Crest','Dawn','Bright'],    suf: ['wing','feather','beak','song','gust']},
-  mushroom: { pre: ['Spore','Gloom','Shade','Murk','Glow'],   suf: ['spore','cap','stalk','eye','mold']  },
-  grain:    { pre: ['Fluff','Meadow','Downy','Plump','Toft'], suf: ['ear','tuft','seed','puff','hay']    },
+  meat:     { pre: ['Fang','Claw','Blood','Iron','Snarl','Gore'],    suf: ['claw','fang','jaw','bite','rend','crush']   },
+  fish:     { pre: ['Scale','Fin','Wave','Tide','Depth','Brine'],    suf: ['fin','scale','gill','drift','slick','eel']  },
+  berries:  { pre: ['Wing','Sky','Crest','Dawn','Bright','Ember'],   suf: ['wing','feather','beak','song','gust','ash'] },
+  mushroom: { pre: ['Spore','Gloom','Shade','Murk','Glow','Dread'],  suf: ['spore','cap','stalk','eye','mold','void']   },
+  grain:    { pre: ['Fluff','Meadow','Downy','Plump','Soft','Round'],suf: ['ear','tuft','seed','puff','hay','mane']     },
 };
 
 const TITLE_POOLS = {
-  meat:     ['the Fierce', 'the Relentless', 'the Savage', 'the Hungry'],
-  fish:     ['the Swift',  'the Deep',       'the Slippery','the Silent'],
-  berries:  ['the Radiant','the Free',       'the Wandering','the Bright'],
-  mushroom: ['the Eerie',  'the Ancient',    'the Strange', 'the Watchful'],
-  grain:    ['the Fluffy', 'the Gentle',     'the Round',   'the Warm'],
+  meat:     ['the Fierce', 'the Relentless', 'the Savage', 'the Hungry', 'the Feral'],
+  fish:     ['the Swift',  'the Deep',       'the Slippery','the Silent','the Ancient'],
+  berries:  ['the Radiant','the Free',       'the Wandering','the Bright','the Blazing'],
+  mushroom: ['the Eerie',  'the Ancient',    'the Strange', 'the Watchful','the Dreaming'],
+  grain:    ['the Fluffy', 'the Gentle',     'the Round',   'the Warm',   'the Plump'],
 };
 
 const TRAIT_NAMES = {
@@ -234,36 +387,37 @@ function generateCreature(eggInv) {
   const dom = ranked[0] || 'grain';
   const sec = ranked[1] || null;
 
-  // Copy base art
-  const lines = BASES[dom].map(l => l);
+  // Randomly pick base or variant
+  const useVariant = Math.random() < 0.5 && BASE_VARIANTS[dom];
+  const lines = (useVariant ? BASE_VARIANTS[dom] : BASES[dom]).map(l => l);
 
   // Secondary food modifies one line
   if (sec && sec !== dom) {
     switch (sec) {
-      case 'mushroom': // extra eye on head
-        lines[1] = lines[1].replace('.', 'O');
+      case 'mushroom': // extra eyes on head line
+        lines[2] = lines[2].replace(/[·.]/g, 'O').replace('()', '(O)');
         break;
-      case 'berries': // wings appear on mid body
-        lines[3] = '~' + lines[3].slice(1, -1) + '~';
+      case 'berries': // wings on mid body
+        lines[4] = '~' + lines[4].trim().padEnd(18) + '~';
         break;
-      case 'fish': // fin on top
-        lines[0] = '     ~~~     ';
+      case 'fish': // dorsal fin on top
+        lines[0] = '        ~~~~~       ';
         break;
       case 'meat': // claws on feet
-        lines[6] = lines[6].replace(/\(([A-Z_|/\\])/g, '<($1');
+        lines[9] = lines[9].replace(/\(([A-Za-z])/g, '/($1').replace(/([A-Za-z])\)/g, '$1)\\');
         break;
       case 'grain': // fluffy belly
-        lines[4] = lines[4].replace(/[-|]/g, '~');
+        lines[6] = lines[6].replace(/[-=|]/g, '~');
         break;
     }
   }
 
   // Name
-  const np = NAME_POOLS[dom];
+  const np  = NAME_POOLS[dom];
   const pre = pick(np.pre);
   const suf = sec ? pick(NAME_POOLS[sec].suf) : pick(np.suf);
   const title = pick(TITLE_POOLS[dom]);
-  const name = cap(pre + suf) + ' ' + title;
+  const name  = cap(pre + suf) + ' ' + title;
 
   // Traits
   const traits = ranked.map(k => TRAIT_NAMES[k]);
@@ -288,6 +442,11 @@ function emptyInv() {
 }
 
 function newGame() {
+  // Reset view state first
+  document.getElementById('game-view').hidden = false;
+  document.getElementById('hatch-view').hidden = true;
+  document.getElementById('hatch-content').innerHTML = '';
+
   const { grid, rooms, eggPos, startPos } = generateDungeon();
   G = {
     grid,
@@ -297,11 +456,11 @@ function newGame() {
     px: startPos.x,
     py: startPos.y,
     inventory: emptyInv(),
-    eggInv:    emptyInv(),   // cumulative food fed to egg
+    eggInv:    emptyInv(),
     eggFed:    0,
-    phase:     'playing',    // 'playing' | 'hatched'
+    phase:     'playing',
     creature:  null,
-    log: ['You descend into the dungeon.', 'Collect food and feed the Egg (Θ)!'],
+    log: ['You stand before the Egg.', 'Bring it food and feed it (F)!'],
   };
   updateFOV();
   render();
@@ -341,7 +500,6 @@ function tryMove(dx, dy) {
 
   G.px = nx; G.py = ny;
 
-  // Pick up food
   const info = FOOD_INFO[cell];
   if (info) {
     G.inventory[info.key]++;
@@ -363,34 +521,28 @@ function tryFeed() {
     return;
   }
 
-  const total = Object.values(G.inventory).reduce((a, b) => a + b, 0);
-  if (total === 0) {
+  // Feed one item at a time, in fixed priority order
+  const key = FOOD_ORDER.find(k => G.inventory[k] > 0);
+  if (!key) {
     addLog('You have no food to offer!');
     render();
     return;
   }
 
-  // Transfer inventory to egg
-  const parts = [];
-  for (const [k, v] of Object.entries(G.inventory)) {
-    if (v > 0) {
-      G.eggInv[k] += v;
-      parts.push(`${v}x ${k}`);
-      G.inventory[k] = 0;
-    }
-  }
-  G.eggFed += total;
-  addLog(`You feed the egg: ${parts.join(', ')}. (${G.eggFed}/${FOOD_NEEDED})`);
+  G.inventory[key]--;
+  G.eggInv[key]++;
+  G.eggFed++;
+  addLog(`You feed the egg ${key}. (${G.eggFed}/${FOOD_NEEDED})`);
+
+  render(); // show updated count (including 10/10) before hatching
 
   if (G.eggFed >= FOOD_NEEDED) {
-    hatch();
-  } else {
-    render();
+    setTimeout(hatch, 900);
   }
 }
 
 function hatch() {
-  G.phase = 'hatched';
+  G.phase    = 'hatched';
   G.creature = generateCreature(G.eggInv);
   render();
 }
@@ -414,19 +566,15 @@ function renderViewport() {
     for (let vx = 0; vx < VW; vx++) {
       const gx = camX + vx;
       if (gx >= DW || gy >= DH) { html += span(' ', '#000'); continue; }
-
-      // Player
       if (gx === px && gy === py) { html += span('@', CLR.bright['@']); continue; }
 
       const inLight = Math.hypot(gx - px, gy - py) <= LIGHT_R;
       const seen    = revealed[gy][gx];
-
       if (!seen && !inLight) { html += span(' ', '#000'); continue; }
 
       const ch    = grid[gy][gx];
       const table = inLight ? CLR.bright : CLR.dim;
-      const color = table[ch] || (inLight ? '#aaa' : '#333');
-      html += span(ch, color);
+      html += span(ch, table[ch] || (inLight ? '#aaa' : '#333'));
     }
     if (vy < VH - 1) html += '\n';
   }
@@ -437,7 +585,6 @@ function renderNormal() {
   document.getElementById('game-view').hidden = false;
   document.getElementById('hatch-view').hidden = true;
 
-  // Viewport
   document.getElementById('viewport').innerHTML = renderViewport();
 
   // Inventory
@@ -449,18 +596,24 @@ function renderNormal() {
   }
   document.getElementById('inv-list').innerHTML = invHtml;
 
-  // Egg progress bar
+  // Egg stage art
+  const stage = EGG_STAGES[getEggStage(G.eggFed)];
+  const eggArtHtml = stage.art
+    .map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`)
+    .join('\n');
+  document.getElementById('egg-stage').innerHTML = eggArtHtml;
+
+  // Progress bar
   const pct    = Math.min(1, G.eggFed / FOOD_NEEDED);
   const filled = Math.floor(pct * 10);
   const bar    = '█'.repeat(filled) + '░'.repeat(10 - filled);
-  const barClr = pct >= 1 ? '#f0e060' : (pct > 0 ? '#a09030' : '#333');
+  const barClr = pct >= 1 ? '#ffffff' : (pct > 0 ? '#c09030' : '#333');
   document.getElementById('egg-bar').innerHTML = `<span style="color:${barClr}">${bar}</span>`;
   document.getElementById('egg-fed').textContent = `${G.eggFed} / ${FOOD_NEEDED} fed`;
 
   // Proximity hint
   const dist = Math.abs(G.px - G.eggPos.x) + Math.abs(G.py - G.eggPos.y);
-  const hint = dist <= 1 ? 'Press F to feed!' : '';
-  document.getElementById('egg-hint').textContent = hint;
+  document.getElementById('egg-hint').textContent = dist <= 1 ? 'Press F to feed!' : '';
 
   // Log
   const logEl = document.getElementById('log');
