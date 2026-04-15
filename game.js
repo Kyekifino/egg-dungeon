@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.6';
+const VERSION = '1.7';
 
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
@@ -368,6 +368,42 @@ const CREATURE_COLOR = {
   meat:'#e05050', fish:'#5090e0', berries:'#d060d0', mushroom:'#50c080', grain:'#d0a040'
 };
 
+// Reverse of TRAIT_NAMES — used to recover dom/sec from old save data that predates
+// storing dom/sec directly on the creature.
+const TRAIT_TO_FOOD = Object.fromEntries(
+  Object.entries(TRAIT_NAMES).map(([k,v]) => [v,k])
+);
+
+// Regenerate creature.lines from its hash + dom/sec.
+// Mirrors the art-generation portion of generateCreature exactly.
+// Safe to call on old saves: falls back to TRAIT_TO_FOOD when dom isn't stored.
+function regenLines(c) {
+  const dom = c.dom ?? TRAIT_TO_FOOD[c.traits?.[0]];
+  if (!dom || !BODY_PARTS[dom]) return;
+  const sec = c.sec ?? TRAIT_TO_FOOD[c.traits?.[1]] ?? null;
+
+  const rng   = mulberry32(c.hashVal);
+  const lines = BODY_PARTS[dom].map(rowPool => rng.pick(rowPool));
+
+  const fillSub = FILL_SUBS[dom];
+  const fillCh  = rng.pick(fillSub.to);
+  if (fillCh !== fillSub.from)
+    for (let i=0; i<lines.length; i++) lines[i] = lines[i].split(fillSub.from).join(fillCh);
+
+  if (sec && sec !== dom) {
+    switch(sec) {
+      case 'mushroom': lines[2]=lines[2].replace('.','O').replace('()','(O)'); break;
+      case 'berries':  { const l=lines[4].trim(); lines[4]='~'+l.padEnd(18)+'~'; break; }
+      case 'fish':     lines[0]='         ~~~        '; break;
+      case 'meat':     lines[9]=lines[9].replace(/\(([A-Za-z])/g,'/($1'); break;
+      case 'grain':    lines[6]=lines[6].replace(/[-=|]/g,'~'); break;
+    }
+  }
+
+  if (c.rarity?.name === 'Legendary') lines[0] = '   * * * * * * *   ';
+  c.lines = lines;
+}
+
 const NAME_POOLS = {
   meat:    {pre:['Fang','Claw','Blood','Iron','Snarl','Gore','Rend','Bone','Dire','Grim'],
             suf:['claw','fang','jaw','bite','rend','crush','slash','gnaw','maw','tear']},
@@ -456,7 +492,7 @@ function generateCreature(egg) {
   const diet   = Object.entries(inv).filter(([k,v])=>v>0&&FOOD_KEYS.includes(k)).map(([k,v])=>`${v}x ${k}`).join(', ');
   const id     = toID(hashVal);
 
-  return { id, hashVal, hashStr, name, color, rarity, lines, traits, diet };
+  return { id, hashVal, hashStr, name, color, rarity, lines, traits, diet, dom, sec };
 }
 
 // ================================================================
@@ -571,6 +607,7 @@ function tryFeed() {
   if (!G.egg) { addLog('No egg to feed! Press R in a room.'); render(); return; }
   const dist=Math.abs(G.px-G.egg.x)+Math.abs(G.py-G.egg.y);
   if (dist>1) { addLog('Move adjacent to the Egg (Θ) to feed it.'); render(); return; }
+  if (G.egg.fed >= FOOD_NEEDED) return;
   const key=selectedFood;
 
   // Gem: boost rarity roll instead of feeding
@@ -870,7 +907,7 @@ function buildSaveData() {
     egg: G.egg,
     phase: G.phase==='animating'?'playing':G.phase,
     creature: G.creature,
-    collection: G.collection,
+    collection: G.collection.map(({lines:_,...c})=>c),
     chunkData,
     revealed:[...G.revealed],
     log: G.log,
@@ -899,6 +936,9 @@ function applySaveData(data) {
     animFrames:[], animFrame:0,
     log:data.log||[],
   };
+  // Regenerate art from hash so collection always reflects latest generation code
+  G.collection.forEach(regenLines);
+  if (G.creature) regenLines(G.creature);
   updateFOV();
 }
 
