@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.11';
+const VERSION = '1.12';
 
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
@@ -517,9 +517,13 @@ let animCancelled = false;
 let selectedFood  = 'meat';   // persists across eggs
 
 // ── Idle animations ───────────────────────────────────────────────
-let idleGen           = 0;    // incremented on hard renders; in-flight frames bail when stale
-let eggShakeTimer     = null;
-let creatureBlinkTimer= null;
+let idleGen            = 0;   // incremented on hard renders; in-flight frames bail when stale
+let eggShakeTimer      = null;
+let creatureBlinkTimer = null;
+let creatureJiggleTimer= null;
+let colIdleGen         = 0;   // separate counter for collection-panel animations
+let colBlinkTimer      = null;
+let colJiggleTimer     = null;
 
 // Which row index holds the face/eyes for each food type
 const EYE_ROW  = { meat:2, fish:1, berries:2, mushroom:3, grain:2 };
@@ -530,7 +534,25 @@ function stopIdleAnims() {
   idleGen++;
   clearTimeout(eggShakeTimer);
   clearTimeout(creatureBlinkTimer);
-  eggShakeTimer = creatureBlinkTimer = null;
+  clearTimeout(creatureJiggleTimer);
+  eggShakeTimer = creatureBlinkTimer = creatureJiggleTimer = null;
+}
+
+function stopColAnims() {
+  colIdleGen++;
+  clearTimeout(colBlinkTimer);
+  clearTimeout(colJiggleTimer);
+  colBlinkTimer = colJiggleTimer = null;
+}
+
+// Returns the creature currently selected in the collection panel.
+function getColSelected() {
+  const {collection} = G;
+  if (!collection?.length) return null;
+  const order = {'Legendary':0,'Rare':1,'Uncommon':2,'Common':3};
+  const sorted = [...collection].sort((a,b) =>
+    (order[a.rarity.name]??9)-(order[b.rarity.name]??9)||a.name.localeCompare(b.name));
+  return sorted[Math.max(0, Math.min(G.colSelectedIdx, sorted.length-1))];
 }
 
 // Shift every line in an art array laterally by dx chars (±1 for wobble)
@@ -570,7 +592,6 @@ function triggerCreatureBlink() {
   const orig   = c.lines[ri];
   const closed = orig.replace(/[oO.:]/g, ch => BLINK_MAP[ch] ?? ch);
   if (closed === orig) {
-    // Nothing to blink on this creature — try again later
     creatureBlinkTimer = setTimeout(triggerCreatureBlink, 3000);
     return;
   }
@@ -585,6 +606,66 @@ function triggerCreatureBlink() {
       c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
     creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500 + rand(0, 2000));
   }, 180);
+}
+
+function triggerCreatureJiggle() {
+  creatureJiggleTimer = null;
+  if (G?.phase !== 'hatched' || !G.creature) return;
+  const c   = G.creature;
+  const gen = ++idleGen;
+  const offsets = [1, 0, -1, 0];
+  let fi = 0;
+  (function nextFrame() {
+    if (idleGen !== gen) return;
+    document.getElementById('egg-display').innerHTML =
+      shiftArt(c.lines, offsets[fi])
+        .map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+    if (++fi < offsets.length) setTimeout(nextFrame, 70);
+  })();
+  creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
+}
+
+function triggerColBlink() {
+  colBlinkTimer = null;
+  if (!G?.showCollection) return;
+  const c = getColSelected();
+  if (!c) return;
+  const ri     = EYE_ROW[c.dom] ?? 2;
+  const orig   = c.lines[ri];
+  const closed = orig.replace(/[oO.:]/g, ch => BLINK_MAP[ch] ?? ch);
+  if (closed === orig) {
+    colBlinkTimer = setTimeout(triggerColBlink, 3000);
+    return;
+  }
+  const gen     = ++colIdleGen;
+  const blinked = [...c.lines];
+  blinked[ri]   = closed;
+  document.getElementById('col-art').innerHTML =
+    blinked.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+  setTimeout(() => {
+    if (colIdleGen !== gen) return;
+    document.getElementById('col-art').innerHTML =
+      c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+    colBlinkTimer = setTimeout(triggerColBlink, 2500 + rand(0, 2000));
+  }, 180);
+}
+
+function triggerColJiggle() {
+  colJiggleTimer = null;
+  if (!G?.showCollection) return;
+  const c = getColSelected();
+  if (!c) return;
+  const gen     = ++colIdleGen;
+  const offsets = [1, 0, -1, 0];
+  let fi = 0;
+  (function nextFrame() {
+    if (colIdleGen !== gen) return;
+    document.getElementById('col-art').innerHTML =
+      shiftArt(c.lines, offsets[fi])
+        .map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+    if (++fi < offsets.length) setTimeout(nextFrame, 70);
+  })();
+  colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
 }
 
 function emptyInv() { return {meat:0,fish:0,berries:0,mushroom:0,grain:0,gem:0}; }
@@ -770,7 +851,7 @@ function runAnimFrame() {
   const frame=G.animFrames[G.animFrame];
   renderAnimFrame(frame);
   if (frame.delay===0) {
-    setTimeout(()=>{ if(!animCancelled){G.phase='hatched';render();creatureBlinkTimer=setTimeout(triggerCreatureBlink,2500);} }, 400);
+    setTimeout(()=>{ if(!animCancelled){G.phase='hatched';render();creatureBlinkTimer=setTimeout(triggerCreatureBlink,2500);creatureJiggleTimer=setTimeout(triggerCreatureJiggle,6000+rand(0,8000));} }, 400);
     return;
   }
   G.animFrame++;
@@ -953,8 +1034,11 @@ function renderCollection() {
   const selEl=document.querySelector('#col-list .col-selected');
   if (selEl) selEl.scrollIntoView({block:'nearest'});
 
+  colIdleGen++;   // cancel any in-flight col animation
   document.getElementById('col-art').innerHTML=
     sel.lines.map(l=>`<span style="color:${sel.color}">${escHtml(l)}</span>`).join('\n');
+  if (!colBlinkTimer)  colBlinkTimer  = setTimeout(triggerColBlink,  2500 + rand(0, 2000));
+  if (!colJiggleTimer) colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
 
   document.getElementById('col-detail-info').innerHTML=`
     <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
@@ -1029,8 +1113,11 @@ function applySaveData(data) {
   G.collection.forEach(regenLines);
   if (G.creature) regenLines(G.creature);
   updateFOV();
-  if (G.phase==='playing'  && G.egg)      eggShakeTimer      = setTimeout(triggerEggShake,      1500);
-  if (G.phase==='hatched'  && G.creature) creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500);
+  if (G.phase==='playing' && G.egg) eggShakeTimer = setTimeout(triggerEggShake, 1500);
+  if (G.phase==='hatched' && G.creature) {
+    creatureBlinkTimer  = setTimeout(triggerCreatureBlink,  2500);
+    creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
+  }
 }
 
 async function saveGame() {
@@ -1107,7 +1194,11 @@ document.addEventListener('keydown',e=>{
   if (e.ctrlKey&&e.key==='s') { e.preventDefault(); saveGame(); return; }
   if (e.ctrlKey&&e.key==='o') { e.preventDefault(); loadGame(); return; }
   if (!G) return;
-  if (e.key==='c'||e.key==='C') { G.showCollection=!G.showCollection; render(); return; }
+  if (e.key==='c'||e.key==='C') {
+    G.showCollection=!G.showCollection;
+    if (!G.showCollection) stopColAnims();
+    render(); return;
+  }
   if (G.showCollection) {
     const n=G.collection.length;
     if (e.key==='ArrowUp'||e.key==='w'||e.key==='W') {
