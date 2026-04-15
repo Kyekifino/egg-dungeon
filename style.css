@@ -170,3 +170,6 @@ body {
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes pulse  { 0%,100%{opacity:.4} 50%{opacity:1} }
 @keyframes flicker { 0%,92%,94%,96%,100%{opacity:1} 93%{opacity:.5} 95%{opacity:.8} }
+@keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+.idle-bob      { animation: bob 2.2s ease-in-out infinite; }
+.idle-bob-slow { animation: bob 3.4s ease-in-out infinite; }

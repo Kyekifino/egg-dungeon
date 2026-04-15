@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.9';
+const VERSION = '1.10';
 
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
@@ -781,15 +781,19 @@ function renderWorldPanel() {
 }
 
 function renderBottomPlaying() {
+  const eggDisp=document.getElementById('egg-display');
   if (!G.egg) {
-    document.getElementById('egg-display').innerHTML=
+    eggDisp.classList.remove('idle-bob','idle-bob-slow');
+    eggDisp.innerHTML=
       `<span style="color:#2a2a2a">${EGG_STAGES[0].art.join('\n').replace(/./g,' ')}</span>`;
     document.getElementById('egg-info').innerHTML=
       `<div id="no-egg-msg">No egg.<br><br>Stand in a room and<br>press R to lay one.</div>`;
     return;
   }
   const stage=EGG_STAGES[getEggStage(G.egg.fed)];
-  document.getElementById('egg-display').innerHTML=
+  eggDisp.classList.remove('idle-bob-slow');
+  eggDisp.classList.add('idle-bob');
+  eggDisp.innerHTML=
     stage.art.map(l=>`<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
 
   const pct=Math.min(1,G.egg.fed/FOOD_NEEDED);
@@ -823,7 +827,9 @@ function renderBottomPlaying() {
 }
 
 function renderAnimFrame(frame) {
-  document.getElementById('egg-display').innerHTML=
+  const disp=document.getElementById('egg-display');
+  disp.classList.remove('idle-bob','idle-bob-slow');
+  disp.innerHTML=
     frame.lines.map(l=>`<span style="color:${frame.color}">${escHtml(l)}</span>`).join('\n');
   document.getElementById('egg-info').innerHTML=
     `<div id="egg-bar"><span style="color:#fff">${'█'.repeat(10)}</span></div>
@@ -833,7 +839,10 @@ function renderAnimFrame(frame) {
 
 function renderBottomHatched() {
   const {creature}=G;
-  document.getElementById('egg-display').innerHTML=
+  const disp=document.getElementById('egg-display');
+  disp.classList.remove('idle-bob');
+  disp.classList.add('idle-bob-slow');
+  disp.innerHTML=
     creature.lines.map(l=>`<span style="color:${creature.color}">${escHtml(l)}</span>`).join('\n');
   const r=creature.rarity;
   document.getElementById('egg-info').innerHTML=`
@@ -877,7 +886,9 @@ function renderCollection() {
   const selEl=document.querySelector('#col-list .col-selected');
   if (selEl) selEl.scrollIntoView({block:'nearest'});
 
-  document.getElementById('col-art').innerHTML=
+  const colArt=document.getElementById('col-art');
+  colArt.classList.add('idle-bob-slow');
+  colArt.innerHTML=
     sel.lines.map(l=>`<span style="color:${sel.color}">${escHtml(l)}</span>`).join('\n');
 
   document.getElementById('col-detail-info').innerHTML=`
