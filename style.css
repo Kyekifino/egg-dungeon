@@ -81,6 +81,7 @@ body {
   padding: 10px 14px;
   gap: 6px;
 }
+#collection-overlay[hidden] { display: none; }
 #col-header {
   display: flex;
   align-items: baseline;
