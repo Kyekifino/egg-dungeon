@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.8';
+const VERSION = '1.9';
 
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
@@ -431,7 +431,19 @@ function regenLines(c) {
   }
 
   if (c.rarity?.name === 'Legendary') lines[0] = '   * * * * * * *   ';
-  c.lines = lines;
+  c.lines = centerLines(lines);
+}
+
+// Normalize a creature's lines so they all share the same width.
+// Center-pads shorter lines with spaces so rows stay aligned when
+// the display element uses text-align:center.
+function centerLines(lines) {
+  const w = Math.max(...lines.map(l => l.length));
+  return lines.map(l => {
+    const pad = w - l.length;
+    if (!pad) return l;
+    return ' '.repeat(Math.floor(pad/2)) + l + ' '.repeat(Math.ceil(pad/2));
+  });
 }
 
 function rankFoods(inv) {
@@ -475,6 +487,7 @@ function generateCreature(egg) {
   }
 
   if (rarity.name==='Legendary') lines[0]='   * * * * * * *   ';
+  const centeredLines = centerLines(lines);
 
   const np  = NAME_POOLS[dom];
   const pre = np.pre[Math.floor(rng.next()*np.pre.length)];
@@ -492,7 +505,7 @@ function generateCreature(egg) {
   const diet   = Object.entries(inv).filter(([k,v])=>v>0&&FOOD_KEYS.includes(k)).map(([k,v])=>`${v}x ${k}`).join(', ');
   const id     = toID(hashVal);
 
-  return { id, hashVal, hashStr, name, color, rarity, lines, traits, diet, dom, sec };
+  return { id, hashVal, hashStr, name, color, rarity, lines: centeredLines, traits, diet, dom, sec };
 }
 
 // ================================================================
