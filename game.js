@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.10';
+const VERSION = '1.11';
 
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
@@ -516,10 +516,82 @@ let G             = null;
 let animCancelled = false;
 let selectedFood  = 'meat';   // persists across eggs
 
+// ── Idle animations ───────────────────────────────────────────────
+let idleGen           = 0;    // incremented on hard renders; in-flight frames bail when stale
+let eggShakeTimer     = null;
+let creatureBlinkTimer= null;
+
+// Which row index holds the face/eyes for each food type
+const EYE_ROW  = { meat:2, fish:1, berries:2, mushroom:3, grain:2 };
+// Characters that represent open eyes → closed-eye equivalents
+const BLINK_MAP = { 'o':'-', 'O':'=', '.':'-', ':':'-' };
+
+function stopIdleAnims() {
+  idleGen++;
+  clearTimeout(eggShakeTimer);
+  clearTimeout(creatureBlinkTimer);
+  eggShakeTimer = creatureBlinkTimer = null;
+}
+
+// Shift every line in an art array laterally by dx chars (±1 for wobble)
+function shiftArt(lines, dx) {
+  if (!dx) return lines;
+  return lines.map(l =>
+    dx > 0 ? ' '.repeat(dx) + l.slice(0, l.length - dx)
+           : l.slice(-dx) + ' '.repeat(-dx)
+  );
+}
+
+function triggerEggShake() {
+  eggShakeTimer = null;
+  if (G?.phase !== 'playing' || !G.egg) return;
+  const stage = EGG_STAGES[getEggStage(G.egg.fed)];
+  const gen   = ++idleGen;
+  // Wobble: right → centre → left → centre → right → centre
+  const offsets = [1, 0, -1, 0, 1, 0];
+  let fi = 0;
+  (function nextFrame() {
+    if (idleGen !== gen) return;
+    document.getElementById('egg-display').innerHTML =
+      shiftArt(stage.art, offsets[fi])
+        .map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
+    if (++fi < offsets.length) setTimeout(nextFrame, 70);
+  })();
+  // Frequency scales with how fed the egg is (gets more restless)
+  const delay = Math.max(400, 2200 - G.egg.fed * 180);
+  eggShakeTimer = setTimeout(triggerEggShake, delay);
+}
+
+function triggerCreatureBlink() {
+  creatureBlinkTimer = null;
+  if (G?.phase !== 'hatched' || !G.creature) return;
+  const c  = G.creature;
+  const ri = EYE_ROW[c.dom] ?? 2;
+  const orig   = c.lines[ri];
+  const closed = orig.replace(/[oO.:]/g, ch => BLINK_MAP[ch] ?? ch);
+  if (closed === orig) {
+    // Nothing to blink on this creature — try again later
+    creatureBlinkTimer = setTimeout(triggerCreatureBlink, 3000);
+    return;
+  }
+  const gen     = ++idleGen;
+  const blinked = [...c.lines];
+  blinked[ri]   = closed;
+  document.getElementById('egg-display').innerHTML =
+    blinked.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+  setTimeout(() => {
+    if (idleGen !== gen) return;
+    document.getElementById('egg-display').innerHTML =
+      c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+    creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500 + rand(0, 2000));
+  }, 180);
+}
+
 function emptyInv() { return {meat:0,fish:0,berries:0,mushroom:0,grain:0,gem:0}; }
 
 function newGame() {
   animCancelled = true;
+  stopIdleAnims();
   WORLD_SEED    = rand(0, 0xFFFFFF);
   chunks.clear();
 
@@ -672,9 +744,11 @@ function trySpawnEgg() {
   addLog(`Egg laid! [${BIOMES[biomeKey].name}]`);
   autoSave();
   render();
+  eggShakeTimer = setTimeout(triggerEggShake, 1500);
 }
 
 function startHatch() {
+  stopIdleAnims();
   G.creature   =generateCreature(G.egg);
   G.phase      ='animating';
   G.animFrames =buildAnimSeq(G.creature);
@@ -696,7 +770,7 @@ function runAnimFrame() {
   const frame=G.animFrames[G.animFrame];
   renderAnimFrame(frame);
   if (frame.delay===0) {
-    setTimeout(()=>{ if(!animCancelled){G.phase='hatched';render();} }, 400);
+    setTimeout(()=>{ if(!animCancelled){G.phase='hatched';render();creatureBlinkTimer=setTimeout(triggerCreatureBlink,2500);} }, 400);
     return;
   }
   G.animFrame++;
@@ -781,19 +855,16 @@ function renderWorldPanel() {
 }
 
 function renderBottomPlaying() {
-  const eggDisp=document.getElementById('egg-display');
+  idleGen++;
   if (!G.egg) {
-    eggDisp.classList.remove('idle-bob','idle-bob-slow');
-    eggDisp.innerHTML=
+    document.getElementById('egg-display').innerHTML=
       `<span style="color:#2a2a2a">${EGG_STAGES[0].art.join('\n').replace(/./g,' ')}</span>`;
     document.getElementById('egg-info').innerHTML=
       `<div id="no-egg-msg">No egg.<br><br>Stand in a room and<br>press R to lay one.</div>`;
     return;
   }
   const stage=EGG_STAGES[getEggStage(G.egg.fed)];
-  eggDisp.classList.remove('idle-bob-slow');
-  eggDisp.classList.add('idle-bob');
-  eggDisp.innerHTML=
+  document.getElementById('egg-display').innerHTML=
     stage.art.map(l=>`<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
 
   const pct=Math.min(1,G.egg.fed/FOOD_NEEDED);
@@ -827,9 +898,7 @@ function renderBottomPlaying() {
 }
 
 function renderAnimFrame(frame) {
-  const disp=document.getElementById('egg-display');
-  disp.classList.remove('idle-bob','idle-bob-slow');
-  disp.innerHTML=
+  document.getElementById('egg-display').innerHTML=
     frame.lines.map(l=>`<span style="color:${frame.color}">${escHtml(l)}</span>`).join('\n');
   document.getElementById('egg-info').innerHTML=
     `<div id="egg-bar"><span style="color:#fff">${'█'.repeat(10)}</span></div>
@@ -838,11 +907,9 @@ function renderAnimFrame(frame) {
 }
 
 function renderBottomHatched() {
+  idleGen++;
   const {creature}=G;
-  const disp=document.getElementById('egg-display');
-  disp.classList.remove('idle-bob');
-  disp.classList.add('idle-bob-slow');
-  disp.innerHTML=
+  document.getElementById('egg-display').innerHTML=
     creature.lines.map(l=>`<span style="color:${creature.color}">${escHtml(l)}</span>`).join('\n');
   const r=creature.rarity;
   document.getElementById('egg-info').innerHTML=`
@@ -886,9 +953,7 @@ function renderCollection() {
   const selEl=document.querySelector('#col-list .col-selected');
   if (selEl) selEl.scrollIntoView({block:'nearest'});
 
-  const colArt=document.getElementById('col-art');
-  colArt.classList.add('idle-bob-slow');
-  colArt.innerHTML=
+  document.getElementById('col-art').innerHTML=
     sel.lines.map(l=>`<span style="color:${sel.color}">${escHtml(l)}</span>`).join('\n');
 
   document.getElementById('col-detail-info').innerHTML=`
@@ -964,6 +1029,8 @@ function applySaveData(data) {
   G.collection.forEach(regenLines);
   if (G.creature) regenLines(G.creature);
   updateFOV();
+  if (G.phase==='playing'  && G.egg)      eggShakeTimer      = setTimeout(triggerEggShake,      1500);
+  if (G.phase==='hatched'  && G.creature) creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500);
 }
 
 async function saveGame() {
