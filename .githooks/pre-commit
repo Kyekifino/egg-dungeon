@@ -1,4 +1,8 @@
 #!/bin/sh
+# Run smoke test — abort commit if game.js fails to initialise
+node smoke.js || exit 1
+
+# Bump the minor version in game.js
 node -e "
 const fs = require('fs');
 const src = fs.readFileSync('game.js', 'utf8');

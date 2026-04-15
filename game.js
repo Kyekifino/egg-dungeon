@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.7';
+const VERSION = '1.8';
 
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
@@ -368,6 +368,36 @@ const CREATURE_COLOR = {
   meat:'#e05050', fish:'#5090e0', berries:'#d060d0', mushroom:'#50c080', grain:'#d0a040'
 };
 
+const NAME_POOLS = {
+  meat:    {pre:['Fang','Claw','Blood','Iron','Snarl','Gore','Rend','Bone','Dire','Grim'],
+            suf:['claw','fang','jaw','bite','rend','crush','slash','gnaw','maw','tear']},
+  fish:    {pre:['Scale','Fin','Wave','Tide','Depth','Brine','Coral','Drift','Foam','Ebb'],
+            suf:['fin','scale','gill','drift','slick','eel','wake','surge','kelp','lure']},
+  berries: {pre:['Wing','Sky','Crest','Dawn','Bright','Ember','Plume','Gale','Wisp','Zeph'],
+            suf:['wing','feather','beak','song','gust','ash','crest','flare','soar','talon']},
+  mushroom:{pre:['Spore','Gloom','Shade','Murk','Glow','Dread','Pall','Veil','Mist','Blight'],
+            suf:['spore','cap','stalk','eye','mold','void','rot','shade','bloom','pore']},
+  grain:   {pre:['Fluff','Meadow','Downy','Plump','Soft','Round','Wool','Burr','Tuft','Mote'],
+            suf:['ear','tuft','seed','puff','hay','mane','fluff','bristle','brush','wisp']},
+};
+
+const TITLE_POOLS = {
+  meat:    ['the Fierce','the Relentless','the Savage','the Hungry','the Feral',
+            'the Bloodthirsty','the Ruthless','the Fearsome','the Merciless','the Wrathful'],
+  fish:    ['the Swift','the Deep','the Slippery','the Silent','the Ancient',
+            'the Unfathomed','the Abyssal','the Tidal','the Murky','the Lurking'],
+  berries: ['the Radiant','the Free','the Wandering','the Bright','the Blazing',
+            'the Soaring','the Brilliant','the Vivid','the Luminous','the Untamed'],
+  mushroom:['the Eerie','the Ancient','the Strange','the Watchful','the Dreaming',
+            'the Unknowable','the Cryptic','the Eldritch','the Lurking','the Hollow'],
+  grain:   ['the Fluffy','the Gentle','the Round','the Warm','the Plump',
+            'the Cozy','the Soft','the Jolly','the Bountiful','the Drowsy'],
+};
+
+const TRAIT_NAMES = {
+  meat:'Carnivore', fish:'Aquatic', berries:'Aerial', mushroom:'Multi-eyed', grain:'Fluffy'
+};
+
 // Reverse of TRAIT_NAMES — used to recover dom/sec from old save data that predates
 // storing dom/sec directly on the creature.
 const TRAIT_TO_FOOD = Object.fromEntries(
@@ -403,36 +433,6 @@ function regenLines(c) {
   if (c.rarity?.name === 'Legendary') lines[0] = '   * * * * * * *   ';
   c.lines = lines;
 }
-
-const NAME_POOLS = {
-  meat:    {pre:['Fang','Claw','Blood','Iron','Snarl','Gore','Rend','Bone','Dire','Grim'],
-            suf:['claw','fang','jaw','bite','rend','crush','slash','gnaw','maw','tear']},
-  fish:    {pre:['Scale','Fin','Wave','Tide','Depth','Brine','Coral','Drift','Foam','Ebb'],
-            suf:['fin','scale','gill','drift','slick','eel','wake','surge','kelp','lure']},
-  berries: {pre:['Wing','Sky','Crest','Dawn','Bright','Ember','Plume','Gale','Wisp','Zeph'],
-            suf:['wing','feather','beak','song','gust','ash','crest','flare','soar','talon']},
-  mushroom:{pre:['Spore','Gloom','Shade','Murk','Glow','Dread','Pall','Veil','Mist','Blight'],
-            suf:['spore','cap','stalk','eye','mold','void','rot','shade','bloom','pore']},
-  grain:   {pre:['Fluff','Meadow','Downy','Plump','Soft','Round','Wool','Burr','Tuft','Mote'],
-            suf:['ear','tuft','seed','puff','hay','mane','fluff','bristle','brush','wisp']},
-};
-
-const TITLE_POOLS = {
-  meat:    ['the Fierce','the Relentless','the Savage','the Hungry','the Feral',
-            'the Bloodthirsty','the Ruthless','the Fearsome','the Merciless','the Wrathful'],
-  fish:    ['the Swift','the Deep','the Slippery','the Silent','the Ancient',
-            'the Unfathomed','the Abyssal','the Tidal','the Murky','the Lurking'],
-  berries: ['the Radiant','the Free','the Wandering','the Bright','the Blazing',
-            'the Soaring','the Brilliant','the Vivid','the Luminous','the Untamed'],
-  mushroom:['the Eerie','the Ancient','the Strange','the Watchful','the Dreaming',
-            'the Unknowable','the Cryptic','the Eldritch','the Lurking','the Hollow'],
-  grain:   ['the Fluffy','the Gentle','the Round','the Warm','the Plump',
-            'the Cozy','the Soft','the Jolly','the Bountiful','the Drowsy'],
-};
-
-const TRAIT_NAMES = {
-  meat:'Carnivore', fish:'Aquatic', berries:'Aerial', mushroom:'Multi-eyed', grain:'Fluffy'
-};
 
 function rankFoods(inv) {
   return Object.entries(inv)
