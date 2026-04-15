@@ -63,7 +63,11 @@ body {
 
 #inv-list div { font-size: 0.85rem; padding: 2px 0; white-space: pre; }
 
-#log { max-height: 230px; overflow-y: auto; scrollbar-width: none; }
+#world-panel { padding: 5px 8px; }
+#world-biome { font-size: 0.8rem; }
+#world-egg   { font-size: 0.75rem; color: #555; margin-top: 2px; }
+
+#log { max-height: 175px; overflow-y: auto; scrollbar-width: none; }
 #log::-webkit-scrollbar { display: none; }
 .log-line { font-size: 0.75rem; color: #555; padding: 1px 0; word-break: break-word; }
 .log-line:last-child { color: #888; }

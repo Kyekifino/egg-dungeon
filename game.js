@@ -6,9 +6,13 @@
 
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
-const LIGHT_R     = 6;
-const FOOD_NEEDED = 10;
-const MAX_LOG     = 8;
+const LIGHT_R      = 6;
+const FOOD_NEEDED  = 10;
+const MAX_LOG      = 8;
+const HUNGER_STEPS = 75;   // steps between hunger events
+const GEM_CHAR     = '$';
+const GEM_COLOR    = '#80dfff';
+const GEM_BOOST    = 1200; // rarity-roll boost per gem fed
 
 // Chunk dimensions & corridor positions (guaranteed connectivity)
 const CW = 26, CH = 16;
@@ -25,19 +29,27 @@ const FOOD_INFO = {
 };
 const FOOD_CHARS   = Object.keys(FOOD_INFO);
 const FOOD_KEYS    = ['meat','fish','berries','mushroom','grain'];
-const FOOD_KEY_MAP = {'1':'meat','2':'fish','3':'berries','4':'mushroom','5':'grain'};
+const FOOD_KEY_MAP = {'1':'meat','2':'fish','3':'berries','4':'mushroom','5':'grain','6':'gem'};
 
-// ── Cell colours ──────────────────────────────────────────────────
+// ── Biomes ───────────────────────────────────────────────────────
+const BIOMES = {
+  badlands:    { name:'Badlands',    food:'meat',     wallBright:'#7a3a2a', wallDim:'#2e1510', floorBright:'#2e1810', floorDim:'#130a07', accent:'#e05050' },
+  wetlands:    { name:'Wetlands',    food:'fish',     wallBright:'#2a4a6a', wallDim:'#101a28', floorBright:'#0e1e2e', floorDim:'#070b12', accent:'#5090e0' },
+  forest:      { name:'Forest',      food:'berries',  wallBright:'#2a5a2a', wallDim:'#0e1e0e', floorBright:'#0e1a0e', floorDim:'#060c06', accent:'#d060d0' },
+  underground: { name:'Underground', food:'mushroom', wallBright:'#4a2a6a', wallDim:'#1a0e28', floorBright:'#1e0e2e', floorDim:'#0c0712', accent:'#50c080' },
+  plains:      { name:'Plains',      food:'grain',    wallBright:'#6a5a2a', wallDim:'#281e0e', floorBright:'#221a08', floorDim:'#0c0b04', accent:'#d0a040' },
+};
+const BIOME_KEYS = Object.keys(BIOMES);
+
+// ── Cell colours (walls/floors are handled per-biome in renderViewport) ──
 const CLR = {
-  bright: { '#':'#777','.':'#2e2e2e','@':'#fff','Θ':'#fff080',
-            '%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040' },
-  dim:    { '#':'#2e2e2e','.':'#151515','@':'#fff','Θ':'#706020',
-            '%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010' },
+  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff' },
+  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060' },
 };
 
 // ── Rarity ───────────────────────────────────────────────────────
 const RARITIES = [
-  { name:'Common',    badge:'[C]', color:'#888', threshold:6000  },
+  { name:'Common',    badge:'[C]', color:'#888',    threshold:6000  },
   { name:'Uncommon',  badge:'[U]', color:'#50c050', threshold:8500  },
   { name:'Rare',      badge:'[R]', color:'#5090e0', threshold:9700  },
   { name:'Legendary', badge:'[L]', color:'#f0c030', threshold:10001 },
@@ -87,8 +99,6 @@ const toID = n => (n>>>0).toString(36).toUpperCase().padStart(7,'0');
 
 // ================================================================
 //  INFINITE CHUNK WORLD
-//  Every chunk has a guaranteed N-S corridor at local x=CORR_X and
-//  E-W corridor at local y=CORR_Y, so the world is always connected.
 // ================================================================
 
 let WORLD_SEED = 0;
@@ -102,9 +112,19 @@ function chunkSeed(cx, cy) {
   return h;
 }
 
+// Biome zones span 3×3 chunks so borders don't flicker every chunk
+function getChunkBiome(chunkX, chunkY) {
+  const zx = Math.floor(chunkX/3), zy = Math.floor(chunkY/3);
+  const h  = djb2(`b${WORLD_SEED},${zx},${zy}`);
+  return BIOME_KEYS[h % BIOME_KEYS.length];
+}
+
 function generateChunk(cx, cy) {
   const grid = Array.from({length:CH}, ()=>Array(CW).fill('#'));
   const rng  = mulberry32(chunkSeed(cx, cy));
+  const biomeKey   = getChunkBiome(cx, cy);
+  const biomeFood  = BIOMES[biomeKey].food;
+  const biomeFoodCh = FOOD_CHARS.find(c => FOOD_INFO[c].key === biomeFood);
 
   // Guaranteed corridors (infinite connectivity)
   for (let y=0; y<CH; y++) grid[y][CORR_X] = '.';
@@ -118,17 +138,25 @@ function generateChunk(cx, cy) {
     for (let y=ry; y<ry+rh; y++)
       for (let x=rx; x<rx+rw; x++)
         grid[y][x]='.';
-    // Connect room center to both corridors
     const rmx=rx+Math.floor(rw/2), rmy=ry+Math.floor(rh/2);
     let x=rmx; while(x!==CORR_X){ grid[rmy][x]='.'; x+=CORR_X>x?1:-1; }
     let y=rmy; while(y!==CORR_Y){ grid[y][rmx]='.'; y+=CORR_Y>y?1:-1; }
   }
 
-  // Scatter food (~4% on floor tiles)
+  // Scatter items on floor tiles
   for (let y=0; y<CH; y++)
-    for (let x=0; x<CW; x++)
-      if (grid[y][x]==='.' && rng.next()<0.04)
-        grid[y][x]=FOOD_CHARS[rng.int(0,FOOD_CHARS.length)];
+    for (let x=0; x<CW; x++) {
+      if (grid[y][x] !== '.') continue;
+      const r = rng.next();
+      if (r < 0.003) {
+        grid[y][x] = GEM_CHAR;          // ~0.3% gem
+      } else if (r < 0.04) {
+        // food: 65% biome type, 35% random
+        grid[y][x] = rng.next() < 0.65
+          ? biomeFoodCh
+          : FOOD_CHARS[rng.int(0, FOOD_CHARS.length)];
+      }
+    }
 
   return { grid };
 }
@@ -298,17 +326,24 @@ const TRAIT_NAMES = {
 };
 
 function rankFoods(inv) {
-  return Object.entries(inv).filter(([,v])=>v>0).sort(([,a],[,b])=>b-a).map(([k])=>k);
+  return Object.entries(inv)
+    .filter(([k,v])=>v>0 && FOOD_KEYS.includes(k))
+    .sort(([,a],[,b])=>b-a).map(([k])=>k);
 }
 
-// All creature properties deterministically derived from hash
+// All creature properties deterministically derived from hash.
+// Biome of the egg's home chunk gives a +3 bonus to its food type.
 function generateCreature(egg) {
-  const { foodSequence, rarityRoll, inv } = egg;
+  const { foodSequence, rarityRoll, inv, biome } = egg;
   const hashStr = foodSequence.join(',') + ':' + rarityRoll;
   const hashVal = djb2(hashStr);
   const rng     = mulberry32(hashVal);
   const rarity  = getRarity(rarityRoll);
-  const ranked  = rankFoods(inv);
+
+  // Apply biome influence: biome food gets a small bonus count
+  const invB = {...inv};
+  if (biome && BIOMES[biome]) invB[BIOMES[biome].food] = (invB[BIOMES[biome].food]||0) + 3;
+  const ranked  = rankFoods(invB);
   const dom     = ranked[0] ?? rng.pick(FOOD_KEYS);
   const sec     = ranked[1] ?? null;
 
@@ -325,7 +360,6 @@ function generateCreature(egg) {
     }
   }
 
-  // Legendary gets a golden shimmer line
   if (rarity.name==='Legendary') lines[0]='   * * * * * * *   ';
 
   const np  = NAME_POOLS[dom];
@@ -336,12 +370,12 @@ function generateCreature(egg) {
   const name  = cap(pre+suf)+' '+title;
 
   let color = CREATURE_COLOR[dom];
-  if (rarity.name==='Legendary')       color='#f0d040';
-  else if (rarity.name==='Rare')       color=lerpColor(color,'#88aaff',0.35);
-  else if (rarity.name==='Uncommon')   color=lerpColor(color,'#aaffaa',0.15);
+  if (rarity.name==='Legendary')     color='#f0d040';
+  else if (rarity.name==='Rare')     color=lerpColor(color,'#88aaff',0.35);
+  else if (rarity.name==='Uncommon') color=lerpColor(color,'#aaffaa',0.15);
 
-  const traits = ranked.map(k=>TRAIT_NAMES[k]);
-  const diet   = Object.entries(inv).filter(([,v])=>v>0).map(([k,v])=>`${v}x ${k}`).join(', ');
+  const traits = rankFoods(inv).map(k=>TRAIT_NAMES[k]);
+  const diet   = Object.entries(inv).filter(([k,v])=>v>0&&FOOD_KEYS.includes(k)).map(([k,v])=>`${v}x ${k}`).join(', ');
   const id     = toID(hashVal);
 
   return { id, hashVal, hashStr, name, color, rarity, lines, traits, diet };
@@ -355,7 +389,7 @@ let G             = null;
 let animCancelled = false;
 let selectedFood  = 'meat';   // persists across eggs
 
-function emptyInv() { return {meat:0,fish:0,berries:0,mushroom:0,grain:0}; }
+function emptyInv() { return {meat:0,fish:0,berries:0,mushroom:0,grain:0,gem:0}; }
 
 function newGame() {
   animCancelled = true;
@@ -378,6 +412,7 @@ function newGame() {
       rarityRoll:   rand(0, 10000),
       inv:          emptyInv(),
       fed:          0,
+      biome:        getChunkBiome(cx(eggX), cy(eggY)),
     },
     phase:          'playing',
     creature:       null,
@@ -385,6 +420,7 @@ function newGame() {
     revealed:       new Set(),
     showCollection: false,
     colSelectedIdx: 0,
+    steps:          0,
     animFrames:     [],
     animFrame:      0,
     log: ['You stand beside the Egg.','Collect food and feed it (F)!'],
@@ -419,17 +455,35 @@ function tryMove(dx,dy) {
   if (G.phase==='animating') return;
   const nx=G.px+dx, ny=G.py+dy;
   if (!isWalkable(nx,ny)) return;
-  if (G.egg && nx===G.egg.x && ny===G.egg.y) return;  // can't walk onto egg
+  if (G.egg && nx===G.egg.x && ny===G.egg.y) return;
 
   G.px=nx; G.py=ny;
+  G.steps++;
 
   const tile=getTile(nx,ny);
-  const info=FOOD_INFO[tile];
-  if (info) {
-    G.inventory[info.key]++;
+  if (tile === GEM_CHAR) {
+    G.inventory.gem++;
     setTile(nx,ny,'.');
-    addLog(`Picked up ${info.name}!`);
+    addLog('Found a gem! Feed it to the egg (key 6, then F).');
+  } else {
+    const info=FOOD_INFO[tile];
+    if (info) {
+      G.inventory[info.key]++;
+      setTile(nx,ny,'.');
+      addLog(`Picked up ${info.name}!`);
+    }
   }
+
+  // Hunger: periodically consume a random food item
+  if (G.steps % HUNGER_STEPS === 0) {
+    const available = FOOD_KEYS.filter(k => G.inventory[k] > 0);
+    if (available.length > 0) {
+      const k = available[Math.floor(Math.random() * available.length)];
+      G.inventory[k]--;
+      addLog(`Hungry! You ate some ${k}.`);
+    }
+  }
+
   updateFOV();
   render();
 }
@@ -440,8 +494,18 @@ function tryFeed() {
   const dist=Math.abs(G.px-G.egg.x)+Math.abs(G.py-G.egg.y);
   if (dist>1) { addLog('Move adjacent to the Egg (Θ) to feed it.'); render(); return; }
   const key=selectedFood;
-  if (G.inventory[key]===0) { addLog(`No ${key} in your inventory! (select with 1-5)`); render(); return; }
 
+  // Gem: boost rarity roll instead of feeding
+  if (key === 'gem') {
+    if (G.inventory.gem === 0) { addLog('No gems! Find $ in the dungeon.'); render(); return; }
+    G.inventory.gem--;
+    G.egg.rarityRoll = Math.min(9999, G.egg.rarityRoll + GEM_BOOST);
+    addLog(`Fed a gem! Rarity boosted to ${getRarity(G.egg.rarityRoll).name}.`);
+    render();
+    return;
+  }
+
+  if (G.inventory[key]===0) { addLog(`No ${key} in inventory! (select 1-5)`); render(); return; }
   G.inventory[key]--;
   G.egg.inv[key]++;
   G.egg.foodSequence.push(key);
@@ -454,21 +518,31 @@ function tryFeed() {
 function trySpawnEgg() {
   if (G.phase==='animating') return;
   if (G.egg) { addLog('An egg already exists!'); render(); return; }
-  if (!isRoomTile(G.px,G.py)) { addLog('You must be in a room (not a hallway) to lay an egg.'); render(); return; }
+  if (!isRoomTile(G.px,G.py)) { addLog('You must be in a room to lay an egg.'); render(); return; }
+
+  // Must not be adjacent to any hallway tile (would risk blocking paths)
+  const nearHallway = [[0,-1],[0,1],[-1,0],[1,0]].some(([ddx,ddy])=>{
+    const nx=G.px+ddx, ny=G.py+ddy;
+    return isWalkable(nx,ny) && !isRoomTile(nx,ny);
+  });
+  if (nearHallway) { addLog('Too close to a hallway. Move deeper into the room.'); render(); return; }
 
   const candidates=[[0,-1],[0,1],[-1,0],[1,0]]
-    .filter(([dx,dy])=>getTile(G.px+dx,G.py+dy)==='.');
+    .filter(([ddx,ddy])=>getTile(G.px+ddx,G.py+ddy)==='.');
   if (candidates.length===0) { addLog('No empty space adjacent to lay an egg!'); render(); return; }
 
-  const [dx,dy]=candidates[rand(0,candidates.length)];
+  const [ddx,ddy]=candidates[rand(0,candidates.length)];
+  const biomeKey = getChunkBiome(cx(G.px), cy(G.py));
   G.egg={
-    x:G.px+dx, y:G.py+dy,
+    x:G.px+ddx, y:G.py+ddy,
     foodSequence:[], rarityRoll:rand(0,10000),
     inv:emptyInv(), fed:0,
+    biome: biomeKey,
   };
   G.phase    ='playing';
   G.creature =null;
-  addLog('You lay a new egg!');
+  addLog(`Egg laid! [${BIOMES[biomeKey].name}]`);
+  autoSave();
   render();
 }
 
@@ -521,8 +595,12 @@ function renderViewport() {
       const seen=revealed.has(`${gx},${gy}`);
       if (!seen&&!inLight)              { html+=span(' ','#000'); continue; }
       const ch=getTile(gx,gy);
-      const t=inLight?CLR.bright:CLR.dim;
-      html+=span(ch, t[ch]||(inLight?'#aaa':'#333'));
+      const biome=BIOMES[getChunkBiome(cx(gx),cy(gy))];
+      let color;
+      if      (ch==='#') color=inLight?biome.wallBright:biome.wallDim;
+      else if (ch==='.') color=inLight?biome.floorBright:biome.floorDim;
+      else { const t=inLight?CLR.bright:CLR.dim; color=t[ch]||(inLight?'#aaa':'#333'); }
+      html+=span(ch, color);
     }
     if (vy<VH-1) html+='\n';
   }
@@ -540,6 +618,10 @@ function renderInventory() {
     const bg=sel?'background:#151515;':'';
     html+=`<div style="color:${clr};${bg}">${sel?'►':' '}${idx+1} ${ch} ${key.padEnd(8)} x${count}</div>`;
   });
+  // Gems
+  const gc=G.inventory.gem||0;
+  const gs=selectedFood==='gem';
+  html+=`<div style="color:${gc>0?GEM_COLOR:'#2e2e2e'};${gs?'background:#151515;':''}">${gs?'►':' '}6 ${GEM_CHAR} gem      x${gc}</div>`;
   document.getElementById('inv-list').innerHTML=html;
 }
 
@@ -547,6 +629,27 @@ function renderLog() {
   const el=document.getElementById('log');
   el.innerHTML=G.log.map(m=>`<div class="log-line">&gt; ${escHtml(m)}</div>`).join('');
   el.scrollTop=el.scrollHeight;
+}
+
+// ── Egg direction ─────────────────────────────────────────────────
+function eggDirection() {
+  if (!G.egg) return null;
+  const dx=G.egg.x-G.px, dy=G.egg.y-G.py;
+  const dist=Math.round(Math.hypot(dx,dy));
+  if (dist===0) return {arrow:'·',dist};
+  const shifted=(Math.atan2(dy,dx)+2*Math.PI)%(2*Math.PI);
+  const sector=Math.round(shifted/(Math.PI/4))%8;
+  return {arrow:['→','↘','↓','↙','←','↖','↑','↗'][sector],dist};
+}
+
+function renderWorldPanel() {
+  const biomeKey=getChunkBiome(cx(G.px),cy(G.py));
+  const biome=BIOMES[biomeKey];
+  document.getElementById('world-biome').innerHTML=
+    `<span style="color:${biome.accent}">◈ ${biome.name}</span>`;
+  const dir=eggDirection();
+  document.getElementById('world-egg').textContent=
+    dir ? `${dir.arrow} Egg ${dir.dist}m` : 'no egg';
 }
 
 function renderBottomPlaying() {
@@ -565,18 +668,30 @@ function renderBottomPlaying() {
   const filled=Math.floor(pct*10);
   const bar='█'.repeat(filled)+'░'.repeat(10-filled);
   const barClr=pct>=1?'#fff':pct>0?'#c09030':'#333';
-  const selCh=FOOD_CHARS.find(c=>FOOD_INFO[c].key===selectedFood);
-  const selClr=FOOD_INFO[selCh].color;
+
+  const isGem=selectedFood==='gem';
+  const selCh=isGem?null:FOOD_CHARS.find(c=>FOOD_INFO[c].key===selectedFood);
+  const selClr=isGem?GEM_COLOR:(selCh?FOOD_INFO[selCh].color:'#888');
+  const selLabel=isGem?`${GEM_CHAR} gem`:`${selCh} ${selectedFood}`;
+  const selAmt=isGem?G.inventory.gem:G.inventory[selectedFood];
+
   const dist=Math.abs(G.px-G.egg.x)+Math.abs(G.py-G.egg.y);
+  const feedMsg=dist===1?(isGem?'Press F to boost rarity!':'Press F to feed!'):'';
+
+  const eggBiome=G.egg.biome?BIOMES[G.egg.biome]:null;
+  const biomeLabel=eggBiome
+    ?`<span style="color:${eggBiome.accent};font-size:.72rem">◈ ${eggBiome.name} egg</span> `:'';
+
+  const currRarity=getRarity(G.egg.rarityRoll);
 
   document.getElementById('egg-info').innerHTML=`
     <div id="egg-bar"><span style="color:${barClr}">${bar}</span></div>
-    <div id="egg-fed-count">${G.egg.fed} / ${FOOD_NEEDED} fed</div>
+    <div id="egg-fed-count">${G.egg.fed} / ${FOOD_NEEDED} fed &nbsp;<span style="color:${currRarity.color}">${currRarity.badge}</span></div>
     <div style="margin-top:3px;font-size:.78rem;color:#444">
-      Selected: <span style="color:${selClr}">${selCh} ${selectedFood}</span>
-      &nbsp;(x${G.inventory[selectedFood]})
+      Selected: <span style="color:${selClr}">${selLabel}</span> &nbsp;(x${selAmt})
     </div>
-    <div id="feed-hint">${dist===1?'Press F to feed!':''}</div>`;
+    <div style="margin-top:2px">${biomeLabel}</div>
+    <div id="feed-hint">${feedMsg}</div>`;
 }
 
 function renderAnimFrame(frame) {
@@ -648,7 +763,6 @@ function renderCollection() {
 function render() {
   if (G.phase==='animating') return;
 
-  // Toggle collection vs game area
   const showCol=G.showCollection;
   document.getElementById('game-area').hidden=showCol;
   document.getElementById('collection-overlay').hidden=!showCol;
@@ -657,10 +771,10 @@ function render() {
   else {
     document.getElementById('viewport').innerHTML=renderViewport();
     renderInventory();
+    renderWorldPanel();
     renderLog();
   }
 
-  // Bottom panel always renders
   if (G.phase==='playing')  renderBottomPlaying();
   if (G.phase==='hatched')  renderBottomHatched();
 }
@@ -673,7 +787,7 @@ function buildSaveData() {
   const chunkData={};
   for (const [key,chunk] of chunks) chunkData[key]=chunk.grid;
   return {
-    version:2, worldSeed:WORLD_SEED, selectedFood,
+    version:3, worldSeed:WORLD_SEED, selectedFood,
     player:{ x:G.px, y:G.py, inventory:G.inventory },
     egg: G.egg,
     phase: G.phase==='animating'?'playing':G.phase,
@@ -682,6 +796,7 @@ function buildSaveData() {
     chunkData,
     revealed:[...G.revealed],
     log: G.log,
+    steps: G.steps,
   };
 }
 
@@ -694,7 +809,7 @@ function applySaveData(data) {
   selectedFood=data.selectedFood||'meat';
   G={
     px:data.player.x, py:data.player.y,
-    inventory:data.player.inventory||emptyInv(),
+    inventory:{...emptyInv(),...(data.player.inventory||{})},
     egg:data.egg||null,
     phase:data.phase||'playing',
     creature:data.creature||null,
@@ -702,6 +817,7 @@ function applySaveData(data) {
     revealed:new Set(data.revealed||[]),
     showCollection:false,
     colSelectedIdx:0,
+    steps:data.steps||0,
     animFrames:[], animFrame:0,
     log:data.log||[],
   };

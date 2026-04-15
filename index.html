@@ -10,7 +10,7 @@
   <div id="app">
     <div id="header">
       <span id="title">EGG DUNGEON</span>
-      <span id="controls">WASD: move &nbsp;·&nbsp; 1-5: food &nbsp;·&nbsp; F: feed &nbsp;·&nbsp; R: lay egg &nbsp;·&nbsp; C: collection &nbsp;·&nbsp; Ctrl+S/O: save/load</span>
+      <span id="controls">WASD: move &nbsp;·&nbsp; 1-6: select &nbsp;·&nbsp; F: feed &nbsp;·&nbsp; R: lay egg &nbsp;·&nbsp; C: collection &nbsp;·&nbsp; Ctrl+S/O: save/load</span>
     </div>
 
     <div id="mid-area">
@@ -18,6 +18,10 @@
       <div id="game-area">
         <pre id="viewport"></pre>
         <div id="sidebar">
+          <div class="panel" id="world-panel">
+            <div id="world-biome"></div>
+            <div id="world-egg"></div>
+          </div>
           <div class="panel">
             <div class="panel-title">INVENTORY</div>
             <div id="inv-list"></div>
