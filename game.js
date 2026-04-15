@@ -275,8 +275,8 @@ const BODY_PARTS = {
     ["   | ~~~~~~~~~~~ |  ","  / ~~~~~~~~~~~~~ \\ ","   |=============|  ","   |~ ~ ~ ~ ~ ~ ~|  "],
     // row 4 – mid body
     ["  (  ~~~~~~~~~~~  ) "," ( ~~~~~~~~~~~~~~~) ","  (  ===========  ) ","  ( ~ ~ ~ ~ ~ ~ ~ ) "],
-    // row 5 – lower body
-    ["   | ~~~~~~~~~~~ |  ","  \\ ~~~~~~~~~~~~~ / ","   |=============|  ","   |~ ~ ~ ~ ~ ~ ~|  "],
+    // row 5 – lower body (narrowing toward tail, distinct from row 3)
+    ["   | -~-~-~-~-~- |  ","   \\ ·  ·  ·  · /   ","   |* ~ * ~ * ~ |   ","   |-~-~-~-~-~--|   "],
     // row 6 – body bottom
     ["    \\~~~~~~~~~~~/   ","   \\~~~~~~~~~~~~~/  ","    \\===========/   ","    \\~ ~ ~ ~ ~ ~/   "],
     // row 7 – tail root
@@ -298,9 +298,9 @@ const BODY_PARTS = {
     // row 4 – wing upper
     ["   ~[  =======  ]~  "," ~=[ ======= ]=~    ","   ~[  ~~~~~  ]~    ","  ~[ ========= ]~   "],
     // row 5 – wing lower
-    ["   ~[  =======  ]~  "," ~=[ ------- ]=~    ","   ~[  -----  ]~    ","  ~[ --------- ]~   "],
-    // row 6 – body base
-    ["   ~[          ]~   ","  ~=[         ]=~   ","   ~{          }~   ","  =[            ]=  "],
+    ["   ~[  -------  ]~  "," ~=[ - - - - - ]=~  ","   ~[  v v v v  ]~  ","  ~[ --------- ]~   "],
+    // row 6 – body base (narrower/heavier than neck top)
+    ["   ~[__________]~   ","  ~=( -------- )=~  ","   ~[  v v v v  ]~  ","  ~={ ~~~~~~~~ }=~  "],
     // row 7 – leg top
     ["    /Y        Y\\    ","   / Y        Y \\   ","    (Y        Y)    ","   / |        | \\   "],
     // row 8 – leg mid
@@ -325,8 +325,8 @@ const BODY_PARTS = {
     ["   (            )   "," (              )   ","   (  --------  )   ","  (   ~~~~~~~~   )  "],
     // row 7 – stalk upper
     ["   ( |        | )   ","  (  |        |  )  ","  ( | |      | | )  ","   (  \\      /  )   "],
-    // row 8 – stalk lower
-    ["   ( |        | )   ","  (  |        |  )  ","   \\  |      |  /   ","    \\ |      | /    "],
+    // row 8 – stalk lower (flares or narrows, distinct from row 7)
+    ["     ( |    | )     ","      ||      ||     ","    \\|        |/    ","   (  \\      /  )   "],
     // row 9 – base
     ["   (_/        \\_)   ","  (_//        \\\\_)  ","  (__|        |__)  ","    \\|        |/    "],
   ],
@@ -343,15 +343,25 @@ const BODY_PARTS = {
     ["   {           }    ","   {            }   ","  {               } ","   {~           ~}  "],
     // row 5 – belly
     ["   {  ~~~~~~~  }    ","   {  ~~~~~~~~  }   ","  {   ~~~~~~~   }   ","   {   ~~~~~   }    "],
-    // row 6 – lower body
-    ["   {           }    ","   {            }   ","  {               } ","   {~           ~}  "],
+    // row 6 – lower body (tummy detail, distinct from row 4)
+    ["   { ·  ·  ·  · }   ","  {  - - - - - -  } ","   {  ~ · ~ · ~  }  ","   {   ·  ·  ·   }  "],
     // row 7 – hips
     ["    |  |    |  |    ","    \\  |    |  /    ","    |  \\    /  |    ","   |   |    |   |   "],
-    // row 8 – legs
-    ["    |  |    |  |    ","     \\ |    | /     ","   ||  |    |  ||   ","   |   |    |   |   "],
+    // row 8 – legs (distinct from row 7)
+    ["   (|  |    |  |)   ","    |~ |    | ~|    ","     \\)|    |(//    ","   | | |    | | |   "],
     // row 9 – feet
     ["   (U)(        )(U) ","     (U)    (U)     ","   (U) (    ) (U)   ","  (UU)(      )(UU)  "],
   ],
+};
+
+// After row-pool selection, the dominant texture character is substituted
+// with one of several alternatives — adds one more RNG dimension (5 options).
+const FILL_SUBS = {
+  meat:     { from:'#', to:['#','X','=','+','*'] },
+  fish:     { from:'~', to:['~','=','-','*','·'] },
+  berries:  { from:'=', to:['=','-','+','*','·'] },
+  mushroom: { from:'O', to:['O','0','@','*','+'] },
+  grain:    { from:'~', to:['~','=','-','^','·'] },
 };
 
 const CREATURE_COLOR = {
@@ -411,6 +421,12 @@ function generateCreature(egg) {
   const sec     = ranked[1] ?? null;
 
   const lines = BODY_PARTS[dom].map(rowPool => rng.pick(rowPool));
+
+  // Character-level texture substitution
+  const fillSub = FILL_SUBS[dom];
+  const fillCh  = rng.pick(fillSub.to);
+  if (fillCh !== fillSub.from)
+    for (let i=0; i<lines.length; i++) lines[i] = lines[i].split(fillSub.from).join(fillCh);
 
   if (sec && sec !== dom) {
     switch(sec) {
