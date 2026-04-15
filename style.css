@@ -1,4 +1,4 @@
-/* ── Reset & base ─────────────────────────────────────────── */
+/* ── Reset ────────────────────────────────────────────────── */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
@@ -11,44 +11,32 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
 }
 
 /* ── App shell ────────────────────────────────────────────── */
-#app {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+#app { display: flex; flex-direction: column; gap: 6px; }
 
 /* ── Header ───────────────────────────────────────────────── */
 #header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  padding: 0 2px;
   width: 660px;
 }
-
 #title {
   color: #f0e060;
   font-size: 1.1rem;
   letter-spacing: 0.3em;
-  text-shadow: 0 0 10px #f0e06066;
+  text-shadow: 0 0 10px #f0e06055;
   animation: flicker 6s infinite;
 }
+#controls { font-size: 0.68rem; color: #3a3a3a; }
 
-#controls {
-  font-size: 0.72rem;
-  color: #444;
-}
+/* ── Mid area (game + collection share this space) ────────── */
+#mid-area { position: relative; width: 660px; height: 396px; }
 
 /* ── Game area ────────────────────────────────────────────── */
-#game-area {
-  display: flex;
-  gap: 10px;
-  width: 660px;
-}
+#game-area { display: flex; gap: 10px; width: 660px; height: 396px; }
 
 /* ── Viewport ─────────────────────────────────────────────── */
 #viewport {
@@ -61,20 +49,11 @@ body {
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
-#sidebar {
-  width: 200px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
+#sidebar { width: 200px; display: flex; flex-direction: column; gap: 8px; }
 
-.panel {
-  border: 1px solid #1a1a1a;
-  padding: 6px 8px;
-}
-
+.panel { border: 1px solid #1a1a1a; padding: 6px 8px; }
 .panel-title {
-  color: #444;
+  color: #3a3a3a;
   font-size: 0.68rem;
   letter-spacing: 0.2em;
   margin-bottom: 5px;
@@ -82,28 +61,48 @@ body {
   padding-bottom: 3px;
 }
 
-/* ── Inventory ────────────────────────────────────────────── */
-#inv-list div {
-  font-size: 0.85rem;
-  padding: 2px 0;
-  white-space: pre;
-}
+#inv-list div { font-size: 0.85rem; padding: 2px 0; white-space: pre; }
 
-/* ── Log ──────────────────────────────────────────────────── */
-#log {
-  max-height: 200px;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
+#log { max-height: 230px; overflow-y: auto; scrollbar-width: none; }
 #log::-webkit-scrollbar { display: none; }
-
-.log-line {
-  font-size: 0.75rem;
-  color: #555;
-  padding: 1px 0;
-  word-break: break-word;
-}
+.log-line { font-size: 0.75rem; color: #555; padding: 1px 0; word-break: break-word; }
 .log-line:last-child { color: #888; }
+
+/* ── Collection overlay ───────────────────────────────────── */
+#collection-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 660px;
+  height: 396px;
+  background: #050505;
+  border: 1px solid #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+  gap: 6px;
+}
+#col-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  border-bottom: 1px solid #1a1a1a;
+  padding-bottom: 6px;
+}
+#col-title { color: #f0e060; letter-spacing: 0.2em; font-size: 0.85rem; }
+#col-count { color: #555; font-size: 0.75rem; flex: 1; }
+#col-close { color: #333; font-size: 0.72rem; }
+
+#col-list { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #222 #000; }
+#col-list::-webkit-scrollbar { width: 4px; }
+#col-list::-webkit-scrollbar-thumb { background: #222; }
+
+.col-entry { padding: 5px 0; border-bottom: 1px solid #111; }
+.col-entry:last-child { border-bottom: none; }
+.col-name { font-size: 0.85rem; }
+.col-meta { font-size: 0.72rem; color: #555; margin-top: 1px; }
+.col-id   { font-size: 0.68rem; color: #2e2e2e; }
+
+#col-legend { font-size: 0.68rem; color: #333; border-top: 1px solid #1a1a1a; padding-top: 6px; }
 
 /* ── Bottom panel ─────────────────────────────────────────── */
 #bottom-panel {
@@ -116,76 +115,28 @@ body {
   border: 1px solid #1a1a1a;
   background: #050505;
 }
-
 #egg-display {
   font-size: 0.92rem;
   line-height: 1.3;
   flex-shrink: 0;
-  min-width: 200px;
+  min-width: 210px;
   text-align: center;
 }
+#egg-info { flex: 1; display: flex; flex-direction: column; gap: 5px; }
 
-#egg-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-#egg-bar {
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
-}
-
-#egg-fed-count {
-  font-size: 0.75rem;
-  color: #555;
-}
-
-#feed-hint {
-  font-size: 0.78rem;
-  color: #f0e060;
-  min-height: 1.1em;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-#anim-label {
-  font-size: 0.85rem;
-  color: #f0e060;
-  letter-spacing: 0.2em;
-  animation: pulse 0.5s ease-in-out infinite;
-}
-
-#creature-name-display {
-  font-size: 1rem;
-  margin-bottom: 2px;
-}
-
-#creature-traits-display {
-  font-size: 0.78rem;
-  color: #555;
-}
-
-#creature-diet-display {
-  font-size: 0.72rem;
-  color: #3a3a3a;
-}
-
-#restart-hint {
-  font-size: 0.75rem;
-  color: #444;
-  margin-top: 6px;
-  animation: pulse 2s ease-in-out infinite;
-}
+/* ── Bottom panel sub-elements ────────────────────────────── */
+#egg-bar  { font-size: 0.9rem; letter-spacing: 0.05em; }
+#egg-fed-count { font-size: 0.75rem; color: #555; }
+#feed-hint { font-size: 0.78rem; color: #f0e060; min-height: 1.1em; animation: pulse 1.5s ease-in-out infinite; }
+#anim-label { font-size: 0.88rem; color: #f0e060; letter-spacing: 0.2em; animation: pulse 0.5s ease-in-out infinite; }
+#creature-name-display { font-size: 1rem; }
+#creature-rarity-display { font-size: 0.78rem; margin-bottom: 2px; }
+#creature-traits-display { font-size: 0.78rem; color: #555; }
+#creature-diet-display   { font-size: 0.72rem; color: #3a3a3a; }
+#creature-id-display     { font-size: 0.68rem; color: #2e2e2e; }
+#restart-hint  { font-size: 0.75rem; color: #444; margin-top: 4px; animation: pulse 2s ease-in-out infinite; }
+#no-egg-msg    { font-size: 0.8rem; color: #444; line-height: 1.6; }
 
 /* ── Animations ───────────────────────────────────────────── */
-@keyframes pulse {
-  0%, 100% { opacity: 0.5; }
-  50%       { opacity: 1; }
-}
-
-@keyframes flicker {
-  0%, 92%, 94%, 96%, 100% { opacity: 1; }
-  93%  { opacity: 0.5; }
-  95%  { opacity: 0.8; }
-}
+@keyframes pulse  { 0%,100%{opacity:.4} 50%{opacity:1} }
+@keyframes flicker { 0%,92%,94%,96%,100%{opacity:1} 93%{opacity:.5} 95%{opacity:.8} }

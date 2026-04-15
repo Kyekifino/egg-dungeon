@@ -10,23 +10,34 @@
   <div id="app">
     <div id="header">
       <span id="title">EGG DUNGEON</span>
-      <span id="controls">WASD/Arrows: move &nbsp;·&nbsp; 1-5: select food &nbsp;·&nbsp; F: feed &nbsp;·&nbsp; R: new game</span>
+      <span id="controls">WASD: move &nbsp;·&nbsp; 1-5: food &nbsp;·&nbsp; F: feed &nbsp;·&nbsp; R: lay egg &nbsp;·&nbsp; C: collection &nbsp;·&nbsp; Ctrl+S/O: save/load</span>
     </div>
 
-    <div id="game-area">
-      <pre id="viewport"></pre>
-      <div id="sidebar">
-
-        <div class="panel">
-          <div class="panel-title">INVENTORY</div>
-          <div id="inv-list"></div>
+    <div id="mid-area">
+      <!-- Normal game view -->
+      <div id="game-area">
+        <pre id="viewport"></pre>
+        <div id="sidebar">
+          <div class="panel">
+            <div class="panel-title">INVENTORY</div>
+            <div id="inv-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">LOG</div>
+            <div id="log"></div>
+          </div>
         </div>
+      </div>
 
-        <div class="panel">
-          <div class="panel-title">LOG</div>
-          <div id="log"></div>
+      <!-- Collection overlay (same footprint) -->
+      <div id="collection-overlay" hidden>
+        <div id="col-header">
+          <span id="col-title">COLLECTION</span>
+          <span id="col-count"></span>
+          <span id="col-close">C: close</span>
         </div>
-
+        <div id="col-list"></div>
+        <div id="col-legend">[C] Common &nbsp; [U] Uncommon &nbsp; [R] Rare &nbsp; [L] Legendary</div>
       </div>
     </div>
 
@@ -35,6 +46,9 @@
       <div id="egg-info"></div>
     </div>
   </div>
+
+  <!-- Hidden file input for load fallback -->
+  <input type="file" id="load-input" accept=".json" style="display:none">
 
   <script src="game.js"></script>
 </body>
