@@ -30,7 +30,7 @@ body {
   text-shadow: 0 0 10px #f0e06055;
   animation: flicker 6s infinite;
 }
-#controls { font-size: 0.68rem; color: #3a3a3a; }
+#controls { font-size: 0.68rem; color: #606060; }
 
 /* ── Mid area (game + collection share this space) ────────── */
 #mid-area { position: relative; width: 660px; height: 396px; }
@@ -53,7 +53,7 @@ body {
 
 .panel { border: 1px solid #1a1a1a; padding: 6px 8px; }
 .panel-title {
-  color: #3a3a3a;
+  color: #606060;
   font-size: 0.68rem;
   letter-spacing: 0.2em;
   margin-bottom: 5px;
@@ -65,12 +65,12 @@ body {
 
 #world-panel { padding: 5px 8px; }
 #world-biome { font-size: 0.8rem; }
-#world-egg   { font-size: 0.75rem; color: #555; margin-top: 2px; }
+#world-egg   { font-size: 0.75rem; color: #7a7a7a; margin-top: 2px; }
 
 #log { max-height: 175px; overflow-y: auto; scrollbar-width: none; }
 #log::-webkit-scrollbar { display: none; }
-.log-line { font-size: 0.75rem; color: #555; padding: 1px 0; word-break: break-word; }
-.log-line:last-child { color: #888; }
+.log-line { font-size: 0.75rem; color: #7a7a7a; padding: 1px 0; word-break: break-word; }
+.log-line:last-child { color: #aaa; }
 
 /* ── Collection overlay ───────────────────────────────────── */
 #collection-overlay {
@@ -94,8 +94,8 @@ body {
   padding-bottom: 6px;
 }
 #col-title { color: #f0e060; letter-spacing: 0.2em; font-size: 0.85rem; }
-#col-count { color: #555; font-size: 0.75rem; flex: 1; }
-#col-close { color: #333; font-size: 0.72rem; }
+#col-count { color: #7a7a7a; font-size: 0.75rem; flex: 1; }
+#col-close { color: #5a5a5a; font-size: 0.72rem; }
 
 #col-body { display: flex; flex: 1; gap: 14px; min-height: 0; }
 #col-list { width: 230px; flex-shrink: 0; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #222 #000; }
@@ -125,10 +125,10 @@ body {
 .col-entry { padding: 5px 0; border-bottom: 1px solid #111; }
 .col-entry:last-child { border-bottom: none; }
 .col-name { font-size: 0.85rem; }
-.col-meta { font-size: 0.72rem; color: #555; margin-top: 1px; }
-.col-id   { font-size: 0.68rem; color: #2e2e2e; }
+.col-meta { font-size: 0.72rem; color: #7a7a7a; margin-top: 1px; }
+.col-id   { font-size: 0.68rem; color: #555; }
 
-#col-legend { font-size: 0.68rem; color: #333; border-top: 1px solid #1a1a1a; padding-top: 6px; }
+#col-legend { font-size: 0.68rem; color: #5a5a5a; border-top: 1px solid #1a1a1a; padding-top: 6px; }
 
 /* ── Bottom panel ─────────────────────────────────────────── */
 #bottom-panel {
@@ -152,16 +152,20 @@ body {
 
 /* ── Bottom panel sub-elements ────────────────────────────── */
 #egg-bar  { font-size: 0.9rem; letter-spacing: 0.05em; }
-#egg-fed-count { font-size: 0.75rem; color: #555; }
+#egg-fed-count { font-size: 0.75rem; color: #7a7a7a; }
 #feed-hint { font-size: 0.78rem; color: #f0e060; min-height: 1.1em; animation: pulse 1.5s ease-in-out infinite; }
 #anim-label { font-size: 0.88rem; color: #f0e060; letter-spacing: 0.2em; animation: pulse 0.5s ease-in-out infinite; }
 #creature-name-display { font-size: 1rem; }
 #creature-rarity-display { font-size: 0.78rem; margin-bottom: 2px; }
-#creature-traits-display { font-size: 0.78rem; color: #555; }
-#creature-diet-display   { font-size: 0.72rem; color: #3a3a3a; }
-#creature-id-display     { font-size: 0.68rem; color: #2e2e2e; }
-#restart-hint  { font-size: 0.75rem; color: #444; margin-top: 4px; animation: pulse 2s ease-in-out infinite; }
-#no-egg-msg    { font-size: 0.8rem; color: #444; line-height: 1.6; }
+#creature-traits-display { font-size: 0.78rem; color: #7a7a7a; }
+#creature-diet-display   { font-size: 0.72rem; color: #606060; }
+#creature-id-display     { font-size: 0.68rem; color: #555; }
+#restart-hint  { font-size: 0.75rem; color: #6a6a6a; margin-top: 4px; animation: pulse 2s ease-in-out infinite; }
+#no-egg-msg    { font-size: 0.8rem; color: #6a6a6a; line-height: 1.6; }
+
+/* ── Footer ───────────────────────────────────────────────── */
+#app-footer { width: 660px; }
+#version { font-size: 0.65rem; color: #444; }
 
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes pulse  { 0%,100%{opacity:.4} 50%{opacity:1} }

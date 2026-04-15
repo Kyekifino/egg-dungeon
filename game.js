@@ -4,6 +4,9 @@
 //  EGG DUNGEON
 // ================================================================
 
+// ── Version ──────────────────────────────────────────────────────
+const VERSION = '1.4';
+
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
 const LIGHT_R      = 6;
@@ -673,14 +676,14 @@ function renderInventory() {
     const {color}=FOOD_INFO[ch];
     const count=G.inventory[key];
     const sel=selectedFood===key;
-    const clr=count>0?color:'#2e2e2e';
+    const clr=count>0?color:'#555';
     const bg=sel?'background:#151515;':'';
     html+=`<div style="color:${clr};${bg}">${sel?'►':' '}${idx+1} ${ch} ${key.padEnd(8)} x${count}</div>`;
   });
   // Gems
   const gc=G.inventory.gem||0;
   const gs=selectedFood==='gem';
-  html+=`<div style="color:${gc>0?GEM_COLOR:'#2e2e2e'};${gs?'background:#151515;':''}">${gs?'►':' '}6 ${GEM_CHAR} gem      x${gc}</div>`;
+  html+=`<div style="color:${gc>0?GEM_COLOR:'#555'};${gs?'background:#151515;':''}">${gs?'►':' '}6 ${GEM_CHAR} gem      x${gc}</div>`;
   document.getElementById('inv-list').innerHTML=html;
 }
 
@@ -746,7 +749,7 @@ function renderBottomPlaying() {
   document.getElementById('egg-info').innerHTML=`
     <div id="egg-bar"><span style="color:${barClr}">${bar}</span></div>
     <div id="egg-fed-count">${G.egg.fed} / ${FOOD_NEEDED} fed &nbsp;<span style="color:${currRarity.color}">${currRarity.badge}</span></div>
-    <div style="margin-top:3px;font-size:.78rem;color:#444">
+    <div style="margin-top:3px;font-size:.78rem;color:#6a6a6a">
       Selected: <span style="color:${selClr}">${selLabel}</span> &nbsp;(x${selAmt})
     </div>
     <div style="margin-top:2px">${biomeLabel}</div>
@@ -786,10 +789,10 @@ function renderCollection() {
 
   if (collection.length===0) {
     document.getElementById('col-list').innerHTML=
-      '<div style="color:#333;padding:12px 0;text-align:center">No creatures hatched yet.</div>';
+      '<div style="color:#5a5a5a;padding:12px 0;text-align:center">No creatures hatched yet.</div>';
     document.getElementById('col-art').innerHTML='';
     document.getElementById('col-detail-info').innerHTML=
-      '<div style="color:#333;font-size:0.8rem">Hatch an egg to fill your collection.</div>';
+      '<div style="color:#5a5a5a;font-size:0.8rem">Hatch an egg to fill your collection.</div>';
     return;
   }
 
@@ -814,9 +817,9 @@ function renderCollection() {
   document.getElementById('col-detail-info').innerHTML=`
     <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
     <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}</div>
-    <div style="color:#555;font-size:0.72rem">${sel.traits.join(' &middot; ')}</div>
-    <div style="color:#444;font-size:0.68rem">${escHtml(sel.diet)}</div>
-    <div style="color:#2e2e2e;font-size:0.65rem">ID: ${sel.id}</div>`;
+    <div style="color:#7a7a7a;font-size:0.72rem">${sel.traits.join(' &middot; ')}</div>
+    <div style="color:#606060;font-size:0.68rem">${escHtml(sel.diet)}</div>
+    <div style="color:#555;font-size:0.65rem">ID: ${sel.id}</div>`;
 }
 
 function render() {
@@ -984,4 +987,5 @@ document.getElementById('col-list').addEventListener('click',e=>{
 //  START
 // ================================================================
 
+document.getElementById('version').textContent = 'v' + VERSION;
 if (!autoLoad()) newGame();
