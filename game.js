@@ -384,6 +384,7 @@ function newGame() {
     collection:     [],
     revealed:       new Set(),
     showCollection: false,
+    colSelectedIdx: 0,
     animFrames:     [],
     animFrame:      0,
     log: ['You stand beside the Egg.','Collect food and feed it (F)!'],
@@ -484,6 +485,7 @@ function startHatch() {
   }
   addLog(`THE EGG HATCHES!  [${G.creature.rarity.name}]`);
   G.egg=null;   // egg is gone
+  autoSave();
   runAnimFrame();
 }
 
@@ -604,26 +606,43 @@ function renderCollection() {
   const {collection}=G;
   document.getElementById('col-count').textContent=`${collection.length} hatched`;
 
-  if (collection.length===0) {
-    document.getElementById('col-list').innerHTML=
-      '<div style="color:#333;padding:20px;text-align:center">No creatures hatched yet.</div>';
-    return;
-  }
-
-  // Sort: Legendary first, then by rarity, then by name
   const order={'Legendary':0,'Rare':1,'Uncommon':2,'Common':3};
   const sorted=[...collection].sort((a,b)=>
     (order[a.rarity.name]??9)-(order[b.rarity.name]??9)||a.name.localeCompare(b.name));
 
-  document.getElementById('col-list').innerHTML=sorted.map(c=>`
-    <div class="col-entry">
+  if (collection.length===0) {
+    document.getElementById('col-list').innerHTML=
+      '<div style="color:#333;padding:12px 0;text-align:center">No creatures hatched yet.</div>';
+    document.getElementById('col-art').innerHTML='';
+    document.getElementById('col-detail-info').innerHTML=
+      '<div style="color:#333;font-size:0.8rem">Hatch an egg to fill your collection.</div>';
+    return;
+  }
+
+  G.colSelectedIdx=Math.max(0,Math.min(G.colSelectedIdx,sorted.length-1));
+  const sel=sorted[G.colSelectedIdx];
+
+  document.getElementById('col-list').innerHTML=sorted.map((c,i)=>`
+    <div class="col-entry${i===G.colSelectedIdx?' col-selected':''}" data-idx="${i}">
       <div class="col-name">
         <span style="color:${c.rarity.color}">${c.rarity.badge}</span>
         &nbsp;<span style="color:${c.color}">&ldquo;${escHtml(c.name)}&rdquo;</span>
       </div>
-      <div class="col-meta">${c.traits.join(' · ')} &nbsp;|&nbsp; ${escHtml(c.diet)}</div>
-      <div class="col-id">ID: ${c.id} &nbsp; ${c.date||''}</div>
+      <div class="col-id">${c.date||''}</div>
     </div>`).join('');
+
+  const selEl=document.querySelector('#col-list .col-selected');
+  if (selEl) selEl.scrollIntoView({block:'nearest'});
+
+  document.getElementById('col-art').innerHTML=
+    sel.lines.map(l=>`<span style="color:${sel.color}">${escHtml(l)}</span>`).join('\n');
+
+  document.getElementById('col-detail-info').innerHTML=`
+    <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
+    <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}</div>
+    <div style="color:#555;font-size:0.72rem">${sel.traits.join(' &middot; ')}</div>
+    <div style="color:#444;font-size:0.68rem">${escHtml(sel.diet)}</div>
+    <div style="color:#2e2e2e;font-size:0.65rem">ID: ${sel.id}</div>`;
 }
 
 function render() {
@@ -682,6 +701,7 @@ function applySaveData(data) {
     collection:data.collection||[],
     revealed:new Set(data.revealed||[]),
     showCollection:false,
+    colSelectedIdx:0,
     animFrames:[], animFrame:0,
     log:data.log||[],
   };
@@ -730,6 +750,25 @@ async function loadGame() {
 }
 
 // ================================================================
+//  AUTO-SAVE / AUTO-LOAD  (localStorage)
+// ================================================================
+
+function autoSave() {
+  try { localStorage.setItem('egg-dungeon-save', JSON.stringify(buildSaveData())); } catch(e) {}
+}
+
+function autoLoad() {
+  try {
+    const saved=localStorage.getItem('egg-dungeon-save');
+    if (!saved) return false;
+    applySaveData(JSON.parse(saved));
+    addLog('Welcome back!');
+    render();
+    return true;
+  } catch(e) { return false; }
+}
+
+// ================================================================
 //  INPUT
 // ================================================================
 
@@ -744,6 +783,16 @@ document.addEventListener('keydown',e=>{
   if (e.ctrlKey&&e.key==='o') { e.preventDefault(); loadGame(); return; }
   if (!G) return;
   if (e.key==='c'||e.key==='C') { G.showCollection=!G.showCollection; render(); return; }
+  if (G.showCollection) {
+    const n=G.collection.length;
+    if (e.key==='ArrowUp'||e.key==='w'||e.key==='W') {
+      e.preventDefault(); if(n>0){G.colSelectedIdx=Math.max(0,G.colSelectedIdx-1);render();} return;
+    }
+    if (e.key==='ArrowDown'||e.key==='s'||e.key==='S') {
+      e.preventDefault(); if(n>0){G.colSelectedIdx=Math.min(n-1,G.colSelectedIdx+1);render();} return;
+    }
+    return;
+  }
   if (e.key==='r'||e.key==='R') { trySpawnEgg(); return; }
   if (e.key==='f'||e.key==='F') { tryFeed(); return; }
   if (FOOD_KEY_MAP[e.key]) { selectedFood=FOOD_KEY_MAP[e.key]; if(G.phase!=='animating') render(); return; }
@@ -751,8 +800,13 @@ document.addEventListener('keydown',e=>{
   if (mv) { e.preventDefault(); tryMove(mv[0],mv[1]); }
 });
 
+document.getElementById('col-list').addEventListener('click',e=>{
+  const entry=e.target.closest('.col-entry');
+  if (entry&&G) { G.colSelectedIdx=parseInt(entry.dataset.idx); render(); }
+});
+
 // ================================================================
 //  START
 // ================================================================
 
-newGame();
+if (!autoLoad()) newGame();
