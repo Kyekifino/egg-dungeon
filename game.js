@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.15';
+const VERSION = '1.16';
 
 // ── Patch notes (shown once per version on first load) ───────────
 const PATCH_NOTES = {
@@ -25,6 +25,11 @@ const PATCH_NOTES = {
     'Sound effects: food pickup, gem pickup, egg hatch jingle',
     'Biome music: each zone has its own looping theme',
     'M key to mute / unmute all audio',
+  ],
+  '1.16': [
+    'Biome music fades out smoothly when crossing into a new zone',
+    'Biome music volume reduced',
+    'Control hints no longer split across lines',
   ],
 };
 
@@ -695,6 +700,7 @@ function triggerColJiggle() {
 
 let audioCtx   = null;
 let masterGain = null;
+let biomeGain  = null;   // gain bus for the current biome loop
 let muted      = false;
 let biomeLoopId  = 0;
 let activeBiome  = null;
@@ -705,28 +711,28 @@ const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
 // Biome music: each entry has bpm, oscillator wave, volume, and a note sequence
 // Notes are [midi, durationInBeats]
 const BIOME_MUSIC = {
-  badlands:    { bpm:100, wave:'sawtooth', vol:0.07, notes:[
+  badlands:    { bpm:100, wave:'sawtooth', vol:0.04, notes:[
     [50,1.5],[53,0.5],[57,1  ],[60,1  ],
     [57,0.5],[55,0.5],[53,1  ],
     [50,0.5],[58,0.5],[57,1  ],
     [55,0.5],[53,0.5],[50,2  ],
   ]},
-  wetlands:    { bpm: 75, wave:'sine',     vol:0.09, notes:[
+  wetlands:    { bpm: 75, wave:'sine',     vol:0.05, notes:[
     [57,1  ],[60,0.5],[64,0.5],[67,1  ],
     [66,0.5],[64,0.5],[62,1  ],
     [60,0.5],[59,0.5],[57,2  ],
   ]},
-  forest:      { bpm:120, wave:'triangle', vol:0.08, notes:[
+  forest:      { bpm:120, wave:'triangle', vol:0.05, notes:[
     [60,0.5],[64,0.5],[67,0.5],[69,0.5],
     [67,0.5],[64,0.5],[62,0.5],[60,0.5],
     [64,0.5],[67,1  ],[69,0.5],
     [67,0.5],[64,0.5],[60,0.5],[62,0.5],[60,1],
   ]},
-  underground: { bpm: 55, wave:'square',   vol:0.05, notes:[
+  underground: { bpm: 55, wave:'square',   vol:0.03, notes:[
     [57,2  ],[58,1  ],[55,2  ],
     [57,1  ],[53,1.5],[52,0.5],[50,2  ],
   ]},
-  plains:      { bpm: 90, wave:'triangle', vol:0.08, notes:[
+  plains:      { bpm: 90, wave:'triangle', vol:0.05, notes:[
     [67,0.5],[69,0.5],[71,1  ],
     [67,0.5],[64,0.5],[62,1  ],
     [60,0.5],[62,0.5],[64,0.5],[67,0.5],
@@ -747,7 +753,7 @@ function ensureAudio() {
   return audioCtx;
 }
 
-function playTone(midi, startTime, duration, waveType, peak, ctx) {
+function playTone(midi, startTime, duration, waveType, peak, ctx, outNode) {
   const osc  = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = waveType;
@@ -757,19 +763,38 @@ function playTone(midi, startTime, duration, waveType, peak, ctx) {
   gain.gain.setValueAtTime(peak, startTime + duration * 0.7);
   gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
   osc.connect(gain);
-  gain.connect(masterGain);
+  gain.connect(outNode ?? masterGain);
   osc.start(startTime);
   osc.stop(startTime + duration + 0.02);
 }
 
 function startBiomeLoop(biomeKey) {
   if (biomeKey === activeBiome) return;
-  if (!ensureAudio()) return;   // no Web Audio support
+  const ctx = ensureAudio();
+  if (!ctx) return;
+
+  // Fade out the old biome bus so in-flight notes don't linger
+  if (biomeGain) {
+    const old = biomeGain;
+    old.gain.cancelScheduledValues(ctx.currentTime);
+    old.gain.setTargetAtTime(0, ctx.currentTime, 0.15); // ~0.45 s to silence
+    setTimeout(() => { try { old.disconnect(); } catch(_) {} }, 900);
+    biomeGain = null;
+  }
+
   activeBiome = biomeKey;
   biomeLoopId++;
   const myId  = biomeLoopId;
   const music = BIOME_MUSIC[biomeKey];
   if (!music) return;
+
+  // New gain bus for new biome, fade in gently
+  const newBus = ctx.createGain();
+  newBus.gain.setValueAtTime(0, ctx.currentTime);
+  newBus.gain.setTargetAtTime(1, ctx.currentTime, 0.3);
+  newBus.connect(masterGain);
+  biomeGain = newBus;
+  const myBus = newBus;
 
   function schedule(startTime) {
     if (biomeLoopId !== myId) return;
@@ -780,7 +805,7 @@ function startBiomeLoop(biomeKey) {
     let   totalDur = 0;
     for (const [midi, beats] of music.notes) {
       const dur = beats * beat;
-      playTone(midi, t, dur * 0.88, music.wave, music.vol, ctx);
+      playTone(midi, t, dur * 0.88, music.wave, music.vol, ctx, myBus);
       t        += dur;
       totalDur += dur;
     }
@@ -788,7 +813,6 @@ function startBiomeLoop(biomeKey) {
     setTimeout(() => schedule(startTime + totalDur), Math.max(0, delay));
   }
 
-  const ctx = ensureAudio();
   schedule(ctx.currentTime + 0.05);
 }
 
@@ -835,7 +859,7 @@ function toggleMute() {
 }
 
 function renderControls() {
-  const base = 'WASD: move &nbsp;·&nbsp; 1-6: select &nbsp;·&nbsp; F: feed &nbsp;·&nbsp; R: lay egg &nbsp;·&nbsp; C: collection &nbsp;·&nbsp; M: mute &nbsp;·&nbsp; Ctrl+S/O: save/load';
+  const base = 'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; R:&nbsp;lay&nbsp;egg &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load';
   const mTag = muted ? ' &nbsp;<span style="color:#e05050">[MUTED]</span>' : '';
   document.getElementById('controls').innerHTML = base + mTag;
 }
