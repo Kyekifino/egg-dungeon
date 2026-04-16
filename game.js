@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.13';
+const VERSION = '1.14';
 
 // ── Patch notes (shown once per version on first load) ───────────
 const PATCH_NOTES = {
@@ -17,6 +17,9 @@ const PATCH_NOTES = {
     'Collection view: selected creature also blinks and jiggles',
     'Creature art rows are now width-normalised so lines stay aligned',
     'Patch notes added (you are here)',
+  ],
+  '1.14': [
+    'Pre-commit hook now enforces patch notes entry for every version',
   ],
 };
 

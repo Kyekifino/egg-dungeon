@@ -2,6 +2,27 @@
 # Run smoke test — abort commit if game.js fails to initialise
 node smoke.js || exit 1
 
+# Ensure patch notes exist for the incoming version
+node -e "
+const fs = require('fs');
+const src = fs.readFileSync('game.js', 'utf8');
+const m = src.match(/const VERSION = '([0-9]+)\.([0-9]+)'/);
+if (!m) process.exit(0);
+const next = m[1] + '.' + (Number(m[2]) + 1);
+const pnIdx = src.indexOf('const PATCH_NOTES');
+if (pnIdx === -1) {
+  console.error('  ERROR: PATCH_NOTES not found in game.js');
+  process.exit(1);
+}
+const pnSection = src.slice(pnIdx, pnIdx + 4000);
+if (!pnSection.includes(\"'\" + next + \"'\")) {
+  console.error('  ERROR: No patch notes entry for v' + next);
+  console.error('  Add a PATCH_NOTES[\'\" + next + \"\'] entry before committing.');
+  process.exit(1);
+}
+console.log('  patch notes found for v' + next);
+" || exit 1
+
 # Bump the minor version in game.js
 node -e "
 const fs = require('fs');
