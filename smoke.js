@@ -8,12 +8,22 @@
 'use strict';
 
 // ── Minimal DOM stub ─────────────────────────────────────────────
-const el = () => new Proxy({ style:{}, classList:{ add:()=>{}, remove:()=>{} } }, {
+// A recursive no-op proxy: any property access or call returns itself.
+const noop = new Proxy(function(){}, {
+  get(t, k) {
+    if (k === Symbol.toPrimitive || k === 'valueOf') return () => 0;
+    if (k === 'then') return undefined; // not a Promise
+    return noop;
+  },
+  apply() { return noop; },
+  set() { return true; },
+});
+
+const el = () => new Proxy({ style:{}, classList:{ add:()=>{}, remove:()=>{} }, dataset:{} }, {
   get(t, k) {
     if (k in t) return t[k];
     if (typeof k === 'symbol') return undefined;
-    // Any property read returns a no-op function or empty string
-    return typeof t[k] !== 'undefined' ? t[k] : () => el();
+    return noop;
   },
   set(t, k, v) { t[k] = v; return true; },
 });
@@ -23,7 +33,7 @@ global.document = {
   querySelector  : () => null,
   addEventListener: () => {},
 };
-global.window = {};
+global.window = {};   // no AudioContext — audio code self-disables via ensureAudio() null check
 global.localStorage = { getItem: () => null, setItem: () => {} };
 
 // ── Load ─────────────────────────────────────────────────────────

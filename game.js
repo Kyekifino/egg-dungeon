@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.14';
+const VERSION = '1.15';
 
 // ── Patch notes (shown once per version on first load) ───────────
 const PATCH_NOTES = {
@@ -20,6 +20,11 @@ const PATCH_NOTES = {
   ],
   '1.14': [
     'Pre-commit hook now enforces patch notes entry for every version',
+  ],
+  '1.15': [
+    'Sound effects: food pickup, gem pickup, egg hatch jingle',
+    'Biome music: each zone has its own looping theme',
+    'M key to mute / unmute all audio',
   ],
 };
 
@@ -684,6 +689,161 @@ function triggerColJiggle() {
   colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
 }
 
+// ================================================================
+//  AUDIO
+// ================================================================
+
+let audioCtx   = null;
+let masterGain = null;
+let muted      = false;
+let biomeLoopId  = 0;
+let activeBiome  = null;
+
+// MIDI note number → Hz
+const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+// Biome music: each entry has bpm, oscillator wave, volume, and a note sequence
+// Notes are [midi, durationInBeats]
+const BIOME_MUSIC = {
+  badlands:    { bpm:100, wave:'sawtooth', vol:0.07, notes:[
+    [50,1.5],[53,0.5],[57,1  ],[60,1  ],
+    [57,0.5],[55,0.5],[53,1  ],
+    [50,0.5],[58,0.5],[57,1  ],
+    [55,0.5],[53,0.5],[50,2  ],
+  ]},
+  wetlands:    { bpm: 75, wave:'sine',     vol:0.09, notes:[
+    [57,1  ],[60,0.5],[64,0.5],[67,1  ],
+    [66,0.5],[64,0.5],[62,1  ],
+    [60,0.5],[59,0.5],[57,2  ],
+  ]},
+  forest:      { bpm:120, wave:'triangle', vol:0.08, notes:[
+    [60,0.5],[64,0.5],[67,0.5],[69,0.5],
+    [67,0.5],[64,0.5],[62,0.5],[60,0.5],
+    [64,0.5],[67,1  ],[69,0.5],
+    [67,0.5],[64,0.5],[60,0.5],[62,0.5],[60,1],
+  ]},
+  underground: { bpm: 55, wave:'square',   vol:0.05, notes:[
+    [57,2  ],[58,1  ],[55,2  ],
+    [57,1  ],[53,1.5],[52,0.5],[50,2  ],
+  ]},
+  plains:      { bpm: 90, wave:'triangle', vol:0.08, notes:[
+    [67,0.5],[69,0.5],[71,1  ],
+    [67,0.5],[64,0.5],[62,1  ],
+    [60,0.5],[62,0.5],[64,0.5],[67,0.5],
+    [69,1  ],[67,1  ],
+  ]},
+};
+
+function ensureAudio() {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) {
+    audioCtx = new AC();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = muted ? 0 : 1;
+    masterGain.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playTone(midi, startTime, duration, waveType, peak, ctx) {
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = waveType;
+  osc.frequency.value = midiHz(midi);
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(peak, startTime + 0.01);
+  gain.gain.setValueAtTime(peak, startTime + duration * 0.7);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  osc.connect(gain);
+  gain.connect(masterGain);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.02);
+}
+
+function startBiomeLoop(biomeKey) {
+  if (biomeKey === activeBiome) return;
+  if (!ensureAudio()) return;   // no Web Audio support
+  activeBiome = biomeKey;
+  biomeLoopId++;
+  const myId  = biomeLoopId;
+  const music = BIOME_MUSIC[biomeKey];
+  if (!music) return;
+
+  function schedule(startTime) {
+    if (biomeLoopId !== myId) return;
+    const ctx  = ensureAudio();
+    if (!ctx) return;
+    const beat = 60 / music.bpm;
+    let   t    = startTime;
+    let   totalDur = 0;
+    for (const [midi, beats] of music.notes) {
+      const dur = beats * beat;
+      playTone(midi, t, dur * 0.88, music.wave, music.vol, ctx);
+      t        += dur;
+      totalDur += dur;
+    }
+    const delay = (startTime + totalDur - ctx.currentTime) * 1000 - 300;
+    setTimeout(() => schedule(startTime + totalDur), Math.max(0, delay));
+  }
+
+  const ctx = ensureAudio();
+  schedule(ctx.currentTime + 0.05);
+}
+
+function sfxPickup() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t   = ctx.currentTime;
+  [[76,0.06],[79,0.06],[83,0.1]].forEach(([m,d],i) => {
+    playTone(m, t + i * 0.055, d, 'square', 0.12, ctx);
+  });
+}
+
+function sfxGem() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t   = ctx.currentTime;
+  [69,73,76,81].forEach((m,i) => {
+    playTone(m, t + i * 0.065, 0.1 + i * 0.02, 'triangle', 0.13, ctx);
+  });
+  playTone(88, t + 0.26, 0.4, 'sine', 0.07, ctx);
+}
+
+function sfxHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t   = ctx.currentTime;
+  const seq = [[60,0.08],[64,0.08],[67,0.08],[72,0.28]];
+  let time  = t;
+  seq.forEach(([m,d]) => { playTone(m, time, d, 'triangle', 0.15, ctx); time += d + 0.01; });
+  // add a brief harmony chord at the final note
+  playTone(64, t + 0.25, 0.32, 'triangle', 0.08, ctx);
+  playTone(67, t + 0.25, 0.32, 'triangle', 0.08, ctx);
+}
+
+function toggleMute() {
+  muted = !muted;
+  if (masterGain) {
+    masterGain.gain.setTargetAtTime(muted ? 0 : 1, audioCtx.currentTime, 0.05);
+  }
+  const ctrl = document.getElementById('controls');
+  if (muted) ctrl.dataset.muted = '1';
+  else       delete ctrl.dataset.muted;
+  renderControls();
+}
+
+function renderControls() {
+  const base = 'WASD: move &nbsp;·&nbsp; 1-6: select &nbsp;·&nbsp; F: feed &nbsp;·&nbsp; R: lay egg &nbsp;·&nbsp; C: collection &nbsp;·&nbsp; M: mute &nbsp;·&nbsp; Ctrl+S/O: save/load';
+  const mTag = muted ? ' &nbsp;<span style="color:#e05050">[MUTED]</span>' : '';
+  document.getElementById('controls').innerHTML = base + mTag;
+}
+
+// ================================================================
+//  INVENTORY
+// ================================================================
+
 function emptyInv() { return {meat:0,fish:0,berries:0,mushroom:0,grain:0,gem:0}; }
 
 function newGame() {
@@ -761,12 +921,14 @@ function tryMove(dx,dy) {
     G.inventory.gem++;
     setTile(nx,ny,'.');
     addLog('Found a gem! Feed it to the egg (key 6, then F).');
+    sfxGem();
   } else {
     const info=FOOD_INFO[tile];
     if (info) {
       G.inventory[info.key]++;
       setTile(nx,ny,'.');
       addLog(`Picked up ${info.name}!`);
+      sfxPickup();
     }
   }
 
@@ -867,7 +1029,7 @@ function runAnimFrame() {
   const frame=G.animFrames[G.animFrame];
   renderAnimFrame(frame);
   if (frame.delay===0) {
-    setTimeout(()=>{ if(!animCancelled){G.phase='hatched';render();creatureBlinkTimer=setTimeout(triggerCreatureBlink,2500);creatureJiggleTimer=setTimeout(triggerCreatureJiggle,6000+rand(0,8000));} }, 400);
+    setTimeout(()=>{ if(!animCancelled){G.phase='hatched';sfxHatch();render();creatureBlinkTimer=setTimeout(triggerCreatureBlink,2500);creatureJiggleTimer=setTimeout(triggerCreatureJiggle,6000+rand(0,8000));} }, 400);
     return;
   }
   G.animFrame++;
@@ -946,6 +1108,7 @@ function renderWorldPanel() {
   const biome=BIOMES[biomeKey];
   document.getElementById('world-biome').innerHTML=
     `<span style="color:${biome.accent}">◈ ${biome.name}</span>`;
+  startBiomeLoop(biomeKey);
   const dir=eggDirection();
   document.getElementById('world-egg').textContent=
     dir ? `${dir.arrow} Egg ${dir.dist}m` : 'no egg';
@@ -1209,6 +1372,7 @@ const MOVE_KEYS={
 document.addEventListener('keydown',e=>{
   if (e.ctrlKey&&e.key==='s') { e.preventDefault(); saveGame(); return; }
   if (e.ctrlKey&&e.key==='o') { e.preventDefault(); loadGame(); return; }
+  if (e.key==='m'||e.key==='M') { toggleMute(); return; }
   if (!G) return;
   if (e.key==='c'||e.key==='C') {
     G.showCollection=!G.showCollection;
@@ -1268,5 +1432,6 @@ function checkPatchNotes() {
 // ================================================================
 
 document.getElementById('version').textContent = 'v' + VERSION;
+renderControls();
 if (!autoLoad()) newGame();
 checkPatchNotes();
