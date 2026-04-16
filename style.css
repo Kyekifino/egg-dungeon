@@ -163,6 +163,47 @@ body {
 #restart-hint  { font-size: 0.75rem; color: #6a6a6a; margin-top: 4px; animation: pulse 2s ease-in-out infinite; }
 #no-egg-msg    { font-size: 0.8rem; color: #6a6a6a; line-height: 1.6; }
 
+/* ── Patch notes overlay ─────────────────────────────────── */
+#patch-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.80);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#patch-overlay[hidden] { display: none; }
+#patch-box {
+  background: #050505;
+  border: 1px solid #2a2a2a;
+  padding: 22px 28px;
+  width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#patch-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  border-bottom: 1px solid #1a1a1a;
+  padding-bottom: 8px;
+}
+#patch-title  { color: #f0e060; letter-spacing: 0.2em; font-size: 0.85rem; }
+#patch-version{ color: #7a7a7a; font-size: 0.75rem; }
+#patch-notes-list { display: flex; flex-direction: column; gap: 5px; padding: 2px 0; }
+.patch-note { font-size: 0.8rem; color: #c8c4a8; padding-left: 4px; }
+.patch-note::before { content: '·  '; color: #f0e060; }
+#patch-dismiss {
+  font-size: 0.7rem;
+  color: #5a5a5a;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 8px;
+  text-align: center;
+  animation: pulse 2s ease-in-out infinite;
+}
+
 /* ── Footer ───────────────────────────────────────────────── */
 #app-footer { width: 660px; }
 #version { font-size: 0.65rem; color: #444; }

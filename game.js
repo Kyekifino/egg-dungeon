@@ -5,7 +5,20 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.12';
+const VERSION = '1.13';
+
+// ── Patch notes (shown once per version on first load) ───────────
+const PATCH_NOTES = {
+  '1.13': [
+    'Animals now have explicit eyes — every creature blinks',
+    'Multi-eyed (mushroom) creatures have 4, 6, or 8 eyes',
+    'Egg shakes while waiting to hatch, growing more restless as it fills',
+    'Hatched animals occasionally blink and fidget',
+    'Collection view: selected creature also blinks and jiggles',
+    'Creature art rows are now width-normalised so lines stay aligned',
+    'Patch notes added (you are here)',
+  ],
+};
 
 // ── Config ───────────────────────────────────────────────────────
 const VW = 50, VH = 22;
@@ -247,8 +260,8 @@ const BODY_PARTS = {
     ["      /\\    /\\      ","     /\\      /\\     ","   _/  \\    /  \\_   ","    ^|        |^    "],
     // row 1 – upper head
     ["     (  \\  //  )    ","    ( _\\    /_ )    ","   (    \\  /    )   ","    ( --\\  /-- )    "],
-    // row 2 – face/eyes
-    ["    ( >=':':=< )    ","   ( >':::::< )     ","    ( >o---o< )     ","   (  >=:=:=<  )    "],
+    // row 2 – face/eyes (exactly 2 lowercase o eyes per option)
+    ["    ( >=o:o:=< )    ","   ( >o::::o< )     ","    ( >o---o< )     ","   (  >=o=o=<  )    "],
     // row 3 – muzzle
     ["    /|   ()   |\\    ","   /  ) (  ( )  \\   ","    /|  (oo)  |\\    ","   / |  {  }  | \\   "],
     // row 4 – upper body
@@ -267,8 +280,8 @@ const BODY_PARTS = {
   fish: [
     // row 0 – dorsal fin
     ["         ~~~        ","        ~~~~~       ","       ~~^~~        ","      ~~~ ~~~       "],
-    // row 1 – face/eyes
-    ["   ><(  o . o  )><  ","  ><<( o   o )>>    ","   >>(  .o o.  )<<  ","   ><( o  ~  o )><  "],
+    // row 1 – face/eyes (exactly 2 lowercase o eyes per option; . is accent not eye)
+    ["   ><(  o   o  )><  ","  ><<( o   o )>>    ","   >>(  .o o.  )<<  ","   ><( o  ~  o )><  "],
     // row 2 – body top
     ["    /~~~~~~~~~~~\\   ","   /~~~~~~~~~~~~~\\  ","    /===========\\   ","   /~ ~ ~ ~ ~ ~ ~\\  "],
     // row 3 – upper body
@@ -291,8 +304,8 @@ const BODY_PARTS = {
     ["    /\\/\\/\\/\\      ","  /\\/\\  /\\/\\      ","    ^  ^  ^  ^      ","   /\\v    v/\\      "],
     // row 1 – upper head
     ["   /\\/\\/\\/\\/\\     ","  (  \\/\\/  )       ","  ( /\\ /\\ )         ","   ( \\vv/ )         "],
-    // row 2 – face
-    ["    ( ^v^    )      ","  ( >^v^<  )        ","    ( ^.^    )      ","   ( ^-^v   )       "],
+    // row 2 – face (bird: o eyes flank the ^brow/beak; exactly 2 o eyes per option)
+    ["    ( o^v^o    )    ","  ( >o^v^o<  )      ","    ( o^.^o    )    ","   ( o^-^o v  )     "],
     // row 3 – neck/wing top
     ["   ~[          ]~   ","  ~=[         ]=~   ","   ~{          }~   ","  =[            ]=  "],
     // row 4 – wing upper
@@ -315,8 +328,8 @@ const BODY_PARTS = {
     ["   oO        Oo     "," oO          Oo     ","  oO          Oo    "," oOo          oOo   "],
     // row 2 – cap spots/eyes
     ["  ( Oo  OO  oO )    ","( Oo oO  Oo oO )    ","  ( OO  oo  OO )    "," (oO  OO  OO  oO)   "],
-    // row 3 – cap face
-    ["  (  O  ()  O  )    ","(  O  ()()  O  )    ","  (  O (oo) O  )    "," (  O  (--)  O  )   "],
+    // row 3 – cap face (Multi-eyed: lowercase o only, unaffected by O fill-sub; 4/4/6/8 eyes)
+    ["  (o o  (--)  o o)  "," ( o o  ()()  o o ) ","  (o o o ()  o o o) "," (o o o o  o o o o) "],
     // row 4 – gills top
     ["   (            )   "," (              )   ","   (  --------  )   ","  (   ========   )  "],
     // row 5 – body spots
@@ -333,8 +346,8 @@ const BODY_PARTS = {
   grain: [
     // row 0 – ear tufts
     ["   /|          |\\   ","  /||          ||\\  "," ~~|            |~~ ","  /| ~~      ~~ |\\  "],
-    // row 1 – upper head
-    ["  / |          | \\  "," / ||          || \\ ","  /~|          |~\\  "," /  \\          /  \\ "],
+    // row 1 – upper head + eyes (exactly 2 lowercase o eyes per option)
+    ["  / | o      o | \\  "," / || o      o || \\ ","  /~| o      o |~\\  "," /  \\ o      o /  \\ "],
     // row 2 – shoulders
     [" (  \\          /  ) ","(   \\          /   )"," ( ~~\\        /~~ ) ","(  ~ \\        / ~  )"],
     // row 3 – arms
@@ -526,9 +539,9 @@ let colBlinkTimer      = null;
 let colJiggleTimer     = null;
 
 // Which row index holds the face/eyes for each food type
-const EYE_ROW  = { meat:2, fish:1, berries:2, mushroom:3, grain:2 };
-// Characters that represent open eyes → closed-eye equivalents
-const BLINK_MAP = { 'o':'-', 'O':'=', '.':'-', ':':'-' };
+// grain eyes are in row 1 (upper head); all others as before
+const EYE_ROW = { meat:2, fish:1, berries:2, mushroom:3, grain:1 };
+// Eyes are always lowercase o; blink closes them to -
 
 function stopIdleAnims() {
   idleGen++;
@@ -590,7 +603,7 @@ function triggerCreatureBlink() {
   const c  = G.creature;
   const ri = EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
-  const closed = orig.replace(/[oO.:]/g, ch => BLINK_MAP[ch] ?? ch);
+  const closed = orig.replace(/o/g, '-');
   if (closed === orig) {
     creatureBlinkTimer = setTimeout(triggerCreatureBlink, 3000);
     return;
@@ -632,7 +645,7 @@ function triggerColBlink() {
   if (!c) return;
   const ri     = EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
-  const closed = orig.replace(/[oO.:]/g, ch => BLINK_MAP[ch] ?? ch);
+  const closed = orig.replace(/o/g, '-');
   if (closed === orig) {
     colBlinkTimer = setTimeout(triggerColBlink, 3000);
     return;
@@ -1222,8 +1235,35 @@ document.getElementById('col-list').addEventListener('click',e=>{
 });
 
 // ================================================================
+//  PATCH NOTES
+// ================================================================
+
+function checkPatchNotes() {
+  const SEEN_KEY = 'egg-dungeon-patch-seen';
+  if (localStorage.getItem(SEEN_KEY) === VERSION) return;
+  const notes = PATCH_NOTES[VERSION];
+  if (!notes) return;
+
+  document.getElementById('patch-version').textContent = 'v' + VERSION;
+  document.getElementById('patch-notes-list').innerHTML =
+    notes.map(n => `<div class="patch-note">${escHtml(n)}</div>`).join('');
+  document.getElementById('patch-overlay').removeAttribute('hidden');
+
+  function dismiss(e) {
+    e.stopPropagation();   // prevent keystroke from reaching game handlers
+    document.getElementById('patch-overlay').setAttribute('hidden', '');
+    localStorage.setItem(SEEN_KEY, VERSION);
+    document.removeEventListener('keydown', dismiss, true);
+    document.getElementById('patch-overlay').removeEventListener('click', dismiss);
+  }
+  document.addEventListener('keydown', dismiss, true);   // capture so game never sees it
+  document.getElementById('patch-overlay').addEventListener('click', dismiss);
+}
+
+// ================================================================
 //  START
 // ================================================================
 
 document.getElementById('version').textContent = 'v' + VERSION;
 if (!autoLoad()) newGame();
+checkPatchNotes();
