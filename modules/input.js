@@ -11,6 +11,7 @@ const MOVE_KEYS = {
 
 export function init({ saveGame, loadGame, toggleMute, openFeedback, getG, setSelectedFood, tryMove, tryFeed, trySpawnEgg, render, stopColAnims }) {
   document.addEventListener('keydown', e => {
+    if (!document.getElementById('feedback-overlay').hidden) return;
     if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveGame(); return; }
     if (e.ctrlKey && e.key === 'o') { e.preventDefault(); loadGame(); return; }
     if (e.key === 'm' || e.key === 'M') { toggleMute(); return; }
