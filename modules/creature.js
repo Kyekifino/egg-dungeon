@@ -183,7 +183,9 @@ export function rankFoods(inv) {
 export function regenLines(c) {
   const dom = c.dom ?? TRAIT_TO_FOOD[c.traits?.[0]];
   if (!dom || !BODY_PARTS[dom]) return;
+  c.dom = dom;
   const sec = c.sec ?? TRAIT_TO_FOOD[c.traits?.[1]] ?? null;
+  c.sec = sec;
 
   const rng = mulberry32(c.hashVal);
   const lines = BODY_PARTS[dom].map(rowPool => rng.pick(rowPool));

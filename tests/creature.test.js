@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, getEggStage } from '../modules/creature.js';
+import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, getEggStage, EYE_ROW } from '../modules/creature.js';
 import { emptyInv, FOOD_KEYS, RARITIES } from '../modules/utils.js';
 
 function makeEgg(overrides = {}) {
@@ -68,6 +68,29 @@ describe('regenLines', () => {
     c.lines = null;
     regenLines(c);
     assert.deepEqual(c.lines, originalLines);
+  });
+
+  it('writes dom back when missing (blink regression)', () => {
+    // Simulate old save: creature has traits but no dom field stored
+    const c = generateCreature(makeEgg());
+    const expectedDom = c.dom;
+    delete c.dom;
+    delete c.sec;
+    regenLines(c);
+    assert.equal(c.dom, expectedDom, 'dom must be set after regenLines so eye row lookup works');
+  });
+
+  it('eye row has o after regenLines for all food types', () => {
+    for (const dom of ['meat', 'fish', 'berries', 'mushroom', 'grain']) {
+      const inv = { ...emptyInv(), [dom]: 10 };
+      const egg = makeEgg({ foodSequence: Array(10).fill(dom), inv });
+      const c = generateCreature(egg);
+      delete c.dom; delete c.sec; // simulate missing dom
+      regenLines(c);
+      const ri = EYE_ROW[c.dom];
+      assert.ok(ri !== undefined, `EYE_ROW missing for dom=${dom}`);
+      assert.ok(c.lines[ri].includes('o'), `no eyes in row ${ri} for dom=${dom}: "${c.lines[ri]}"`);
+    }
   });
 });
 

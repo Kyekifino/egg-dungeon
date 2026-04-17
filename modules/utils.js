@@ -1,7 +1,7 @@
 // Pure constants and utility functions shared across all modules.
 // No side effects, no DOM access, no mutable state.
 
-export const VERSION = '1.18';
+export const VERSION = '1.19';
 
 export const PATCH_NOTES = {
   '1.13': [
@@ -31,6 +31,7 @@ export const PATCH_NOTES = {
     'ESLint and Prettier added for code consistency',
     'Conventional commit messages now enforced',
   ],
+  '1.19': ['Fixed: fish and grain creatures from old saves never blinked'],
 };
 
 // Viewport dimensions
