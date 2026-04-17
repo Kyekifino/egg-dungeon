@@ -1,0 +1,15 @@
+{
+  "name": "egg-dungeon",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "c8 --lines 50 node --test tests/utils.test.js tests/world.test.js tests/creature.test.js",
+    "lint": "eslint modules/ game.js smoke.js"
+  },
+  "devDependencies": {
+    "c8": "^10.1.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3"
+  }
+}

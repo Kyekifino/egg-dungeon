@@ -1,0 +1,28 @@
+#!/bin/sh
+# Enforce conventional commit message format:
+# type(scope): description  OR  type: description
+# Valid types: feat, fix, refactor, test, docs, chore, style, perf, ci, build
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+
+# Skip merge commits, rebase, squash, etc.
+[ "$COMMIT_SOURCE" = "merge" ] && exit 0
+[ "$COMMIT_SOURCE" = "squash" ] && exit 0
+[ "$COMMIT_SOURCE" = "commit" ] && exit 0   # --amend / -C
+
+MSG=$(head -1 "$COMMIT_MSG_FILE")
+
+# Allow empty messages (git will reject them separately)
+[ -z "$MSG" ] && exit 0
+
+PATTERN='^(feat|fix|refactor|test|docs|chore|style|perf|ci|build)(\([a-zA-Z0-9_/-]+\))?: .+'
+if ! echo "$MSG" | grep -qE "$PATTERN"; then
+  echo ""
+  echo "  ERROR: Commit message does not follow conventional commits format."
+  echo "  Expected: type(scope): description"
+  echo "  Types:    feat, fix, refactor, test, docs, chore, style, perf, ci, build"
+  echo "  Example:  feat(world): add biome transitions"
+  echo ""
+  exit 1
+fi
