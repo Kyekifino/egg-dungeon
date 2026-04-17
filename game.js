@@ -8,6 +8,7 @@ import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
 import { toggleMute, sfxPickup, sfxGem, sfxHatch, renderControls } from './modules/audio.js';
 import { render, renderAnimFrame, stopIdleAnims, stopColAnims, startEggShakeTimer, startCreatureAnims } from './modules/render.js';
 import * as Input from './modules/input.js';
+import * as Feedback from './modules/feedback.js';
 
 // ── Game logic ────────────────────────────────────────────────────
 
@@ -324,10 +325,13 @@ function checkPatchNotes() {
 
 // ── Startup ───────────────────────────────────────────────────────
 
+Feedback.init();
+
 Input.init({
   saveGame,
   loadGame,
   toggleMute,
+  openFeedback: Feedback.openFeedback,
   getG: () => G,
   setSelectedFood,
   tryMove,

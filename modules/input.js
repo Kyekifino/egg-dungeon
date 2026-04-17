@@ -9,11 +9,12 @@ const MOVE_KEYS = {
   W: [0,-1], S: [0,1], A: [-1,0], D: [1,0],
 };
 
-export function init({ saveGame, loadGame, toggleMute, getG, setSelectedFood, tryMove, tryFeed, trySpawnEgg, render, stopColAnims }) {
+export function init({ saveGame, loadGame, toggleMute, openFeedback, getG, setSelectedFood, tryMove, tryFeed, trySpawnEgg, render, stopColAnims }) {
   document.addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveGame(); return; }
     if (e.ctrlKey && e.key === 'o') { e.preventDefault(); loadGame(); return; }
     if (e.key === 'm' || e.key === 'M') { toggleMute(); return; }
+    if (e.key === '?') { openFeedback(); return; }
     const G = getG();
     if (!G) return;
     if (e.key === 'c' || e.key === 'C') {

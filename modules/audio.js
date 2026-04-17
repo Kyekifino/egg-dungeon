@@ -156,7 +156,7 @@ export function toggleMute() {
 }
 
 export function renderControls() {
-  const base = 'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; R:&nbsp;lay&nbsp;egg &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load';
+  const base = 'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; R:&nbsp;lay&nbsp;egg &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load &nbsp;·&nbsp; ?:&nbsp;feedback';
   const mTag = muted ? ' &nbsp;<span style="color:#e05050">[MUTED]</span>' : '';
   document.getElementById('controls').innerHTML = base + mTag;
 }
