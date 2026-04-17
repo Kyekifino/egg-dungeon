@@ -4,7 +4,7 @@
 import { VERSION, escHtml } from './utils.js';
 
 // After deploying the worker, replace this with your workers.dev URL.
-const WORKER_URL = 'https://egg-dungeon-feedback.YOUR_SUBDOMAIN.workers.dev';
+const WORKER_URL = 'https://egg-dungeon-feedback.egg-dungeon.workers.dev';
 
 export function init() {
   document.getElementById('fb-cancel').addEventListener('click', close);
