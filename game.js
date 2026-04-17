@@ -5,7 +5,7 @@
 // ================================================================
 
 // ── Version ──────────────────────────────────────────────────────
-const VERSION = '1.16';
+const VERSION = '1.17';
 
 // ── Patch notes (shown once per version on first load) ───────────
 const PATCH_NOTES = {
@@ -30,6 +30,9 @@ const PATCH_NOTES = {
     'Biome music fades out smoothly when crossing into a new zone',
     'Biome music volume reduced',
     'Control hints no longer split across lines',
+  ],
+  '1.17': [
+    'Fixed: blink animation stopped working after the first keypress',
   ],
 };
 
@@ -627,7 +630,12 @@ function triggerCreatureBlink() {
   document.getElementById('egg-display').innerHTML =
     blinked.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
   setTimeout(() => {
-    if (idleGen !== gen) return;
+    if (idleGen !== gen) {
+      // A render overwrote our blink — eyes are already open again, just reschedule.
+      if (G?.phase === 'hatched' && G.creature && !creatureBlinkTimer)
+        creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500 + rand(0, 2000));
+      return;
+    }
     document.getElementById('egg-display').innerHTML =
       c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
     creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500 + rand(0, 2000));
@@ -669,7 +677,11 @@ function triggerColBlink() {
   document.getElementById('col-art').innerHTML =
     blinked.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
   setTimeout(() => {
-    if (colIdleGen !== gen) return;
+    if (colIdleGen !== gen) {
+      if (G?.showCollection && !colBlinkTimer)
+        colBlinkTimer = setTimeout(triggerColBlink, 2500 + rand(0, 2000));
+      return;
+    }
     document.getElementById('col-art').innerHTML =
       c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
     colBlinkTimer = setTimeout(triggerColBlink, 2500 + rand(0, 2000));
