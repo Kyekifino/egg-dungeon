@@ -55,7 +55,8 @@ export function generateChunk(cx, cy) {
     for (let x = 0; x < CW; x++) {
       if (grid[y][x] !== '.') continue;
       const r = rng.next();
-      if (r < 0.0005 && x !== CORR_X && y !== CORR_Y) {
+      if (x === CORR_X || y === CORR_Y) continue;
+      if (r < 0.0005) {
         grid[y][x] = CHEST_CHAR;
       } else if (r < 0.0015) {
         grid[y][x] = GEM_CHAR;
