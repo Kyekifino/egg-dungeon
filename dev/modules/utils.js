@@ -48,7 +48,7 @@ export const MAX_LOG = 8;
 export const HUNGER_STEPS = 75;
 export const GEM_CHAR = '$';
 export const GEM_COLOR = '#80dfff';
-export const GEM_BOOST = 1200;
+export const CHEST_CHAR = '■';
 
 // Chunk dimensions & corridor positions (guaranteed connectivity)
 export const CW = 26;
@@ -79,8 +79,8 @@ export const BIOMES = {
 export const BIOME_KEYS = Object.keys(BIOMES);
 
 export const CLR = {
-  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff' },
-  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060' },
+  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020' },
+  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08' },
 };
 
 export const RARITIES = [

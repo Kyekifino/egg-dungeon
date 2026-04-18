@@ -1,7 +1,7 @@
 // Orchestrator: game logic, save/load, startup.
 // All rendering, audio, world, and creature logic lives in modules/.
 
-import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, GEM_BOOST, MAX_LOG, HUNGER_STEPS, BIOMES, CORR_X, CORR_Y, getRarity, emptyInv, rand, escHtml } from './modules/utils.js';
+import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, BIOMES, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml } from './modules/utils.js';
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, isRoomTile, chunkX, chunkY } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
@@ -68,7 +68,10 @@ function newGame() {
 function tryMove(dx, dy) {
   if (G.phase === 'animating') return;
   const nx = G.px + dx, ny = G.py + dy;
-  if (!isWalkable(nx, ny)) return;
+  if (!isWalkable(nx, ny)) {
+    if (getTile(nx, ny) === CHEST_CHAR) { addLog('A chest! Press E to pick the lock.'); render(); }
+    return;
+  }
   if (G.egg && nx === G.egg.x && ny === G.egg.y) return;
 
   G.px = nx; G.py = ny;
@@ -113,9 +116,15 @@ function tryFeed() {
 
   if (key === 'gem') {
     if (G.inventory.gem === 0) { addLog('No gems! Find $ in the dungeon.'); render(); return; }
+    const curRarity = getRarity(G.egg.rarityRoll);
+    const curIdx = RARITIES.indexOf(curRarity);
+    if (curIdx === RARITIES.length - 1) {
+      addLog('This egg is already Legendary — gems cannot improve it.'); render(); return;
+    }
     G.inventory.gem--;
-    G.egg.rarityRoll = Math.min(9999, G.egg.rarityRoll + GEM_BOOST);
-    addLog(`Fed a gem! Rarity boosted to ${getRarity(G.egg.rarityRoll).name}.`);
+    G.egg.rarityRoll = rand(RARITIES[curIdx].threshold, RARITIES[curIdx + 1].threshold);
+    addLog(`Fed a gem! Rarity is now ${getRarity(G.egg.rarityRoll).name}.`);
+    autoSave();
     render();
     return;
   }
@@ -285,6 +294,77 @@ async function loadGame() {
   } catch (e) { if (e.name !== 'AbortError') { addLog('Load failed.'); console.error(e); } }
 }
 
+// ── Chest / lockpicking minigame ─────────────────────────────────
+
+const CHEST_BAR = 21;
+const CHEST_SWEET = 3;
+let chestMinigame = null;
+
+function tryChest() {
+  if (G.phase === 'animating') return;
+  const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
+  const found = dirs.map(([dx, dy]) => ({ x: G.px + dx, y: G.py + dy }))
+    .find(p => getTile(p.x, p.y) === CHEST_CHAR);
+  if (!found) { addLog('No chest nearby. (Stand adjacent, press E)'); render(); return; }
+
+  const sweetStart = 2 + Math.floor(Math.random() * (CHEST_BAR - CHEST_SWEET - 4));
+  chestMinigame = {
+    cx: found.x, cy: found.y,
+    pos: 0, dir: 1,
+    sweetStart, sweetEnd: sweetStart + CHEST_SWEET - 1,
+    intervalId: null,
+  };
+
+  document.getElementById('chest-result').textContent = '';
+  document.getElementById('chest-overlay').removeAttribute('hidden');
+  renderChestBar();
+  chestMinigame.intervalId = setInterval(() => {
+    if (!chestMinigame) return;
+    chestMinigame.pos += chestMinigame.dir;
+    if (chestMinigame.pos >= CHEST_BAR - 1) chestMinigame.dir = -1;
+    if (chestMinigame.pos <= 0) chestMinigame.dir = 1;
+    renderChestBar();
+  }, 80);
+}
+
+function renderChestBar() {
+  if (!chestMinigame) return;
+  const { pos, sweetStart, sweetEnd } = chestMinigame;
+  const chars = Array.from({ length: CHEST_BAR }, (_, i) => {
+    if (i === pos) return '│';
+    if (i >= sweetStart && i <= sweetEnd) return '≡';
+    return '·';
+  });
+  document.getElementById('chest-bar').textContent = '[' + chars.join('') + ']';
+}
+
+function tryLockpick() {
+  if (!chestMinigame) return;
+  const { pos, sweetStart, sweetEnd, cx, cy } = chestMinigame;
+  const resultEl = document.getElementById('chest-result');
+  if (pos >= sweetStart && pos <= sweetEnd) {
+    closeChest();
+    setTile(cx, cy, '.');
+    FOOD_KEYS.forEach(k => { G.inventory[k]++; });
+    G.inventory.gem += 3;
+    addLog('Chest unlocked! Found food and 3 gems.');
+    sfxHatch();
+    autoSave();
+    render();
+  } else {
+    resultEl.className = 'chest-miss';
+    resultEl.textContent = '✗ Missed — try again!';
+  }
+}
+
+function closeChest() {
+  if (!chestMinigame) return;
+  clearInterval(chestMinigame.intervalId);
+  chestMinigame = null;
+  document.getElementById('chest-overlay').setAttribute('hidden', '');
+  document.getElementById('chest-result').textContent = '';
+}
+
 function autoSave() {
   try { localStorage.setItem('egg-dungeon-save', JSON.stringify(buildSaveData())); } catch (_) { /* storage unavailable */ }
 }
@@ -338,6 +418,10 @@ Input.init({
   tryMove,
   tryFeed,
   trySpawnEgg,
+  tryChest,
+  lockpick: tryLockpick,
+  closeChest,
+  isChestActive: () => chestMinigame !== null,
   render,
   stopColAnims,
 });
