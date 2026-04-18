@@ -176,12 +176,12 @@ function triggerColJiggle() {
 // ── Animation start helpers (called by game.js) ───────────────────
 
 export function startEggShakeTimer(delay = 1500) {
-  eggShakeTimer = setTimeout(triggerEggShake, delay);
+  if (!eggShakeTimer) eggShakeTimer = setTimeout(triggerEggShake, delay);
 }
 
 export function startCreatureAnims() {
-  creatureBlinkTimer  = setTimeout(triggerCreatureBlink,  2500);
-  creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
+  if (!creatureBlinkTimer)  creatureBlinkTimer  = setTimeout(triggerCreatureBlink,  2500);
+  if (!creatureJiggleTimer) creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
 }
 
 // ── Render helpers ────────────────────────────────────────────────
