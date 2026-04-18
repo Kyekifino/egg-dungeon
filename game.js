@@ -126,6 +126,7 @@ function tryMove(dx, dy) {
 
   updateFOV();
   render();
+  autoSave();
 }
 
 function tryFeed() {
@@ -145,8 +146,8 @@ function tryFeed() {
     G.inventory.gem--;
     egg.rarityRoll = rand(RARITIES[curIdx].threshold, RARITIES[curIdx + 1].threshold);
     addLog(`Fed a gem! Rarity is now ${getRarity(egg.rarityRoll).name}.`);
-    autoSave();
     render();
+    autoSave();
     return;
   }
 
@@ -157,6 +158,7 @@ function tryFeed() {
   egg.fed++;
   addLog(`Fed the egg ${key}. (${egg.fed}/${FOOD_NEEDED})`);
   render();
+  autoSave();
   if (egg.fed >= FOOD_NEEDED) setTimeout(() => startHatch(egg), 900);
 }
 
@@ -245,6 +247,10 @@ function applySaveData(data) {
 async function saveGame() {
   const json = JSON.stringify(buildSaveData(), null, 2);
   try {
+    // Save to localStorage
+    localStorage.setItem('egg-dungeon-save', json);
+    
+    // Also offer to download as backup
     if (window.showSaveFilePicker) {
       const handle = await window.showSaveFilePicker({
         suggestedName: 'egg-dungeon.json',
@@ -253,12 +259,25 @@ async function saveGame() {
       const w = await handle.createWritable();
       await w.write(json); await w.close();
     } else {
+      // For browsers without File System API, offer download
       const a = document.createElement('a');
       a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
       a.download = 'egg-dungeon.json'; a.click();
     }
-    addLog('Game saved!');
-  } catch (e) { if (e.name !== 'AbortError') addLog('Save failed.'); }
+    addLog('Game saved to browser storage! (backup downloaded)');
+  } catch (e) { 
+    // If download was cancelled but localStorage worked, that's still a success
+    if (e.name !== 'AbortError') {
+      try {
+        localStorage.setItem('egg-dungeon-save', json);
+        addLog('Game saved to browser storage!');
+      } catch (_) {
+        addLog('Save failed: storage unavailable.');
+      }
+    } else {
+      addLog('Game saved to browser storage!');
+    }
+  }
   render();
 }
 
@@ -277,10 +296,24 @@ async function loadGame() {
         inp.click();
       });
     }
-    applySaveData(JSON.parse(text));
-    addLog('Game loaded!');
+    // Parse and validate the JSON
+    const saveData = JSON.parse(text);
+    // Save to localStorage so it becomes the active save
+    localStorage.setItem('egg-dungeon-save', JSON.stringify(saveData));
+    applySaveData(saveData);
+    addLog('Save file imported! Now your active game.');
     render();
   } catch (e) { if (e.name !== 'AbortError') { addLog('Load failed.'); console.error(e); } }
+}
+
+function clearSave() {
+  try {
+    localStorage.removeItem('egg-dungeon-save');
+    addLog('Saved game cleared. Press R to start a new game!');
+    render();
+  } catch (_) {
+    addLog('Failed to clear save.');
+  }
 }
 
 // ── Chest / lockpicking minigame ─────────────────────────────────
@@ -410,6 +443,7 @@ Feedback.init();
 Input.init({
   saveGame,
   loadGame,
+  clearSave,
   toggleMute: () => { toggleMute(); autoSave(); },
   openFeedback: Feedback.openFeedback,
   getG: () => G,
