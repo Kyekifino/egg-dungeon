@@ -28,6 +28,8 @@ export function openFeedback() {
   document.getElementById('fb-body').value = '';
   setStatus('');
   setLoading(false);
+  document.getElementById('fb-submit').style.display = '';
+  document.getElementById('fb-cancel').textContent = 'Cancel';
   document.getElementById('feedback-version').textContent = VERSION;
   document.getElementById('feedback-overlay').removeAttribute('hidden');
   document.getElementById('fb-title').focus();
