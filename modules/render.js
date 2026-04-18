@@ -41,6 +41,10 @@ export function getColSelected() {
   return sorted[Math.max(0, Math.min(G.colSelectedIdx, sorted.length - 1))];
 }
 
+const cLine = (c, l) => c.shiny
+  ? `<span class="shiny-anim">${escHtml(l)}</span>`
+  : `<span style="color:${c.color}">${escHtml(l)}</span>`;
+
 export function shiftArt(lines, dx) {
   if (!dx) return lines;
   return lines.map(l =>
@@ -84,7 +88,7 @@ function triggerCreatureBlink() {
   const blinked = [...c.lines];
   blinked[ri]   = closed;
   document.getElementById('egg-display').innerHTML =
-    blinked.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+    blinked.map(l => cLine(c, l)).join('\n');
   setTimeout(() => {
     if (idleGen !== gen) {
       if (G?.phase === 'hatched' && G.creature && !creatureBlinkTimer)
@@ -92,7 +96,7 @@ function triggerCreatureBlink() {
       return;
     }
     document.getElementById('egg-display').innerHTML =
-      c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+      c.lines.map(l => cLine(c, l)).join('\n');
     creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500 + rand(0, 2000));
   }, 180);
 }
@@ -107,8 +111,7 @@ function triggerCreatureJiggle() {
   (function nextFrame() {
     if (idleGen !== gen) return;
     document.getElementById('egg-display').innerHTML =
-      shiftArt(c.lines, offsets[fi])
-        .map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+      shiftArt(c.lines, offsets[fi]).map(l => cLine(c, l)).join('\n');
     if (++fi < offsets.length) setTimeout(nextFrame, 70);
   })();
   creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
@@ -130,7 +133,7 @@ function triggerColBlink() {
   const blinked = [...c.lines];
   blinked[ri]   = closed;
   document.getElementById('col-art').innerHTML =
-    blinked.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+    blinked.map(l => cLine(c, l)).join('\n');
   setTimeout(() => {
     if (colIdleGen !== gen) {
       if (G?.showCollection && !colBlinkTimer)
@@ -138,7 +141,7 @@ function triggerColBlink() {
       return;
     }
     document.getElementById('col-art').innerHTML =
-      c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+      c.lines.map(l => cLine(c, l)).join('\n');
     colBlinkTimer = setTimeout(triggerColBlink, 2500 + rand(0, 2000));
   }, 180);
 }
@@ -154,8 +157,7 @@ function triggerColJiggle() {
   (function nextFrame() {
     if (colIdleGen !== gen) return;
     document.getElementById('col-art').innerHTML =
-      shiftArt(c.lines, offsets[fi])
-        .map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+      shiftArt(c.lines, offsets[fi]).map(l => cLine(c, l)).join('\n');
     if (++fi < offsets.length) setTimeout(nextFrame, 70);
   })();
   colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
@@ -302,7 +304,7 @@ function renderBottomHatched() {
   idleGen++;
   const { creature } = G;
   document.getElementById('egg-display').innerHTML =
-    creature.lines.map(l => `<span style="color:${creature.color}">${escHtml(l)}</span>`).join('\n');
+    creature.lines.map(l => cLine(creature, l)).join('\n');
   const r = creature.rarity;
   document.getElementById('egg-info').innerHTML = `
     <div id="creature-name-display" style="color:${creature.color}">&ldquo;${escHtml(creature.name)}&rdquo;</div>
@@ -348,7 +350,7 @@ function renderCollection() {
 
   colIdleGen++;
   document.getElementById('col-art').innerHTML =
-    sel.lines.map(l => `<span style="color:${sel.color}">${escHtml(l)}</span>`).join('\n');
+    sel.lines.map(l => cLine(sel, l)).join('\n');
   if (!colBlinkTimer)  colBlinkTimer  = setTimeout(triggerColBlink,  2500 + rand(0, 2000));
   if (!colJiggleTimer) colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
 

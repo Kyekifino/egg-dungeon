@@ -264,5 +264,6 @@ export function generateCreature(egg) {
     .join(', ');
   const id = toID(hashVal);
 
-  return { id, hashVal, hashStr, name, color, rarity, lines: centeredLines, traits, diet, dom, sec };
+  const shiny = rng.int(0, 1000) === 0;
+  return { id, hashVal, hashStr, name, color, rarity, lines: centeredLines, traits, diet, dom, sec, shiny };
 }

@@ -294,3 +294,42 @@ body {
 /* ── Animations ───────────────────────────────────────────── */
 @keyframes pulse  { 0%,100%{opacity:.4} 50%{opacity:1} }
 @keyframes flicker { 0%,92%,94%,96%,100%{opacity:1} 93%{opacity:.5} 95%{opacity:.8} }
+
+@keyframes shiny-cycle {
+  0%   { color: #ff9999; }
+  16%  { color: #ffdd88; }
+  33%  { color: #88ffaa; }
+  50%  { color: #88ddff; }
+  66%  { color: #dd88ff; }
+  83%  { color: #ff88cc; }
+  100% { color: #ff9999; }
+}
+.shiny-anim { animation: shiny-cycle 3s linear infinite; }
+
+/* ── Chest / lockpicking overlay ─────────────────────────── */
+#chest-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#chest-overlay[hidden] { display: none; }
+#chest-box {
+  background: #050505;
+  border: 1px solid #2a2a2a;
+  padding: 22px 28px;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+}
+#chest-title  { color: #c8a020; letter-spacing: 0.2em; font-size: 0.85rem; }
+#chest-bar    { font-size: 1rem; letter-spacing: 0.06em; color: #c8c4a8; user-select: none; }
+#chest-hint   { color: #606060; font-size: 0.75rem; }
+#chest-result { min-height: 1.2em; font-size: 0.82rem; }
+.chest-hit    { color: #50c080; }
+.chest-miss   { color: #e05050; }

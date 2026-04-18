@@ -35,7 +35,7 @@ describe('chunk generation', () => {
   });
 
   it('tiles are only valid chars', () => {
-    const valid = new Set(['.', '#', '%', '~', '*', '^', ',', '$']);
+    const valid = new Set(['.', '#', '%', '~', '*', '^', ',', '$', '■']);
     const { grid } = getChunk(0, 0);
     for (const row of grid)
       for (const ch of row)
