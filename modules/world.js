@@ -89,6 +89,21 @@ export function setTile(wx, wy, ch) {
 
 export function isWalkable(wx, wy) { const t = getTile(wx, wy); return t !== '#' && t !== CHEST_CHAR; }
 
+// Returns deterministic wild-egg spawn info for a chunk, or null (~15% of chunks).
+export function getChunkEggSpawn(cx, cy) {
+  const rng = mulberry32(chunkSeed(cx, cy) ^ 0x3a7f9d2c);
+  if (rng.next() > 0.15) return null;
+  const chunk = getChunk(cx, cy);
+  const candidates = [];
+  for (let ly = 0; ly < CH; ly++)
+    for (let lx = 0; lx < CW; lx++)
+      if (chunk.grid[ly][lx] === '.' && lx !== CORR_X && ly !== CORR_Y)
+        candidates.push([cx * CW + lx, cy * CH + ly]);
+  if (candidates.length === 0) return null;
+  const [wx, wy] = candidates[rng.int(0, candidates.length)];
+  return { wx, wy, rarityRoll: rng.int(0, 10000) };
+}
+
 // Room = 3+ cardinal neighbours walkable (corridors have ≤2)
 export function isRoomTile(wx, wy) {
   return [[0, -1], [0, 1], [-1, 0], [1, 0]].filter(([dx, dy]) => isWalkable(wx + dx, wy + dy)).length >= 3;

@@ -43,3 +43,4 @@ try {
 }
 
 console.log('smoke test passed');
+process.exit(0);

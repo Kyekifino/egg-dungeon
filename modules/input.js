@@ -9,7 +9,7 @@ const MOVE_KEYS = {
   W: [0,-1], S: [0,1], A: [-1,0], D: [1,0],
 };
 
-export function init({ saveGame, loadGame, toggleMute, openFeedback, getG, setSelectedFood, tryMove, tryFeed, trySpawnEgg, tryChest, lockpick, closeChest, isChestActive, render, stopColAnims }) {
+export function init({ saveGame, loadGame, toggleMute, openFeedback, getG, setSelectedFood, tryMove, tryFeed, tryChest, lockpick, closeChest, isChestActive, render, stopColAnims }) {
   document.addEventListener('keydown', e => {
     if (!document.getElementById('feedback-overlay').hidden) return;
     if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveGame(); return; }
@@ -39,7 +39,6 @@ export function init({ saveGame, loadGame, toggleMute, openFeedback, getG, setSe
       }
       return;
     }
-    if (e.key === 'r' || e.key === 'R') { trySpawnEgg(); return; }
     if (e.key === 'f' || e.key === 'F') { tryFeed(); return; }
     if (FOOD_KEY_MAP[e.key]) { setSelectedFood(FOOD_KEY_MAP[e.key]); if (G.phase !== 'animating') render(); return; }
     const mv = MOVE_KEYS[e.key];
