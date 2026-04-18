@@ -5,7 +5,7 @@ import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHES
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, isRoomTile, chunkX, chunkY } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
-import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, renderControls } from './modules/audio.js';
+import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, renderControls } from './modules/audio.js';
 import { render, renderAnimFrame, stopIdleAnims, stopColAnims, startEggShakeTimer, startCreatureAnims } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
@@ -343,14 +343,23 @@ function tryLockpick() {
   const { pos, sweetStart, sweetEnd, cx, cy } = chestMinigame;
   const resultEl = document.getElementById('chest-result');
   if (pos >= sweetStart && pos <= sweetEnd) {
-    closeChest();
-    setTile(cx, cy, '.');
-    FOOD_KEYS.forEach(k => { G.inventory[k]++; });
-    G.inventory.gem += 3;
-    addLog('Chest unlocked! Found food and 3 gems.');
-    sfxHatch();
-    autoSave();
-    render();
+    clearInterval(chestMinigame.intervalId);
+    chestMinigame.intervalId = null;
+    const barEl = document.getElementById('chest-bar');
+    barEl.textContent = '[' + '■'.repeat(CHEST_BAR) + ']';
+    barEl.classList.add('chest-bar-success');
+    resultEl.className = 'chest-hit';
+    resultEl.textContent = '✓ Unlocked!';
+    sfxChestOpen();
+    setTimeout(() => {
+      closeChest();
+      setTile(cx, cy, '.');
+      FOOD_KEYS.forEach(k => { G.inventory[k]++; });
+      G.inventory.gem += 3;
+      addLog('Chest unlocked! Found food and 3 gems.');
+      autoSave();
+      render();
+    }, 750);
   } else {
     resultEl.className = 'chest-miss';
     resultEl.textContent = '✗ Missed — try again!';
@@ -361,6 +370,7 @@ function closeChest() {
   if (!chestMinigame) return;
   clearInterval(chestMinigame.intervalId);
   chestMinigame = null;
+  document.getElementById('chest-bar').classList.remove('chest-bar-success');
   document.getElementById('chest-overlay').setAttribute('hidden', '');
   document.getElementById('chest-result').textContent = '';
 }

@@ -133,6 +133,21 @@ export function sfxGem() {
   playTone(88, t + 0.26, 0.4, 'sine', 0.07, ctx);
 }
 
+export function sfxChestOpen() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Three mechanical lock clicks
+  playTone(38, t,        0.05, 'square',   0.25, ctx);
+  playTone(46, t + 0.07, 0.05, 'square',   0.25, ctx);
+  playTone(50, t + 0.14, 0.05, 'square',   0.28, ctx);
+  // Short ascending arpeggio
+  playTone(60, t + 0.24, 0.12, 'triangle', 0.18, ctx);
+  playTone(64, t + 0.34, 0.12, 'triangle', 0.16, ctx);
+  playTone(67, t + 0.44, 0.16, 'triangle', 0.15, ctx);
+  playTone(72, t + 0.56, 0.28, 'triangle', 0.13, ctx);
+}
+
 export function sfxHatch() {
   const ctx = ensureAudio();
   if (!ctx) return;
@@ -169,7 +184,7 @@ export function toggleMute() {
 }
 
 export function renderControls() {
-  const base = 'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; R:&nbsp;lay&nbsp;egg &nbsp;·&nbsp; E:&nbsp;chest &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load &nbsp;·&nbsp; ?:&nbsp;feedback';
+  const base = 'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; R:&nbsp;lay&nbsp;egg &nbsp;·&nbsp; E:&nbsp;interact &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load &nbsp;·&nbsp; ?:&nbsp;feedback';
   const mTag = muted ? ' &nbsp;<span style="color:#e05050">[MUTED]</span>' : '';
   document.getElementById('controls').innerHTML = base + mTag;
 }
