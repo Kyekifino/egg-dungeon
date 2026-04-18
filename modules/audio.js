@@ -154,6 +154,7 @@ export function setMuted(val) {
     if (muted) ctrl.dataset.muted = '1';
     else       delete ctrl.dataset.muted;
   }
+  renderControls();
 }
 
 export function toggleMute() {

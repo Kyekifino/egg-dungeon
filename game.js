@@ -331,7 +331,7 @@ Feedback.init();
 Input.init({
   saveGame,
   loadGame,
-  toggleMute,
+  toggleMute: () => { toggleMute(); autoSave(); },
   openFeedback: Feedback.openFeedback,
   getG: () => G,
   setSelectedFood,
