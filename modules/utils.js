@@ -1,7 +1,7 @@
 // Pure constants and utility functions shared across all modules.
 // No side effects, no DOM access, no mutable state.
 
-export const VERSION = '1.22';
+export const VERSION = '1.23';
 
 export const PATCH_NOTES = {
   '1.13': [
