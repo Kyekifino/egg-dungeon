@@ -1,0 +1,35 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master, dev]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare game files
+        run: |
+          mkdir dist
+          cp index.html game.js style.css dist/
+          cp -r modules dist/
+
+      - name: Deploy to production
+        if: github.ref == 'refs/heads/master'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          clean-exclude: |
+            dev/
+
+      - name: Deploy to preview
+        if: github.ref == 'refs/heads/dev'
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: dist
+          target-folder: dev

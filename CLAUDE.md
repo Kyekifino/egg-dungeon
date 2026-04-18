@@ -40,19 +40,32 @@ input.js  → utils                                       ─┘
 
 **Input decoupling**: `input.js` exports `init(handlers)`. `game.js` passes callbacks in. This keeps input.js dependency-free from game.js.
 
+## Branching & release strategy
+
+- **`master`** — production. GitHub Pages serves the live game from this branch.
+- **`dev`** — staging/preview. GitHub Pages serves a preview at `/dev/` on every push.
+- Feature work happens directly on `dev` (or short-lived branches off `dev`).
+
+**To release:**
+1. Add a `PATCH_NOTES[next_version]` entry to `modules/utils.js`.
+2. Run `./release.sh` — validates patch notes, bumps VERSION, commits.
+3. `git push origin dev` then open a PR: `dev → master`.
+4. The `release-check` GitHub Actions workflow gates the merge on: patch notes present, lint, smoke test, unit tests.
+5. Merging triggers automatic production deploy.
+
 ## Dev process
 
-**Pre-commit hook** (`.githooks/pre-commit`):
+**Pre-commit hook** (`.githooks/pre-commit`) runs on every commit:
 1. Smoke test (`node smoke.js`)
 2. ESLint (`npm run lint`)
 3. Unit tests with ≥50% line coverage (`npm test`)
-4. Checks PATCH_NOTES entry exists for next version
-5. Bumps VERSION in `modules/utils.js` and re-stages it
+
+Version bumps and patch notes are **not** required on individual commits — only at release time via `./release.sh`.
 
 **Commit messages** must follow conventional commits: `type(scope): description`
 Valid types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `style`, `perf`, `ci`, `build`
 
-**Version** lives in `modules/utils.js` → `export const VERSION`. Add a `PATCH_NOTES[next_version]` entry before committing, or the hook will block.
+**Version** lives in `modules/utils.js` → `export const VERSION`. `./release.sh` bumps it automatically after validating patch notes.
 
 ## Running
 
