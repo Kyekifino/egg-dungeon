@@ -26,20 +26,20 @@ jobs:
       - name: Tests
         run: npm test
 
-      - name: Verify patch notes for next version
+      - name: Verify patch notes for current version
         run: |
           node --input-type=module - << 'EOF'
           import { readFileSync } from 'fs';
           const src = readFileSync('modules/utils.js', 'utf8');
-          const m = src.match(/export const VERSION = '([0-9]+)\.([0-9]+)'/);
+          const m = src.match(/export const VERSION = '([0-9]+\.[0-9]+)'/);
           if (!m) { console.log('VERSION not found — skipping patch notes check'); process.exit(0); }
-          const next = m[1] + '.' + (Number(m[2]) + 1);
+          const ver = m[1];
           const pnIdx = src.indexOf('export const PATCH_NOTES');
           const pnSection = pnIdx !== -1 ? src.slice(pnIdx, pnIdx + 4000) : '';
-          if (!pnSection.includes("'" + next + "'")) {
-            console.error('ERROR: No patch notes entry for v' + next);
-            console.error("Add PATCH_NOTES['" + next + "'] to modules/utils.js before releasing.");
+          if (!pnSection.includes("'" + ver + "'")) {
+            console.error('ERROR: No patch notes entry for v' + ver);
+            console.error("Add PATCH_NOTES['" + ver + "'] to modules/utils.js before releasing.");
             process.exit(1);
           }
-          console.log('Patch notes found for v' + next + ' ✓');
+          console.log('Patch notes found for v' + ver + ' ✓');
           EOF
