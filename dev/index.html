@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EGG DUNGEON</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="header">
+      <span id="title">EGG DUNGEON</span>
+      <span id="controls">WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; R:&nbsp;lay&nbsp;egg &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load</span>
+    </div>
+
+    <div id="mid-area">
+      <!-- Normal game view -->
+      <div id="game-area">
+        <pre id="viewport"></pre>
+        <div id="sidebar">
+          <div class="panel" id="world-panel">
+            <div id="world-biome"></div>
+            <div id="world-egg"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">INVENTORY</div>
+            <div id="inv-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">LOG</div>
+            <div id="log"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collection overlay (same footprint) -->
+      <div id="collection-overlay" hidden>
+        <div id="col-header">
+          <span id="col-title">COLLECTION</span>
+          <span id="col-count"></span>
+          <span id="col-close">C: close &nbsp;·&nbsp; W/S or ↑↓: navigate</span>
+        </div>
+        <div id="col-body">
+          <div id="col-list"></div>
+          <div id="col-detail">
+            <pre id="col-art"></pre>
+            <div id="col-detail-info"></div>
+          </div>
+        </div>
+        <div id="col-legend">[C] Common &nbsp; [U] Uncommon &nbsp; [R] Rare &nbsp; [L] Legendary</div>
+      </div>
+    </div>
+
+    <div id="bottom-panel">
+      <pre id="egg-display"></pre>
+      <div id="egg-info"></div>
+    </div>
+
+    <div id="app-footer">
+      <span id="version"></span>
+    </div>
+  </div>
+
+  <!-- Patch notes modal -->
+  <div id="patch-overlay" hidden>
+    <div id="patch-box">
+      <div id="patch-header">
+        <span id="patch-title">PATCH NOTES</span>
+        <span id="patch-version"></span>
+      </div>
+      <div id="patch-notes-list"></div>
+      <div id="patch-dismiss">[ press any key or click to continue ]</div>
+    </div>
+  </div>
+
+  <!-- Feedback modal -->
+  <div id="feedback-overlay" hidden>
+    <div id="feedback-box">
+      <div id="feedback-header">
+        <span id="feedback-title">FEEDBACK</span>
+        <span id="feedback-version-line">v<span id="feedback-version"></span></span>
+      </div>
+      <div id="fb-fields">
+        <div class="fb-row">
+          <label class="fb-label" for="fb-type">Type</label>
+          <select id="fb-type">
+            <option value="bug">Bug report</option>
+            <option value="suggestion">Suggestion</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="fb-row">
+          <label class="fb-label" for="fb-title">Title</label>
+          <input id="fb-title" type="text" maxlength="120" placeholder="Brief summary…" autocomplete="off">
+        </div>
+        <div class="fb-row fb-row-tall">
+          <label class="fb-label" for="fb-body">Details</label>
+          <textarea id="fb-body" rows="5" maxlength="2000" placeholder="What happened? What did you expect?"></textarea>
+        </div>
+      </div>
+      <div id="fb-status"></div>
+      <div id="fb-actions">
+        <button id="fb-cancel">Cancel</button>
+        <button id="fb-submit">Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input for load fallback -->
+  <input type="file" id="load-input" accept=".json" style="display:none">
+
+  <script type="module" src="game.js"></script>
+</body>
+</html>

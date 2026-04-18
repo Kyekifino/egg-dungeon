@@ -1,0 +1,347 @@
+// Orchestrator: game logic, save/load, startup.
+// All rendering, audio, world, and creature logic lives in modules/.
+
+import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, GEM_BOOST, MAX_LOG, HUNGER_STEPS, BIOMES, CORR_X, CORR_Y, getRarity, emptyInv, rand, escHtml } from './modules/utils.js';
+import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, isRoomTile, chunkX, chunkY } from './modules/world.js';
+import { generateCreature, buildAnimSeq, regenLines } from './modules/creature.js';
+import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
+import { toggleMute, sfxPickup, sfxGem, sfxHatch, renderControls } from './modules/audio.js';
+import { render, renderAnimFrame, stopIdleAnims, stopColAnims, startEggShakeTimer, startCreatureAnims } from './modules/render.js';
+import * as Input from './modules/input.js';
+import * as Feedback from './modules/feedback.js';
+
+// ── Game logic ────────────────────────────────────────────────────
+
+let animCancelled = false;
+
+function addLog(msg) {
+  G.log.push(msg);
+  if (G.log.length > MAX_LOG) G.log.shift();
+}
+
+function updateFOV() {
+  const { revealed, px, py } = G;
+  const R = 6;
+  for (let dy = -R - 1; dy <= R + 1; dy++)
+    for (let dx = -R - 1; dx <= R + 1; dx++) {
+      const nx = px + dx, ny = py + dy;
+      if (Math.hypot(dx, dy) <= R) revealed.add(`${nx},${ny}`);
+    }
+}
+
+function newGame() {
+  animCancelled = true;
+  stopIdleAnims();
+  resetWorld(rand(0, 0xFFFFFF));
+
+  for (let dcy = -1; dcy <= 1; dcy++) for (let dcx = -1; dcx <= 1; dcx++) getChunk(dcx, dcy);
+
+  const eggX = CORR_X, eggY = CORR_Y;
+  setTile(eggX, eggY, '.');
+
+  setG({
+    px: eggX + 1, py: eggY,
+    inventory:  emptyInv(),
+    egg: {
+      x: eggX, y: eggY,
+      foodSequence: [],
+      rarityRoll:   rand(0, 10000),
+      inv:          emptyInv(),
+      fed:          0,
+      biome:        getChunkBiome(chunkX(eggX), chunkY(eggY)),
+    },
+    phase:          'playing',
+    creature:       null,
+    collection:     [],
+    revealed:       new Set(),
+    showCollection: false,
+    colSelectedIdx: 0,
+    steps:          0,
+    animFrames:     [],
+    animFrame:      0,
+    log: ['You stand beside the Egg.', 'Collect food and feed it (F)!'],
+  });
+  updateFOV();
+  render();
+}
+
+function tryMove(dx, dy) {
+  if (G.phase === 'animating') return;
+  const nx = G.px + dx, ny = G.py + dy;
+  if (!isWalkable(nx, ny)) return;
+  if (G.egg && nx === G.egg.x && ny === G.egg.y) return;
+
+  G.px = nx; G.py = ny;
+  G.steps++;
+
+  const tile = getTile(nx, ny);
+  if (tile === GEM_CHAR) {
+    G.inventory.gem++;
+    setTile(nx, ny, '.');
+    addLog('Found a gem! Feed it to the egg (key 6, then F).');
+    sfxGem();
+  } else {
+    const info = FOOD_INFO[tile];
+    if (info) {
+      G.inventory[info.key]++;
+      setTile(nx, ny, '.');
+      addLog(`Picked up ${info.name}!`);
+      sfxPickup();
+    }
+  }
+
+  if (G.steps % HUNGER_STEPS === 0) {
+    const available = FOOD_KEYS.filter(k => G.inventory[k] > 0);
+    if (available.length > 0) {
+      const k = available[Math.floor(Math.random() * available.length)];
+      G.inventory[k]--;
+      addLog(`Hungry! You ate some ${k}.`);
+    }
+  }
+
+  updateFOV();
+  render();
+}
+
+function tryFeed() {
+  if (G.phase === 'animating') return;
+  if (!G.egg) { addLog('No egg to feed! Press R in a room.'); render(); return; }
+  const dist = Math.abs(G.px - G.egg.x) + Math.abs(G.py - G.egg.y);
+  if (dist > 1) { addLog('Move adjacent to the Egg (Θ) to feed it.'); render(); return; }
+  if (G.egg.fed >= FOOD_NEEDED) return;
+  const key = selectedFood;
+
+  if (key === 'gem') {
+    if (G.inventory.gem === 0) { addLog('No gems! Find $ in the dungeon.'); render(); return; }
+    G.inventory.gem--;
+    G.egg.rarityRoll = Math.min(9999, G.egg.rarityRoll + GEM_BOOST);
+    addLog(`Fed a gem! Rarity boosted to ${getRarity(G.egg.rarityRoll).name}.`);
+    render();
+    return;
+  }
+
+  if (G.inventory[key] === 0) { addLog(`No ${key} in inventory! (select 1-5)`); render(); return; }
+  G.inventory[key]--;
+  G.egg.inv[key]++;
+  G.egg.foodSequence.push(key);
+  G.egg.fed++;
+  addLog(`Fed the egg ${key}. (${G.egg.fed}/${FOOD_NEEDED})`);
+  render();
+  if (G.egg.fed >= FOOD_NEEDED) setTimeout(startHatch, 900);
+}
+
+function trySpawnEgg() {
+  if (G.phase === 'animating') return;
+  if (G.egg) { addLog('An egg already exists!'); render(); return; }
+  if (!isRoomTile(G.px, G.py)) { addLog('You must be in a room to lay an egg.'); render(); return; }
+
+  const nearHallway = [[0,-1],[0,1],[-1,0],[1,0]].some(([ddx, ddy]) => {
+    const nx = G.px + ddx, ny = G.py + ddy;
+    return isWalkable(nx, ny) && !isRoomTile(nx, ny);
+  });
+  if (nearHallway) { addLog('Too close to a hallway. Move deeper into the room.'); render(); return; }
+
+  const candidates = [[0,-1],[0,1],[-1,0],[1,0]]
+    .filter(([ddx, ddy]) => getTile(G.px + ddx, G.py + ddy) === '.');
+  if (candidates.length === 0) { addLog('No empty space adjacent to lay an egg!'); render(); return; }
+
+  const [ddx, ddy] = candidates[rand(0, candidates.length)];
+  const biomeKey = getChunkBiome(chunkX(G.px), chunkY(G.py));
+  G.egg = {
+    x: G.px + ddx, y: G.py + ddy,
+    foodSequence: [], rarityRoll: rand(0, 10000),
+    inv: emptyInv(), fed: 0,
+    biome: biomeKey,
+  };
+  G.phase   = 'playing';
+  G.creature = null;
+  addLog(`Egg laid! [${BIOMES[biomeKey].name}]`);
+  autoSave();
+  render();
+  startEggShakeTimer(1500);
+}
+
+function startHatch() {
+  stopIdleAnims();
+  G.creature    = generateCreature(G.egg);
+  G.phase       = 'animating';
+  G.animFrames  = buildAnimSeq(G.creature);
+  G.animFrame   = 0;
+  animCancelled = false;
+
+  if (!G.collection.find(c => c.hashVal === G.creature.hashVal)) {
+    G.collection.push({ ...G.creature, date: new Date().toLocaleDateString() });
+  }
+  addLog(`THE EGG HATCHES!  [${G.creature.rarity.name}]`);
+  G.egg = null;
+  autoSave();
+  runAnimFrame();
+}
+
+function runAnimFrame() {
+  if (animCancelled) return;
+  const frame = G.animFrames[G.animFrame];
+  renderAnimFrame(frame);
+  if (frame.delay === 0) {
+    setTimeout(() => {
+      if (!animCancelled) {
+        G.phase = 'hatched';
+        sfxHatch();
+        render();
+        startCreatureAnims();
+      }
+    }, 400);
+    return;
+  }
+  G.animFrame++;
+  setTimeout(runAnimFrame, frame.delay);
+}
+
+// ── Save / Load ───────────────────────────────────────────────────
+
+function buildSaveData() {
+  const chunkData = {};
+  for (const [key, chunk] of chunks) chunkData[key] = chunk.grid;
+  return {
+    version: 3, worldSeed: WORLD_SEED, selectedFood,
+    player:  { x: G.px, y: G.py, inventory: G.inventory },
+    egg:     G.egg,
+    phase:   G.phase === 'animating' ? 'playing' : G.phase,
+    creature: G.creature,
+    collection: G.collection.map(({ lines: _, ...c }) => c),
+    chunkData,
+    revealed: [...G.revealed],
+    log:   G.log,
+    steps: G.steps,
+  };
+}
+
+function applySaveData(data) {
+  animCancelled = true;
+  resetWorld(data.worldSeed);
+  for (const [key, grid] of Object.entries(data.chunkData || {}))
+    chunks.set(key, { grid });
+  setSelectedFood(data.selectedFood || 'meat');
+  setG({
+    px: data.player.x, py: data.player.y,
+    inventory:    { ...emptyInv(), ...(data.player.inventory || {}) },
+    egg:          data.egg || null,
+    phase:        data.phase || 'playing',
+    creature:     data.creature || null,
+    collection:   data.collection || [],
+    revealed:     new Set(data.revealed || []),
+    showCollection: false,
+    colSelectedIdx: 0,
+    steps:        data.steps || 0,
+    animFrames: [], animFrame: 0,
+    log:          data.log || [],
+  });
+  G.collection.forEach(regenLines);
+  if (G.creature) regenLines(G.creature);
+  updateFOV();
+  if (G.phase === 'playing' && G.egg) startEggShakeTimer(1500);
+  if (G.phase === 'hatched' && G.creature) startCreatureAnims();
+}
+
+async function saveGame() {
+  const json = JSON.stringify(buildSaveData(), null, 2);
+  try {
+    if (window.showSaveFilePicker) {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'egg-dungeon.json',
+        types: [{ description: 'JSON Save File', accept: { 'application/json': ['.json'] } }],
+      });
+      const w = await handle.createWritable();
+      await w.write(json); await w.close();
+    } else {
+      const a = document.createElement('a');
+      a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(json);
+      a.download = 'egg-dungeon.json'; a.click();
+    }
+    addLog('Game saved!');
+  } catch (e) { if (e.name !== 'AbortError') addLog('Save failed.'); }
+  render();
+}
+
+async function loadGame() {
+  try {
+    let text;
+    if (window.showOpenFilePicker) {
+      const [handle] = await window.showOpenFilePicker({
+        types: [{ description: 'JSON Save File', accept: { 'application/json': ['.json'] } }],
+      });
+      text = await (await handle.getFile()).text();
+    } else {
+      text = await new Promise((res, rej) => {
+        const inp = document.getElementById('load-input');
+        inp.onchange = async () => { const f = inp.files[0]; if (!f) rej(new Error('no file')); res(await f.text()); inp.value = ''; };
+        inp.click();
+      });
+    }
+    applySaveData(JSON.parse(text));
+    addLog('Game loaded!');
+    render();
+  } catch (e) { if (e.name !== 'AbortError') { addLog('Load failed.'); console.error(e); } }
+}
+
+function autoSave() {
+  try { localStorage.setItem('egg-dungeon-save', JSON.stringify(buildSaveData())); } catch (_) { /* storage unavailable */ }
+}
+
+function autoLoad() {
+  try {
+    const saved = localStorage.getItem('egg-dungeon-save');
+    if (!saved) return false;
+    applySaveData(JSON.parse(saved));
+    addLog('Welcome back!');
+    render();
+    return true;
+  } catch (e) { return false; }
+}
+
+// ── Patch notes ───────────────────────────────────────────────────
+
+function checkPatchNotes() {
+  const SEEN_KEY = 'egg-dungeon-patch-seen';
+  if (localStorage.getItem(SEEN_KEY) === VERSION) return;
+  const notes = PATCH_NOTES[VERSION];
+  if (!notes) return;
+
+  document.getElementById('patch-version').textContent = 'v' + VERSION;
+  document.getElementById('patch-notes-list').innerHTML =
+    notes.map(n => `<div class="patch-note">${escHtml(n)}</div>`).join('');
+  document.getElementById('patch-overlay').removeAttribute('hidden');
+
+  function dismiss(e) {
+    e.stopPropagation();
+    document.getElementById('patch-overlay').setAttribute('hidden', '');
+    localStorage.setItem(SEEN_KEY, VERSION);
+    document.removeEventListener('keydown', dismiss, true);
+    document.getElementById('patch-overlay').removeEventListener('click', dismiss);
+  }
+  document.addEventListener('keydown', dismiss, true);
+  document.getElementById('patch-overlay').addEventListener('click', dismiss);
+}
+
+// ── Startup ───────────────────────────────────────────────────────
+
+Feedback.init();
+
+Input.init({
+  saveGame,
+  loadGame,
+  toggleMute,
+  openFeedback: Feedback.openFeedback,
+  getG: () => G,
+  setSelectedFood,
+  tryMove,
+  tryFeed,
+  trySpawnEgg,
+  render,
+  stopColAnims,
+});
+
+document.getElementById('version').textContent = 'v' + VERSION;
+renderControls();
+if (!autoLoad()) newGame();
+checkPatchNotes();
