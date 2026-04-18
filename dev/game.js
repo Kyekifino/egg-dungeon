@@ -5,7 +5,7 @@ import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, GEM_
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, isRoomTile, chunkX, chunkY } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
-import { toggleMute, sfxPickup, sfxGem, sfxHatch, renderControls } from './modules/audio.js';
+import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, renderControls } from './modules/audio.js';
 import { render, renderAnimFrame, stopIdleAnims, stopColAnims, startEggShakeTimer, startCreatureAnims } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
@@ -203,7 +203,7 @@ function buildSaveData() {
   const chunkData = {};
   for (const [key, chunk] of chunks) chunkData[key] = chunk.grid;
   return {
-    version: 3, worldSeed: WORLD_SEED, selectedFood,
+    version: 3, worldSeed: WORLD_SEED, selectedFood, muted: getMuted(),
     player:  { x: G.px, y: G.py, inventory: G.inventory },
     egg:     G.egg,
     phase:   G.phase === 'animating' ? 'playing' : G.phase,
@@ -222,6 +222,7 @@ function applySaveData(data) {
   for (const [key, grid] of Object.entries(data.chunkData || {}))
     chunks.set(key, { grid });
   setSelectedFood(data.selectedFood || 'meat');
+  setMuted(data.muted ?? false);
   setG({
     px: data.player.x, py: data.player.y,
     inventory:    { ...emptyInv(), ...(data.player.inventory || {}) },

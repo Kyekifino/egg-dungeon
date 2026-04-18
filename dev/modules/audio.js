@@ -144,6 +144,18 @@ export function sfxHatch() {
   playTone(67, t + 0.25, 0.32, 'triangle', 0.08, ctx);
 }
 
+export function getMuted() { return muted; }
+
+export function setMuted(val) {
+  muted = !!val;
+  if (masterGain) masterGain.gain.value = muted ? 0 : 1;
+  const ctrl = document.getElementById('controls');
+  if (ctrl) {
+    if (muted) ctrl.dataset.muted = '1';
+    else       delete ctrl.dataset.muted;
+  }
+}
+
 export function toggleMute() {
   muted = !muted;
   if (masterGain) {
