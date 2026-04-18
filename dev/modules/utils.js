@@ -1,7 +1,7 @@
 // Pure constants and utility functions shared across all modules.
 // No side effects, no DOM access, no mutable state.
 
-export const VERSION = '1.22';
+export const VERSION = '1.23';
 
 export const PATCH_NOTES = {
   '1.13': [
@@ -35,6 +35,19 @@ export const PATCH_NOTES = {
   '1.20': ['Feedback form added — press ? to send a bug report or suggestion'],
   '1.21': ['Feedback form now connected to live server'],
   '1.22': ['Fixed: game keys no longer fire while the feedback form is open'],
+  '1.23': [
+    'Eggs now spawn naturally in the world — no more laying your own',
+    'Multiple eggs exist at once; feed whichever one you\'re standing next to',
+    'Chests added (■): stand adjacent and press E to attempt a lockpick minigame',
+    'Successful lockpick yields food and 3 gems',
+    'Shiny creatures: 1 in 1000 eggs hatches with a cycling rainbow colour',
+    'Gems now boost rarity to a random value in the next tier (more variance)',
+    'Legendary eggs can no longer receive gems',
+    'Food and gems no longer spawn in hallways',
+    'Mute preference now saves and restores across sessions',
+    'Badlands and underground music reworked',
+    'Fixed: feedback form Submit button returned after resubmitting',
+  ],
 };
 
 // Viewport dimensions
