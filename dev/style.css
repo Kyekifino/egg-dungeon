@@ -331,5 +331,17 @@ body {
 #chest-bar    { font-size: 1rem; letter-spacing: 0.06em; color: #c8c4a8; user-select: none; }
 #chest-hint   { color: #606060; font-size: 0.75rem; }
 #chest-result { min-height: 1.2em; font-size: 0.82rem; }
-.chest-hit    { color: #50c080; }
-.chest-miss   { color: #e05050; }
+
+@keyframes chest-unlock {
+  0%   { color: #ffffff; letter-spacing: 0.18em; }
+  35%  { color: #fff8b0; letter-spacing: 0.12em; }
+  100% { color: #c8a020; letter-spacing: 0.06em; }
+}
+.chest-bar-success { animation: chest-unlock 0.65s ease-out forwards; }
+
+@keyframes chest-result-in {
+  0%   { opacity: 0; letter-spacing: 0.4em; }
+  100% { opacity: 1; letter-spacing: normal; }
+}
+.chest-hit  { color: #50c080; animation: chest-result-in 0.3s ease-out; }
+.chest-miss { color: #e05050; }
