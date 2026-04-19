@@ -1,7 +1,7 @@
 // Pure constants and utility functions shared across all modules.
 // No side effects, no DOM access, no mutable state.
 
-export const VERSION = '1.22';
+export const VERSION = '1.23';
 
 export const PATCH_NOTES = {
   '1.13': [
@@ -35,6 +35,19 @@ export const PATCH_NOTES = {
   '1.20': ['Feedback form added — press ? to send a bug report or suggestion'],
   '1.21': ['Feedback form now connected to live server'],
   '1.22': ['Fixed: game keys no longer fire while the feedback form is open'],
+  '1.23': [
+    'Eggs now spawn naturally in the world — no more laying your own',
+    'Multiple eggs exist at once; feed whichever one you\'re standing next to',
+    'Chests added (■): stand adjacent and press E to attempt a lockpick minigame',
+    'Successful lockpick yields food and 3 gems',
+    'Shiny creatures: 1 in 1000 eggs hatches with a cycling rainbow colour',
+    'Gems now boost rarity to a random value in the next tier (more variance)',
+    'Legendary eggs can no longer receive gems',
+    'Food and gems no longer spawn in hallways',
+    'Mute preference now saves and restores across sessions',
+    'Badlands and underground music reworked',
+    'Fixed: feedback form Submit button returned after resubmitting',
+  ],
 };
 
 // Viewport dimensions
@@ -48,7 +61,7 @@ export const MAX_LOG = 8;
 export const HUNGER_STEPS = 75;
 export const GEM_CHAR = '$';
 export const GEM_COLOR = '#80dfff';
-export const GEM_BOOST = 1200;
+export const CHEST_CHAR = '■';
 
 // Chunk dimensions & corridor positions (guaranteed connectivity)
 export const CW = 26;
@@ -79,8 +92,8 @@ export const BIOMES = {
 export const BIOME_KEYS = Object.keys(BIOMES);
 
 export const CLR = {
-  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff' },
-  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060' },
+  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020' },
+  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08' },
 };
 
 export const RARITIES = [

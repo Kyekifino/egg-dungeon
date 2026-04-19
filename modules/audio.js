@@ -11,11 +11,13 @@ let activeBiome  = null;
 const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
 
 const BIOME_MUSIC = {
-  badlands:    { bpm:100, wave:'sawtooth', vol:0.04, notes:[
-    [50,1.5],[53,0.5],[57,1  ],[60,1  ],
-    [57,0.5],[55,0.5],[53,1  ],
-    [50,0.5],[58,0.5],[57,1  ],
-    [55,0.5],[53,0.5],[50,2  ],
+  badlands:    { bpm:105, wave:'triangle', vol:0.05, notes:[
+    [50,0.5],[52,0.5],[53,1  ],
+    [52,0.5],[50,0.5],[48,0.5],[50,0.5],
+    [52,1  ],[56,0.5],[57,0.5],
+    [55,0.5],[53,0.5],[52,1  ],
+    [50,0.5],[53,0.5],[52,0.5],[50,0.5],
+    [48,0.5],[47,0.5],[45,2  ],
   ]},
   wetlands:    { bpm: 75, wave:'sine',     vol:0.05, notes:[
     [57,1  ],[60,0.5],[64,0.5],[67,1  ],
@@ -28,9 +30,11 @@ const BIOME_MUSIC = {
     [64,0.5],[67,1  ],[69,0.5],
     [67,0.5],[64,0.5],[60,0.5],[62,0.5],[60,1],
   ]},
-  underground: { bpm: 55, wave:'square',   vol:0.03, notes:[
-    [57,2  ],[58,1  ],[55,2  ],
-    [57,1  ],[53,1.5],[52,0.5],[50,2  ],
+  underground: { bpm: 50, wave:'sine',     vol:0.06, notes:[
+    [45,2  ],[47,1  ],[48,2  ],
+    [47,1  ],[45,1  ],[43,3  ],
+    [48,2  ],[50,1  ],[52,1.5],
+    [50,0.5],[48,1  ],[45,4  ],
   ]},
   plains:      { bpm: 90, wave:'triangle', vol:0.05, notes:[
     [67,0.5],[69,0.5],[71,1  ],
@@ -133,6 +137,21 @@ export function sfxGem() {
   playTone(88, t + 0.26, 0.4, 'sine', 0.07, ctx);
 }
 
+export function sfxChestOpen() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Three mechanical lock clicks
+  playTone(38, t,        0.05, 'square',   0.25, ctx);
+  playTone(46, t + 0.07, 0.05, 'square',   0.25, ctx);
+  playTone(50, t + 0.14, 0.05, 'square',   0.28, ctx);
+  // Short ascending arpeggio
+  playTone(60, t + 0.24, 0.12, 'triangle', 0.18, ctx);
+  playTone(64, t + 0.34, 0.12, 'triangle', 0.16, ctx);
+  playTone(67, t + 0.44, 0.16, 'triangle', 0.15, ctx);
+  playTone(72, t + 0.56, 0.28, 'triangle', 0.13, ctx);
+}
+
 export function sfxHatch() {
   const ctx = ensureAudio();
   if (!ctx) return;
@@ -142,6 +161,19 @@ export function sfxHatch() {
   seq.forEach(([m,d]) => { playTone(m, time, d, 'triangle', 0.15, ctx); time += d + 0.01; });
   playTone(64, t + 0.25, 0.32, 'triangle', 0.08, ctx);
   playTone(67, t + 0.25, 0.32, 'triangle', 0.08, ctx);
+}
+
+export function getMuted() { return muted; }
+
+export function setMuted(val) {
+  muted = !!val;
+  if (masterGain) masterGain.gain.value = muted ? 0 : 1;
+  const ctrl = document.getElementById('controls');
+  if (ctrl) {
+    if (muted) ctrl.dataset.muted = '1';
+    else       delete ctrl.dataset.muted;
+  }
+  renderControls();
 }
 
 export function toggleMute() {
@@ -156,7 +188,7 @@ export function toggleMute() {
 }
 
 export function renderControls() {
-  const base = 'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; R:&nbsp;lay&nbsp;egg &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load &nbsp;·&nbsp; ?:&nbsp;feedback';
+  const base = 'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; E:&nbsp;interact &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load &nbsp;·&nbsp; ?:&nbsp;feedback';
   const mTag = muted ? ' &nbsp;<span style="color:#e05050">[MUTED]</span>' : '';
   document.getElementById('controls').innerHTML = base + mTag;
 }

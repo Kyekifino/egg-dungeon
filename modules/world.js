@@ -1,7 +1,7 @@
 // Infinite chunked world: generation, tile access, biome lookup.
 // Owns WORLD_SEED and the chunk cache.
 
-import { BIOMES, BIOME_KEYS, FOOD_INFO, FOOD_CHARS, GEM_CHAR, CW, CH, CORR_X, CORR_Y, djb2, mulberry32 } from './utils.js';
+import { BIOMES, BIOME_KEYS, FOOD_INFO, FOOD_CHARS, GEM_CHAR, CHEST_CHAR, CW, CH, CORR_X, CORR_Y, djb2, mulberry32 } from './utils.js';
 
 export let WORLD_SEED = 0;
 export const chunks = new Map();
@@ -55,9 +55,12 @@ export function generateChunk(cx, cy) {
     for (let x = 0; x < CW; x++) {
       if (grid[y][x] !== '.') continue;
       const r = rng.next();
-      if (r < 0.003) {
+      if (x === CORR_X || y === CORR_Y) continue;
+      if (r < 0.0005) {
+        grid[y][x] = CHEST_CHAR;
+      } else if (r < 0.0015) {
         grid[y][x] = GEM_CHAR;
-      } else if (r < 0.04) {
+      } else if (r < 0.03) {
         grid[y][x] = rng.next() < 0.65 ? biomeFoodCh : FOOD_CHARS[rng.int(0, FOOD_CHARS.length)];
       }
     }
@@ -85,7 +88,22 @@ export function setTile(wx, wy, ch) {
   getChunk(chunkX(wx), chunkY(wy)).grid[localY(wy)][localX(wx)] = ch;
 }
 
-export function isWalkable(wx, wy) { return getTile(wx, wy) !== '#'; }
+export function isWalkable(wx, wy) { const t = getTile(wx, wy); return t !== '#' && t !== CHEST_CHAR; }
+
+// Returns deterministic wild-egg spawn info for a chunk, or null (~15% of chunks).
+export function getChunkEggSpawn(cx, cy) {
+  const rng = mulberry32(chunkSeed(cx, cy) ^ 0x3a7f9d2c);
+  if (rng.next() > 0.15) return null;
+  const chunk = getChunk(cx, cy);
+  const candidates = [];
+  for (let ly = 0; ly < CH; ly++)
+    for (let lx = 0; lx < CW; lx++)
+      if (chunk.grid[ly][lx] === '.' && lx !== CORR_X && ly !== CORR_Y)
+        candidates.push([cx * CW + lx, cy * CH + ly]);
+  if (candidates.length === 0) return null;
+  const [wx, wy] = candidates[rng.int(0, candidates.length)];
+  return { wx, wy, rarityRoll: rng.int(0, 10000) };
+}
 
 // Room = 3+ cardinal neighbours walkable (corridors have ≤2)
 export function isRoomTile(wx, wy) {
