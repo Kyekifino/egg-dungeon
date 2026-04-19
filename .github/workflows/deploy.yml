@@ -23,6 +23,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: JamesIves/github-pages-deploy-action@v4
         with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
           folder: dist
           clean-exclude: |
             dev/
@@ -31,5 +32,6 @@ jobs:
         if: github.ref == 'refs/heads/dev'
         uses: JamesIves/github-pages-deploy-action@v4
         with:
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
           folder: dist
           target-folder: dev

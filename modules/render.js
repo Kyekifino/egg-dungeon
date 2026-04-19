@@ -41,6 +41,19 @@ export function getColSelected() {
   return sorted[Math.max(0, Math.min(G.colSelectedIdx, sorted.length - 1))];
 }
 
+const cLine = (c, l) => c.shiny
+  ? `<span class="shiny-anim">${escHtml(l)}</span>`
+  : `<span style="color:${c.color}">${escHtml(l)}</span>`;
+
+export function getAdjacentEgg() {
+  if (!G?.worldEggs) return null;
+  for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+    const egg = G.worldEggs.get(`${G.px + dx},${G.py + dy}`);
+    if (egg) return egg;
+  }
+  return null;
+}
+
 export function shiftArt(lines, dx) {
   if (!dx) return lines;
   return lines.map(l =>
@@ -53,8 +66,9 @@ export function shiftArt(lines, dx) {
 
 function triggerEggShake() {
   eggShakeTimer = null;
-  if (G?.phase !== 'playing' || !G.egg) return;
-  const stage = EGG_STAGES[getEggStage(G.egg.fed)];
+  const egg = getAdjacentEgg();
+  if (G?.phase !== 'playing' || !egg) return;
+  const stage = EGG_STAGES[getEggStage(egg.fed)];
   const gen   = ++idleGen;
   const offsets = [1, 0, -1, 0, 1, 0];
   let fi = 0;
@@ -65,13 +79,13 @@ function triggerEggShake() {
         .map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
     if (++fi < offsets.length) setTimeout(nextFrame, 70);
   })();
-  const delay = Math.max(400, 2200 - G.egg.fed * 180);
+  const delay = Math.max(400, 2200 - egg.fed * 180);
   eggShakeTimer = setTimeout(triggerEggShake, delay);
 }
 
 function triggerCreatureBlink() {
   creatureBlinkTimer = null;
-  if (G?.phase !== 'hatched' || !G.creature) return;
+  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg()) return;
   const c  = G.creature;
   const ri = EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
@@ -84,22 +98,22 @@ function triggerCreatureBlink() {
   const blinked = [...c.lines];
   blinked[ri]   = closed;
   document.getElementById('egg-display').innerHTML =
-    blinked.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+    blinked.map(l => cLine(c, l)).join('\n');
   setTimeout(() => {
     if (idleGen !== gen) {
-      if (G?.phase === 'hatched' && G.creature && !creatureBlinkTimer)
+      if (G?.phase === 'playing' && G.creature && !creatureBlinkTimer)
         creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500 + rand(0, 2000));
       return;
     }
     document.getElementById('egg-display').innerHTML =
-      c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+      c.lines.map(l => cLine(c, l)).join('\n');
     creatureBlinkTimer = setTimeout(triggerCreatureBlink, 2500 + rand(0, 2000));
   }, 180);
 }
 
 function triggerCreatureJiggle() {
   creatureJiggleTimer = null;
-  if (G?.phase !== 'hatched' || !G.creature) return;
+  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg()) return;
   const c   = G.creature;
   const gen = ++idleGen;
   const offsets = [1, 0, -1, 0];
@@ -107,8 +121,7 @@ function triggerCreatureJiggle() {
   (function nextFrame() {
     if (idleGen !== gen) return;
     document.getElementById('egg-display').innerHTML =
-      shiftArt(c.lines, offsets[fi])
-        .map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+      shiftArt(c.lines, offsets[fi]).map(l => cLine(c, l)).join('\n');
     if (++fi < offsets.length) setTimeout(nextFrame, 70);
   })();
   creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
@@ -130,7 +143,7 @@ function triggerColBlink() {
   const blinked = [...c.lines];
   blinked[ri]   = closed;
   document.getElementById('col-art').innerHTML =
-    blinked.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+    blinked.map(l => cLine(c, l)).join('\n');
   setTimeout(() => {
     if (colIdleGen !== gen) {
       if (G?.showCollection && !colBlinkTimer)
@@ -138,7 +151,7 @@ function triggerColBlink() {
       return;
     }
     document.getElementById('col-art').innerHTML =
-      c.lines.map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+      c.lines.map(l => cLine(c, l)).join('\n');
     colBlinkTimer = setTimeout(triggerColBlink, 2500 + rand(0, 2000));
   }, 180);
 }
@@ -154,8 +167,7 @@ function triggerColJiggle() {
   (function nextFrame() {
     if (colIdleGen !== gen) return;
     document.getElementById('col-art').innerHTML =
-      shiftArt(c.lines, offsets[fi])
-        .map(l => `<span style="color:${c.color}">${escHtml(l)}</span>`).join('\n');
+      shiftArt(c.lines, offsets[fi]).map(l => cLine(c, l)).join('\n');
     if (++fi < offsets.length) setTimeout(nextFrame, 70);
   })();
   colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
@@ -164,12 +176,12 @@ function triggerColJiggle() {
 // ── Animation start helpers (called by game.js) ───────────────────
 
 export function startEggShakeTimer(delay = 1500) {
-  eggShakeTimer = setTimeout(triggerEggShake, delay);
+  if (!eggShakeTimer) eggShakeTimer = setTimeout(triggerEggShake, delay);
 }
 
 export function startCreatureAnims() {
-  creatureBlinkTimer  = setTimeout(triggerCreatureBlink,  2500);
-  creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
+  if (!creatureBlinkTimer)  creatureBlinkTimer  = setTimeout(triggerCreatureBlink,  2500);
+  if (!creatureJiggleTimer) creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
 }
 
 // ── Render helpers ────────────────────────────────────────────────
@@ -177,15 +189,15 @@ export function startCreatureAnims() {
 const span = (ch, color) => `<span style="color:${color}">${escHtml(ch)}</span>`;
 
 function renderViewport() {
-  const { px, py, revealed, egg } = G;
+  const { px, py, revealed, worldEggs } = G;
   const camX = px - Math.floor(VW / 2), camY = py - Math.floor(VH / 2);
   let html = '';
   for (let vy = 0; vy < VH; vy++) {
     const gy = camY + vy;
     for (let vx = 0; vx < VW; vx++) {
       const gx = camX + vx;
-      if (gx === px && gy === py)            { html += span('@', CLR.bright['@']); continue; }
-      if (egg && gx === egg.x && gy === egg.y) { html += span('Θ', CLR.bright['Θ']); continue; }
+      if (gx === px && gy === py)                              { html += span('@', CLR.bright['@']); continue; }
+      if (worldEggs?.has(`${gx},${gy}`))                       { html += span('Θ', CLR.bright['Θ']); continue; }
       const inLight = Math.hypot(gx - px, gy - py) <= LIGHT_R;
       const seen = revealed.has(`${gx},${gy}`);
       if (!seen && !inLight)                 { html += span(' ', '#000'); continue; }
@@ -225,68 +237,67 @@ function renderLog() {
   el.scrollTop = el.scrollHeight;
 }
 
-function eggDirection() {
-  if (!G.egg) return null;
-  const dx = G.egg.x - G.px, dy = G.egg.y - G.py;
-  const dist = Math.round(Math.hypot(dx, dy));
-  if (dist === 0) return { arrow: '·', dist };
-  const shifted = (Math.atan2(dy, dx) + 2 * Math.PI) % (2 * Math.PI);
-  const sector  = Math.round(shifted / (Math.PI / 4)) % 8;
-  return { arrow: ['→','↘','↓','↙','←','↖','↑','↗'][sector], dist };
-}
-
 function renderWorldPanel() {
   const biomeKey = getChunkBiome(chunkX(G.px), chunkY(G.py));
   const biome    = BIOMES[biomeKey];
   document.getElementById('world-biome').innerHTML =
     `<span style="color:${biome.accent}">◈ ${biome.name}</span>`;
   startBiomeLoop(biomeKey);
-  const dir = eggDirection();
-  document.getElementById('world-egg').textContent =
-    dir ? `${dir.arrow} Egg ${dir.dist}m` : 'no egg';
 }
 
 function renderBottomPlaying() {
   idleGen++;
-  if (!G.egg) {
+  const adjEgg = getAdjacentEgg();
+
+  if (adjEgg) {
+    const stage = EGG_STAGES[getEggStage(adjEgg.fed)];
+    document.getElementById('egg-display').innerHTML =
+      stage.art.map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
+
+    const pct     = Math.min(1, adjEgg.fed / FOOD_NEEDED);
+    const filled  = Math.floor(pct * 10);
+    const bar     = '█'.repeat(filled) + '░'.repeat(10 - filled);
+    const barClr  = pct >= 1 ? '#fff' : pct > 0 ? '#c09030' : '#333';
+    const isGem   = selectedFood === 'gem';
+    const selCh   = isGem ? null : FOOD_CHARS.find(c => FOOD_INFO[c].key === selectedFood);
+    const selClr  = isGem ? GEM_COLOR : (selCh ? FOOD_INFO[selCh].color : '#888');
+    const selLabel = isGem ? `${GEM_CHAR} gem` : `${selCh} ${selectedFood}`;
+    const selAmt  = isGem ? G.inventory.gem : G.inventory[selectedFood];
+    const feedMsg = isGem ? 'Press F to boost rarity!' : 'Press F to feed!';
+    const eggBiome = adjEgg.biome ? BIOMES[adjEgg.biome] : null;
+    const biomeLabel = eggBiome
+      ? `<span style="color:${eggBiome.accent};font-size:.72rem">◈ ${eggBiome.name} egg</span>` : '';
+    const currRarity = getRarity(adjEgg.rarityRoll);
+
+    document.getElementById('egg-info').innerHTML = `
+      <div id="egg-bar"><span style="color:${barClr}">${bar}</span></div>
+      <div id="egg-fed-count">${adjEgg.fed} / ${FOOD_NEEDED} fed &nbsp;<span style="color:${currRarity.color}">${currRarity.badge}</span></div>
+      <div style="margin-top:3px;font-size:.78rem;color:#6a6a6a">
+        Selected: <span style="color:${selClr}">${selLabel}</span> &nbsp;(x${selAmt})
+      </div>
+      <div style="margin-top:2px">${biomeLabel}</div>
+      <div id="feed-hint">${feedMsg}</div>`;
+    startEggShakeTimer(1500);
+
+  } else if (G.creature) {
+    document.getElementById('egg-display').innerHTML =
+      G.creature.lines.map(l => cLine(G.creature, l)).join('\n');
+    const r = G.creature.rarity;
+    document.getElementById('egg-info').innerHTML = `
+      <div id="creature-name-display" style="color:${G.creature.color}">&ldquo;${escHtml(G.creature.name)}&rdquo;</div>
+      <div id="creature-rarity-display" style="color:${r.color}">${r.badge} ${r.name}</div>
+      <div id="creature-traits-display">${G.creature.traits.join(' &middot; ')}</div>
+      <div id="creature-diet-display">${escHtml(G.creature.diet)}</div>
+      <div id="creature-id-display">ID: ${G.creature.id}</div>
+      <div id="find-egg-hint" style="color:#3a3a3a;font-size:.78rem">Explore to find eggs</div>`;
+    startCreatureAnims();
+
+  } else {
     document.getElementById('egg-display').innerHTML =
       `<span style="color:#2a2a2a">${EGG_STAGES[0].art.join('\n').replace(/./g, ' ')}</span>`;
     document.getElementById('egg-info').innerHTML =
-      `<div id="no-egg-msg">No egg.<br><br>Stand in a room and<br>press R to lay one.</div>`;
-    return;
+      `<div id="no-egg-msg">Explore to find an egg.</div>`;
   }
-  const stage = EGG_STAGES[getEggStage(G.egg.fed)];
-  document.getElementById('egg-display').innerHTML =
-    stage.art.map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
-
-  const pct    = Math.min(1, G.egg.fed / FOOD_NEEDED);
-  const filled = Math.floor(pct * 10);
-  const bar    = '█'.repeat(filled) + '░'.repeat(10 - filled);
-  const barClr = pct >= 1 ? '#fff' : pct > 0 ? '#c09030' : '#333';
-
-  const isGem   = selectedFood === 'gem';
-  const selCh   = isGem ? null : FOOD_CHARS.find(c => FOOD_INFO[c].key === selectedFood);
-  const selClr  = isGem ? GEM_COLOR : (selCh ? FOOD_INFO[selCh].color : '#888');
-  const selLabel= isGem ? `${GEM_CHAR} gem` : `${selCh} ${selectedFood}`;
-  const selAmt  = isGem ? G.inventory.gem : G.inventory[selectedFood];
-
-  const dist    = Math.abs(G.px - G.egg.x) + Math.abs(G.py - G.egg.y);
-  const feedMsg = dist === 1 ? (isGem ? 'Press F to boost rarity!' : 'Press F to feed!') : '';
-
-  const eggBiome  = G.egg.biome ? BIOMES[G.egg.biome] : null;
-  const biomeLabel = eggBiome
-    ? `<span style="color:${eggBiome.accent};font-size:.72rem">◈ ${eggBiome.name} egg</span> ` : '';
-
-  const currRarity = getRarity(G.egg.rarityRoll);
-
-  document.getElementById('egg-info').innerHTML = `
-    <div id="egg-bar"><span style="color:${barClr}">${bar}</span></div>
-    <div id="egg-fed-count">${G.egg.fed} / ${FOOD_NEEDED} fed &nbsp;<span style="color:${currRarity.color}">${currRarity.badge}</span></div>
-    <div style="margin-top:3px;font-size:.78rem;color:#6a6a6a">
-      Selected: <span style="color:${selClr}">${selLabel}</span> &nbsp;(x${selAmt})
-    </div>
-    <div style="margin-top:2px">${biomeLabel}</div>
-    <div id="feed-hint">${feedMsg}</div>`;
 }
 
 export function renderAnimFrame(frame) {
@@ -298,20 +309,6 @@ export function renderAnimFrame(frame) {
      <div id="anim-label" style="margin-top:8px">HATCHING...</div>`;
 }
 
-function renderBottomHatched() {
-  idleGen++;
-  const { creature } = G;
-  document.getElementById('egg-display').innerHTML =
-    creature.lines.map(l => `<span style="color:${creature.color}">${escHtml(l)}</span>`).join('\n');
-  const r = creature.rarity;
-  document.getElementById('egg-info').innerHTML = `
-    <div id="creature-name-display" style="color:${creature.color}">&ldquo;${escHtml(creature.name)}&rdquo;</div>
-    <div id="creature-rarity-display" style="color:${r.color}">${r.badge} ${r.name}</div>
-    <div id="creature-traits-display">${creature.traits.join(' &middot; ')}</div>
-    <div id="creature-diet-display">${escHtml(creature.diet)}</div>
-    <div id="creature-id-display">ID: ${creature.id}</div>
-    <div id="restart-hint">Press R in a room to lay another egg</div>`;
-}
 
 function renderCollection() {
   const { collection } = G;
@@ -348,7 +345,7 @@ function renderCollection() {
 
   colIdleGen++;
   document.getElementById('col-art').innerHTML =
-    sel.lines.map(l => `<span style="color:${sel.color}">${escHtml(l)}</span>`).join('\n');
+    sel.lines.map(l => cLine(sel, l)).join('\n');
   if (!colBlinkTimer)  colBlinkTimer  = setTimeout(triggerColBlink,  2500 + rand(0, 2000));
   if (!colJiggleTimer) colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
 
@@ -376,5 +373,4 @@ export function render() {
   }
 
   if (G.phase === 'playing') renderBottomPlaying();
-  if (G.phase === 'hatched') renderBottomHatched();
 }

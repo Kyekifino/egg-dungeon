@@ -31,7 +31,7 @@ global.document = {
   querySelector:   () => null,
   addEventListener: () => {},
 };
-global.window      = {};
+global.window      = { location: { pathname: '' } };
 global.localStorage = { getItem: () => null, setItem: () => {} };
 
 // ── Load ─────────────────────────────────────────────────────────
@@ -43,3 +43,4 @@ try {
 }
 
 console.log('smoke test passed');
+process.exit(0);
