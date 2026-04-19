@@ -424,7 +424,8 @@ Input.init({
   stopColAnims,
 });
 
-document.getElementById('version').textContent = 'v' + VERSION;
+const isDev = window.location.pathname.includes('/dev/');
+document.getElementById('version').textContent = 'v' + VERSION + (isDev ? '-dev' : '');
 renderControls();
 if (!autoLoad()) newGame();
 checkPatchNotes();
