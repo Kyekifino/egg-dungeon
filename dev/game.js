@@ -266,7 +266,7 @@ function runAnimFrame() {
 
 // ── Save / Load ───────────────────────────────────────────────────
 
-const CHUNK_SAVE_LIMIT = 200;
+const CHUNK_SAVE_LIMIT = 100;
 
 function buildSaveData() {
   const recentChunks = [...chunks.entries()].slice(-CHUNK_SAVE_LIMIT);

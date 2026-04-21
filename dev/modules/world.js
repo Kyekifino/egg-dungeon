@@ -128,18 +128,14 @@ export function isRoomTile(wx, wy) {
 }
 
 // Returns {wx, wy, beastType} for a great beast spawn in this chunk, or null.
-// Each biome in GREAT_BEAST_BIOMES has one beast per spawnRate zones (3×3 chunks).
+// Each biome in GREAT_BEAST_BIOMES has one beast per spawnRate badlands chunks.
 export function getGreatBeastSpawn(cx, cy) {
   const biomeKey = getChunkBiome(cx, cy);
   const cfg = GREAT_BEAST_BIOMES[biomeKey];
   if (!cfg) return null;
 
-  const zx = Math.floor(cx / 3), zy = Math.floor(cy / 3);
-  const h = djb2(`gb${WORLD_SEED},${zx},${zy}`);
+  const h = djb2(`gb${WORLD_SEED},${cx},${cy}`);
   if (h % cfg.spawnRate !== 0) return null;
-
-  // Designate one chunk within the 3×3 zone to host the beast
-  if (cx !== zx * 3 + (h % 3) || cy !== zy * 3 + (Math.floor(h / 3) % 3)) return null;
 
   const chunk = getChunk(cx, cy);
   const rng = mulberry32(h ^ 0x6b4e2f1a);
