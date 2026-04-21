@@ -370,7 +370,7 @@ export function generateDragon(dragonEgg) {
     diet, dom: null, sec: null, shiny,
     isGreatBeast: true, beastType: 'dragon',
     sacrificedCreatureIds: sacrificedIds,
-    traits: ['Great Beast'],
+    traits: ['Great Beast', 'Dragon'],
   };
 }
 

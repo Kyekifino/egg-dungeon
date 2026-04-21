@@ -51,7 +51,7 @@ export function init({
       if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
         e.preventDefault(); if (n > 0) { G.colSelectedIdx = Math.min(n - 1, G.colSelectedIdx + 1); render(); } return;
       }
-      if (e.key === 'Enter') { e.preventDefault(); sacrificeCreature(); return; }
+      if (e.key === ' ') { e.preventDefault(); sacrificeCreature(); return; }
       if (e.key === 'Escape') { exitSacrificeMode(); return; }
       return;
     }
