@@ -490,7 +490,7 @@ function renderCollection() {
   if (sacrificeMode) {
     document.getElementById('col-count').textContent = `${G.collection.length} available`;
     document.getElementById('col-close').innerHTML =
-      '<span style="color:#e05050"><span style="white-space:nowrap">Space:&nbsp;sacrifice</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;cancel</span></span>';
+      '<span style="color:#e05050"><span style="white-space:nowrap">E:&nbsp;sacrifice</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;cancel</span></span>';
     sacWarn.hidden = false;
     colLeg.hidden  = true;
   } else {
@@ -498,7 +498,7 @@ function renderCollection() {
     const label = tab === 'creatures' ? 'hatched' : 'found';
     document.getElementById('col-count').textContent = `${arr.length} ${label}`;
     document.getElementById('col-close').innerHTML =
-      '<span style="white-space:nowrap">C:&nbsp;close</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">&#8593;&#8595;:&nbsp;navigate</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">&#8592;&#8594;:&nbsp;switch&nbsp;tab</span>';
+      '<span style="white-space:nowrap">C:&nbsp;close</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">WS:&nbsp;navigate</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">AD:&nbsp;switch&nbsp;tab</span>';
     sacWarn.hidden = true;
     colLeg.hidden  = false;
   }
