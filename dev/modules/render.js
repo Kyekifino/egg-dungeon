@@ -3,7 +3,7 @@
 
 import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, getRarity, escHtml, rand, DRAGON_CHAR, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './utils.js';
 import { getTile, getChunkBiome, chunkX, chunkY } from './world.js';
-import { EGG_STAGES, DRAGON_EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
+import { EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
 import { G, selectedFood } from './state.js';
 import { startBiomeLoop } from './audio.js';
 
@@ -100,7 +100,7 @@ function triggerEggShake() {
   eggShakeTimer = null;
   const egg = getAdjacentEgg();
   if (G?.phase !== 'playing' || !egg) return;
-  const stageSet = egg.isDragonEgg ? DRAGON_EGG_STAGES : EGG_STAGES;
+  const stageSet = !egg.isDragonEgg ? EGG_STAGES : egg.beastType === 'kraken' ? KRAKEN_EGG_STAGES : DRAGON_EGG_STAGES;
   const stage = stageSet[getEggStage(egg.fed)];
   const gen   = ++idleGen;
   const offsets = [1, 0, -1, 0, 1, 0];
@@ -327,16 +327,17 @@ function renderBottomPlaying() {
     const selClr  = isGem ? GEM_COLOR : (selCh ? FOOD_INFO[selCh].color : '#888');
     const selLabel = isGem ? `${GEM_CHAR} gem` : `${selCh} ${selectedFood}`;
     const selAmt  = isGem ? G.inventory.gem : G.inventory[selectedFood];
-    const isDragonEgg = !!adjEgg.isDragonEgg;
+    const isGreatBeastEgg = !!adjEgg.isDragonEgg;
+    const beastEggLabel = adjEgg.beastType === 'kraken' ? 'Kraken Egg' : 'Dragon Egg';
     const feedMsg = isGem
-      ? (isDragonEgg ? '<span style="color:#e05050">Dragon eggs cannot be enhanced with gems.</span>' : 'Press F to boost rarity!')
+      ? (isGreatBeastEgg ? `<span style="color:#e05050">${beastEggLabel}s cannot be enhanced with gems.</span>` : 'Press F to boost rarity!')
       : 'Press F to feed!';
     const currRarity = getRarity(adjEgg.rarityRoll);
     const eggBiome = adjEgg.biome ? BIOMES[adjEgg.biome] : null;
-    const biomeLabel = isDragonEgg
-      ? `<span style="color:#ff6020;font-size:.72rem">&#937; Dragon Egg &nbsp;<span style="color:#888;font-size:.68rem">(rarity locked)</span></span>`
+    const biomeLabel = isGreatBeastEgg
+      ? `<span style="color:#ff6020;font-size:.72rem">&#937; ${beastEggLabel} &nbsp;<span style="color:#888;font-size:.68rem">(rarity locked)</span></span>`
       : (eggBiome ? `<span style="color:${eggBiome.accent};font-size:.72rem">&#9672; ${eggBiome.name} egg</span>` : '');
-    const rarityBadge = isDragonEgg
+    const rarityBadge = isGreatBeastEgg
       ? `<span style="color:${currRarity.color}">${currRarity.badge} locked</span>`
       : `<span style="color:${currRarity.color}">${currRarity.badge}</span>`;
 
@@ -446,7 +447,7 @@ function renderGreatBeastsTab() {
       '<div style="color:#5a5a5a;padding:12px 0;text-align:center">No Great Beasts found yet.</div>';
     document.getElementById('col-art').innerHTML = '';
     document.getElementById('col-detail-info').innerHTML =
-      '<div style="color:#5a5a5a;font-size:0.8rem">Seek out dragons in the Badlands.</div>';
+      '<div style="color:#5a5a5a;font-size:0.8rem">Seek out Great Beasts in the wilds.</div>';
     return;
   }
 
@@ -524,13 +525,20 @@ export function renderDragonOverlay() {
   const beast = G.worldBeasts.get(G.dragonInteract);
   if (!beast) { el.hidden = true; return; }
 
-  const { phase, gemsReceived: gems, sacrificedCreatures: offered } = beast;
+  const { phase, gemsReceived: gems, sacrificedCreatures: offered, beastType } = beast;
+  const isKraken = beastType === 'kraken';
   const gemFilled = Math.round(gems / DRAGON_GEM_COST * 20);
   const gemBar    = '█'.repeat(gemFilled) + '░'.repeat(20 - gemFilled);
 
+  document.getElementById('dragon-title').textContent = isKraken ? 'Ω  ANCIENT KRAKEN' : 'Ω  ANCIENT DRAGON';
+
   document.getElementById('dragon-phase').innerHTML = phase === 'sleeping'
-    ? '<span style="color:#888">The dragon lies dormant, scales flickering with dying embers...</span>'
-    : '<span style="color:#ff8040">The dragon stirs, ancient eyes regarding you with hunger.</span>';
+    ? (isKraken
+        ? '<span style="color:#888">The kraken lies dormant, tentacles drifting in the cold dark...</span>'
+        : '<span style="color:#888">The dragon lies dormant, scales flickering with dying embers...</span>')
+    : (isKraken
+        ? '<span style="color:#40c0ff">The kraken stirs, vast eyes regarding you from the depths.</span>'
+        : '<span style="color:#ff8040">The dragon stirs, ancient eyes regarding you with hunger.</span>');
 
   document.getElementById('dragon-gem-progress').innerHTML =
     `<span style="color:${phase === 'awake' ? '#50c080' : GEM_COLOR}">${gemBar}</span>` +

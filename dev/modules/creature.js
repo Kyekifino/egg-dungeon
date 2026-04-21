@@ -498,9 +498,313 @@ export function buildDragonAnimSeq(dragon) {
   ];
 }
 
+// ── Kraken egg stages ───────────────────────────────────────────────
+export const KRAKEN_EGG_STAGES = [
+  { color: '#0a2a40', art: [
+    '              ', '   ________   ', '  /        \\  ', ' |    ~~    | ',
+    ' |   (  )   | ', ' |    ~~    | ', '  \\________/  ', '    ~~~~~~    ', '              ', '              '] },
+  { color: '#0e4060', art: [
+    '              ', '   ________   ', '  / ~  ~ ~ \\  ', ' | ~ ~~  ~  | ',
+    ' |  ~ ~ ~   | ', ' | ~  ~ ~ ~ | ', '  \\________/  ', '    ~~~~~~    ', '              ', '              '] },
+  { color: '#1060a0', art: [
+    '      ~       ', '   ___~____   ', '  /   ~    \\  ', ' | ~  |     | ',
+    ' |    ~     | ', ' |    |  ~  | ', '  \\___~____/  ', '    ~~~~~~    ', '              ', '              '] },
+  { color: '#1888cc', art: [
+    '      *       ', '   __/\\_____  ', '  /~  \\ ~   \\ ', ' |  /\\ \\   ~| ',
+    ' | /  \\/\\   | ', ' |/   / \\~  | ', '  \\/\\~/  \\~/  ', '      *       ', '              ', '              '] },
+  { color: '#40e0ff', art: [
+    '  ~   ~   ~   ', '  ~_________~ ', ' ~/ ~ * ~ · \\~', ' |~ · ~ * ~ ~|',
+    '~|· ~ · ~ * ·|~', ' |~ · ~ * · ~|', ' ~\\· ~ * · /~ ', '  ~_________~ ', '  ~   ~   ~   ', '              '] },
+];
+
+const KRAKEN_ANIM_WAVE1 = [
+  '  ~   ~   ~   ', '  ~__~_~___~  ', ' ~/ · ~ · · \\~', ' |· ~ · · · | ',
+  '~|· · ~ · · |~', ' |· · · ~ · | ', ' ~\\· · ~ · /~ ', '  ~___~____~  ',
+  '  ~   ~   ~   ', '              ', '              ', '              ', '              ', '              '];
+const KRAKEN_ANIM_WAVE2 = [
+  '  ~   ~   ~   ', '  _/\\~_/\\___  ', ' /  \\~/  \\  \\ ', '|~  /\\~   |  |',
+  '| ~/  \\~  |  |', '|~   /  \\~|  |', ' \\~/    \\~/  /', '  ~___~___~   ',
+  '  ~   ~   ~   ', '              ', '              ', '              ', '              ', '              '];
+const KRAKEN_ANIM_SPLASH = [
+  '~  ~ ~ ~ ~    ', '~ ~ ~ ~ ~ ~ ~ ', ' ~ ~ ~ ~ ~ ~  ', '~ ~ ~ ~ ~ ~ ~ ',
+  ' ~ ~ ~ ~ ~ ~  ', '~ ~ ~ ~ ~ ~ ~ ', ' ~ ~ ~ ~ ~ ~  ', '~ ~ ~ ~ ~ ~ ~ ',
+  '~  ~ ~ ~ ~    ', '              ', '              ', '              ', '              ', '              '];
+
+// ── Kraken body part pools ───────────────────────────────────────────
+// 14 rows × 8 options. Hash selects one option per row.
+export const KRAKEN_BODY_PARTS = [
+  // Row 0: tentacle crown
+  [
+    '      ~~ ~ ~~        ',
+    '     ~ ~~~ ~ ~       ',
+    '    ~(~) ~~ (~)~     ',
+    '     ~~~ ~~ ~~~      ',
+    '    ~ ~ ~~^^~~ ~     ',
+    '     ~~~^~~~^~~~     ',
+    '    ~ ~~ ~~~ ~~ ~    ',
+    '     ~~~~  ~~~~      ',
+  ],
+  // Row 1: upper mantle dome
+  [
+    '      ( ~~~~~ )      ',
+    '     (( ~~~~~ ))     ',
+    '      { ~~~~~ }      ',
+    '     [  ~~~~~  ]     ',
+    '      < ~~~~~ >      ',
+    '     *( ~~~~~ )*     ',
+    '     /[ ~~~~~ ]\\    ',
+    '      ( ----- )      ',
+  ],
+  // Row 2: eyes
+  [
+    '     ( o     o )     ',
+    '    (  o     o  )    ',
+    '     ( o~~   o )     ',
+    '     (  o   o  )     ',
+    '     [ o     o ]     ',
+    '     < o     o >     ',
+    '     { o     o }     ',
+    '    *( o     o )*    ',
+  ],
+  // Row 3: beak / maw
+  [
+    '     ( >~~~~~< )     ',
+    '     ( >=====< )     ',
+    '    (  >~~~~~<  )    ',
+    '     [ >~~~~~< ]     ',
+    '     ( >-----< )     ',
+    '    (  >=====<  )    ',
+    '     { >~~~~~< }     ',
+    '     ( >*~*~*< )     ',
+  ],
+  // Row 4: mantle connection
+  [
+    '      |  ~~~  |      ',
+    '      (  ~~~  )      ',
+    '     (   ~~~   )     ',
+    '      [  ~~~  ]      ',
+    '     /   ~~~   \\    ',
+    '      \\  ~~~  /      ',
+    '     *|  ~~~  |*     ',
+    '      >  ~~~  <      ',
+  ],
+  // Row 5: upper arm attachment
+  [
+    '  ~\\   |~~~~~~~~~| /~  ',
+    '  /~   |~~~~~~~~~| \\~  ',
+    '   ~   |~~~~~~~~~|   ~  ',
+    '  \\~   |~~~~~~~~~|  /~  ',
+    ' *~\\   |~~~~~~~~~| /~*  ',
+    ' /|~   |~~~~~~~~~| ~|\\  ',
+    '  ^~   |~~~~~~~~~|  ~^  ',
+    ' <~\\   |~~~~~~~~~|  ~>  ',
+  ],
+  // Row 6: tentacle arms spread
+  [
+    ' ~  \\  |~~~~~~~~~|  / ~ ',
+    '~    \\ |~~~~~~~~~| /   ~',
+    ' ~  (  |~~~~~~~~~|  ) ~ ',
+    '~    ( |~~~~~~~~~| )   ~',
+    ' ~ /~  |~~~~~~~~~|  /~ ~',
+    '~  ~~  |~~~~~~~~~|  ~~  ~',
+    ' ~ ^^  |~~~~~~~~~|  ^^ ~ ',
+    '~  ~\\  |~~~~~~~~~|  /~  ~',
+  ],
+  // Row 7: upper body
+  [
+    '    ( \\|~~~~~~~~~|/ )   ',
+    '     \\ |~~~~~~~~~| /    ',
+    '    (   |~~~~~~~~~|   ) ',
+    '    ( \\ |~~~~~~~~~| /)  ',
+    '    [  \\|~~~~~~~~~|/  ] ',
+    '    *( \\|~~~~~~~~~|/ )* ',
+    '   (  * |~~~~~~~~~| *  )',
+    '    ( = |~~~~~~~~~| = ) ',
+  ],
+  // Row 8: body
+  [
+    '     ( |~~~~~~~~~| )    ',
+    '      \\|~~~~~~~~~|/     ',
+    '     (||~~~~~~~~~||)    ',
+    '      ( ~~~~~~~~~ )     ',
+    '     [ |~~~~~~~~~| ]    ',
+    '     *||~~~~~~~~~||*    ',
+    '    ( ( ~~~~~~~~~ ) )   ',
+    '      <|~~~~~~~~~|>     ',
+  ],
+  // Row 9: lower body
+  [
+    '      ||~~~~~~~~~||     ',
+    '      |{~~~~~~~~~}|     ',
+    '     /||~~~~~~~~~||\\ ',
+    '     ( |~~~~~~~~~| )    ',
+    '     *||~~~~~~~~~||*    ',
+    '      ||=========||     ',
+    '      [|~~~~~~~~~|]     ',
+    '     (>|~~~~~~~~~|<)    ',
+  ],
+  // Row 10: tentacle roots
+  [
+    '     /|  ~~~~~~~  |\\    ',
+    '    / |  ~~~~~~~  | \\   ',
+    '    ( |  ~~~~~~~  | )   ',
+    '     \\|  ~~~~~~~  |/    ',
+    '    *[|  ~~~~~~~  |]*   ',
+    '    /[|  ~~~~~~~  |]\\   ',
+    '    <(|  ~~~~~~~  |)>   ',
+    '     ||  ~~~~~~~  ||    ',
+  ],
+  // Row 11: upper tentacles
+  [
+    '   (/ \\           / \\)  ',
+    '   (|  \\         /  |)  ',
+    '  ( |  |         |  | ) ',
+    '   (~  \\         /  ~)  ',
+    '  ([   \\         /   ]) ',
+    '   *|  |         |  |*  ',
+    '  ( |  (         )  | ) ',
+    '  ((   \\         /   )) ',
+  ],
+  // Row 12: tentacle bodies
+  [
+    '  (|   |         |   |) ',
+    '   |   |         |   |  ',
+    '  /|   \\         /   |\\ ',
+    '  ( ~   ~         ~   ~)',
+    '  [|   |         |   |] ',
+    ' *||   |         |   ||*',
+    '  ||   |         |   || ',
+    ' (||   \\         /   ||)',
+  ],
+  // Row 13: tentacle tips
+  [
+    ' (~)  (~)       (~)  (~)',
+    '  ~    ~         ~    ~  ',
+    ' (~) (~)         (~) (~) ',
+    '  \\_/  \\_/     \\_/  \\_/ ',
+    ' /~\\  /~\\       /~\\  /~\\',
+    '  ~~   ~~        ~~   ~~  ',
+    ' {~}  {~}       {~}  {~} ',
+    ' *~*  *~*        *~*  *~*',
+  ],
+];
+
+export const KRAKEN_FILL_SUBS = { from: '~', to: ['~', '-', '=', '*', '^', '+', '#', '.'] };
+
+export const KRAKEN_BASE_COLORS = [
+  '#1a60b0',  // ocean blue
+  '#0a8060',  // sea green
+  '#3020a0',  // abyssal purple
+  '#007878',  // teal
+  '#1a4880',  // midnight blue
+  '#207840',  // kelp green
+  '#5030c0',  // deep violet
+  '#008890',  // cyan teal
+  '#006b6b',  // dark teal
+  '#40108a',  // deep purple
+  '#006040',  // dark sea
+  '#1a3070',  // navy
+];
+
+export const KRAKEN_NAME_POOLS = {
+  pre: ['Abys','Neth','Gloom','Murk','Tide','Brine','Vex','Drown','Maw','Cthul','Lurk','Gyre',
+        'Vast','Void','Coil','Surge','Rift','Slith','Fathom','Loch','Pelag','Ink','Wrak','Squall',
+        'Maelm','Trench','Sable','Dusk','Brack','Deep','Nox','Chasm'],
+  suf: ['kraken','maw','coil','tide','deep','abyss','surge','clutch','grasp','swell','brine','rift',
+        'fathom','wrath','doom','veil','dread','current','squall','lure','clutch','hollow','spiral','pull',
+        'trench','churn','flood','wave','drift','sink','gulf','wake'],
+};
+
+export const KRAKEN_TITLE_POOLS = [
+  'the Ancient','the Bottomless','the Eternal','the Vast','the Hungering',
+  'the Undying','the Merciless','the Unfathomable','the Crushing','the Boundless',
+  'the Primordial','the Abyssal','the Desolate','the Sunken','the Ravenous','the Immortal',
+  'the Ruinous','the Devouring','the Sovereign','the Wrathful','the Forsaken',
+  'the Lurking','the Drowned','the Thunderous','the Dreadful','the Voracious',
+  'the Relentless','the Unyielding','the Fathomless',
+];
+
+export function generateKraken(krakenEgg) {
+  const { foodSequence, rarityRoll, sacrificedCreatures } = krakenEgg;
+  const sacrificedIds = (sacrificedCreatures || []).map(c => c.id).sort();
+  const hashStr = sacrificedIds.join(',') + ':' + foodSequence.join(',') + ':' + rarityRoll;
+  const hashVal = djb2(hashStr);
+  const rng = mulberry32(hashVal);
+  const rarity = getRarity(rarityRoll);
+
+  const lines = KRAKEN_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+
+  const fillCh = rng.pick(KRAKEN_FILL_SUBS.to);
+  if (fillCh !== KRAKEN_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(KRAKEN_FILL_SUBS.from).join(fillCh);
+
+  if (rarity.name === 'Legendary') lines[0] = '  ~ ~ ~ ~ ~ ~ ~ ~ ~  ';
+  const centeredLines = centerLines(lines);
+
+  const pre = KRAKEN_NAME_POOLS.pre[Math.floor(rng.next() * KRAKEN_NAME_POOLS.pre.length)];
+  const suf = KRAKEN_NAME_POOLS.suf[Math.floor(rng.next() * KRAKEN_NAME_POOLS.suf.length)];
+  const title = KRAKEN_TITLE_POOLS[Math.floor(rng.next() * KRAKEN_TITLE_POOLS.length)];
+  const name = cap(pre + suf) + ' ' + title;
+
+  const baseColor = KRAKEN_BASE_COLORS[hashVal % KRAKEN_BASE_COLORS.length];
+  let color = baseColor;
+  if (rarity.name === 'Legendary')     color = lerpColor(baseColor, '#40e8ff', 0.55);
+  else if (rarity.name === 'Rare')     color = lerpColor(baseColor, '#80ffcc', 0.42);
+  else if (rarity.name === 'Uncommon') color = lerpColor(baseColor, '#88ccff', 0.28);
+
+  const diet = foodSequence.length
+    ? Object.entries(foodSequence.reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, {}))
+        .map(([k, v]) => `${v}x ${k}`).join(', ')
+    : 'none';
+
+  const id = toID(hashVal);
+  const shiny = rng.int(0, 100) === 0;
+
+  return {
+    id, hashVal, hashStr, name, color, rarity, lines: centeredLines,
+    diet, dom: null, sec: null, shiny,
+    isGreatBeast: true, beastType: 'kraken',
+    sacrificedCreatureIds: sacrificedIds,
+    traits: ['Great Beast', 'Kraken'],
+  };
+}
+
+export function regenKrakenLines(k) {
+  const rng = mulberry32(k.hashVal);
+  const lines = KRAKEN_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+  const fillCh = rng.pick(KRAKEN_FILL_SUBS.to);
+  if (fillCh !== KRAKEN_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(KRAKEN_FILL_SUBS.from).join(fillCh);
+  if (k.rarity?.name === 'Legendary') lines[0] = '  ~ ~ ~ ~ ~ ~ ~ ~ ~  ';
+  k.lines = centerLines(lines);
+}
+
+export function buildKrakenAnimSeq(kraken) {
+  const pad = Array(4).fill('              ');
+  const s4ext      = [...KRAKEN_EGG_STAGES[4].art, ...pad];
+  const wave1ext   = [...KRAKEN_ANIM_WAVE1];
+  const wave2ext   = [...KRAKEN_ANIM_WAVE2];
+  const splashExt  = [...KRAKEN_ANIM_SPLASH];
+  return [
+    { lines: s4ext,          color: '#40e0ff',                    delay: 320 },
+    { lines: s4ext,          color: '#88ffff',                    delay: 200 },
+    { lines: wave1ext,       color: '#20b0e0',                    delay: 180 },
+    { lines: wave2ext,       color: '#1080c0',                    delay: 150 },
+    { lines: splashExt,      color: '#88ffff',                    delay: 130 },
+    { lines: splashExt,      color: '#40d0ff',                    delay: 100 },
+    { lines: kraken.lines,   color: hexDim(kraken.color, 0.22),  delay: 220 },
+    { lines: kraken.lines,   color: hexDim(kraken.color, 0.50),  delay: 200 },
+    { lines: kraken.lines,   color: hexDim(kraken.color, 0.80),  delay: 260 },
+    { lines: kraken.lines,   color: kraken.color,                delay: 0   },
+  ];
+}
+
 // Dispatcher — extend with new beastType cases as new Great Beasts are added.
 export function generateGreatBeast(egg) {
   switch (egg.beastType) {
+    case 'kraken': return generateKraken(egg);
     case 'dragon': return generateDragon(egg);
     default:       return generateDragon(egg);
   }
@@ -508,8 +812,16 @@ export function generateGreatBeast(egg) {
 
 export function regenGreatBeastLines(b) {
   switch (b.beastType) {
+    case 'kraken': regenKrakenLines(b); break;
     case 'dragon': regenDragonLines(b); break;
     default:       regenDragonLines(b);
+  }
+}
+
+export function buildGreatBeastAnimSeq(beast) {
+  switch (beast.beastType) {
+    case 'kraken': return buildKrakenAnimSeq(beast);
+    default:       return buildDragonAnimSeq(beast);
   }
 }
 

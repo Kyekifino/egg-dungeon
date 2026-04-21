@@ -96,6 +96,7 @@ export const BIOME_KEYS = Object.keys(BIOMES);
 
 export const GREAT_BEAST_BIOMES = {
   badlands: { beastType: 'dragon', spawnRate: 20 },
+  wetlands: { beastType: 'kraken', spawnRate: 20 },
 };
 
 export const CLR = {

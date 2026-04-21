@@ -174,6 +174,17 @@ export function sfxDragonHatch() {
   playTone(72, t + 1.00, 0.8, 'triangle', 0.10, ctx);
 }
 
+export function sfxKrakenHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  [28, 31, 33].forEach((m, i) => playTone(m, t + i * 0.09, 0.7, 'sawtooth', 0.13, ctx));
+  [40, 45, 48, 52].forEach((m, i) => playTone(m, t + 0.32 + i * 0.11, 0.55, 'sine', 0.14 - i * 0.02, ctx));
+  playTone(52, t + 0.85, 0.9, 'sine',     0.14, ctx);
+  playTone(57, t + 0.95, 0.8, 'triangle', 0.10, ctx);
+  playTone(45, t + 1.05, 1.0, 'sine',     0.08, ctx);
+}
+
 export function sfxBeastAwaken() {
   const ctx = ensureAudio();
   if (!ctx) return;
