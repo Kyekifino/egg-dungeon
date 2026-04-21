@@ -686,7 +686,7 @@ if (isDev) {
     '<div id="dev-spawn-box">' +
       '<div id="dev-spawn-title">~ DEV SPAWN ~</div>' +
       '<div id="dev-spawn-list"></div>' +
-      '<div id="dev-spawn-hint">\u2191\u2193\u00a0navigate &nbsp;\u00b7&nbsp; Enter\u00a0spawn &nbsp;\u00b7&nbsp; Esc / `\u00a0close</div>' +
+      '<div id="dev-spawn-hint">WS&nbsp;navigate &nbsp;&middot;&nbsp; E&nbsp;spawn &nbsp;&middot;&nbsp; Esc&nbsp;/&nbsp;` close</div>' +
     '</div>';
   document.body.appendChild(devEl);
 
@@ -764,9 +764,9 @@ if (isDev) {
     }
     if (!devOpen) return;
     e.stopPropagation();
-    if (e.key === 'ArrowUp')        { e.preventDefault(); devIdx = Math.max(0, devIdx - 1); devRender(); }
-    else if (e.key === 'ArrowDown') { e.preventDefault(); devIdx = Math.min(DEV_ITEMS.length - 1, devIdx + 1); devRender(); }
-    else if (e.key === 'Enter')     { e.preventDefault(); devSpawn(DEV_ITEMS[devIdx]); devOpen = false; devRender(); }
+    if (e.key === 'ArrowUp'   || e.key === 'w' || e.key === 'W') { e.preventDefault(); devIdx = Math.max(0, devIdx - 1); devRender(); }
+    else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); devIdx = Math.min(DEV_ITEMS.length - 1, devIdx + 1); devRender(); }
+    else if (e.key === 'Enter' || e.key === 'e' || e.key === 'E' || e.key === ' ') { e.preventDefault(); devSpawn(DEV_ITEMS[devIdx]); devOpen = false; devRender(); }
     else if (e.key === 'Escape')    { devOpen = false; devRender(); }
   }, true);
 }
