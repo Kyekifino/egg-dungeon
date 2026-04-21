@@ -3,9 +3,9 @@
 
 import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn, markChestOpened, setOpenedChests, getOpenedChests } from './modules/world.js';
-import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildDragonAnimSeq, regenGreatBeastLines, DRAGON_EGG_STAGES } from './modules/creature.js';
+import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
-import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxDragonHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
+import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxDragonHatch, sfxKrakenHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
 import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_ART_AWAKE } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
@@ -19,6 +19,12 @@ const EMBERS_ART = [
   '              ', '  ·   * ·     ', '    · *  . ·  ', '  .   ·  *    ',
   '  * ·    · .  ', '   · *  ·     ', ' *  .   · * · ', '  ·  *    ·   ',
   '    ·  *  .   ', '              ',
+];
+
+const SPLASH_ART = [
+  '              ', '  ~   ~ ~     ', '    ~ ~  ~ ~  ', '  ~   ~  ~    ',
+  '  ~ ~    ~ ~  ', '   ~ ~  ~     ', ' ~  ~   ~ ~ ~ ', '  ~  ~    ~   ',
+  '    ~  ~  ~   ', '              ',
 ];
 
 function addLog(msg) {
@@ -47,6 +53,7 @@ function spawnChunkGreatBeast(cx, cy) {
   G.worldBeasts.set(wKey, {
     x: spawn.wx, y: spawn.wy,
     beastType: spawn.beastType,
+    biome: getChunkBiome(cx, cy),
     phase: 'sleeping',
     gemsReceived: 0,
     sacrificedCreatures: [],
@@ -234,14 +241,14 @@ function startDragonHatch(egg) {
   G.creature    = generateGreatBeast(egg);
   if (devForceShiny) G.creature.shiny = true;
   G.phase       = 'animating';
-  G.animFrames  = buildDragonAnimSeq(G.creature);
+  G.animFrames  = buildGreatBeastAnimSeq(G.creature);
   G.animFrame   = 0;
   animCancelled = false;
 
   if (!G.greatBeasts.find(b => b.hashVal === G.creature.hashVal)) {
     G.greatBeasts.push({ ...G.creature, date: new Date().toLocaleDateString() });
   }
-  addLog(`A DRAGON AWAKENS!  [${G.creature.rarity.name}]`);
+  addLog(`A ${(G.creature.beastType ?? 'dragon').toUpperCase()} AWAKENS!  [${G.creature.rarity.name}]`);
   autoSave();
   runAnimFrame();
 }
@@ -254,7 +261,7 @@ function runAnimFrame() {
     setTimeout(() => {
       if (!animCancelled) {
         G.phase = 'playing';
-        G.creature?.isGreatBeast ? sfxDragonHatch() : sfxHatch();
+        G.creature?.isGreatBeast ? (G.creature.beastType === 'kraken' ? sfxKrakenHatch() : sfxDragonHatch()) : sfxHatch();
         render();
       }
     }, 400);
@@ -396,7 +403,7 @@ function tryFeedBeastGem() {
   if (!G.dragonInteract) return;
   const beast = G.worldBeasts.get(G.dragonInteract);
   if (!beast || beast.phase !== 'sleeping') {
-    addLog('The dragon is already awake.'); render(); return;
+    addLog(`The ${beast?.beastType ?? 'beast'} is already awake.`); render(); return;
   }
   if (G.inventory.gem === 0) {
     addLog('No gems! Find $ in the dungeon.'); render(); return;
@@ -406,7 +413,7 @@ function tryFeedBeastGem() {
   if (beast.gemsReceived >= DRAGON_GEM_COST) {
     beast.phase = 'awake';
     sfxBeastAwaken();
-    addLog(`The dragon AWAKENS! Offer ${DRAGON_CREATURE_COST} creatures from your collection (C).`);
+    addLog(`The ${beast.beastType} AWAKENS! Offer ${DRAGON_CREATURE_COST} creatures from your collection (C).`);
   } else {
     addLog(`Offered a gem. (${beast.gemsReceived}/${DRAGON_GEM_COST})`);
   }
@@ -418,7 +425,7 @@ function enterSacrificeMode() {
   if (!G.dragonInteract) return;
   const beast = G.worldBeasts.get(G.dragonInteract);
   if (!beast || beast.phase !== 'awake') {
-    addLog(`Wake the dragon with ${DRAGON_GEM_COST} gems first.`); render(); return;
+    addLog(`Wake the ${beast?.beastType ?? 'beast'} with ${DRAGON_GEM_COST} gems first.`); render(); return;
   }
   if (!G.collection.length) {
     addLog('No creatures to sacrifice! Hatch some eggs first.'); render(); return;
@@ -471,15 +478,28 @@ function completeBeast(beast) {
   animCancelled = false;
   stopIdleAnims();
 
+  const isKraken = beast.beastType === 'kraken';
+  const dissolveArt  = isKraken ? SPLASH_ART    : EMBERS_ART;
+  const dissolveClr1 = isKraken ? '#40c0ff'     : '#ff6020';
+  const dissolveClr2 = isKraken ? '#104060'     : '#993010';
+  const flashClr1    = isKraken ? '#40e0ff'     : '#ff8040';
+  const flashClr2    = isKraken ? '#1080b0'     : '#cc2010';
+  const eggStageArt  = isKraken ? KRAKEN_EGG_STAGES[0].art : DRAGON_EGG_STAGES[0].art;
+  const eggClr       = isKraken ? '#0a2a40'     : '#8b2500';
+  const eggBiome     = beast.biome ?? (isKraken ? 'wetlands' : 'badlands');
+  const dissolveLog  = isKraken
+    ? 'The kraken sinks into the deep! A Kraken Egg bobs to the surface...'
+    : 'The dragon dissolves into embers! A Dragon Egg remains...';
+
   const beastArt = ['              ', '              ', ...BEAST_ART_AWAKE, '              ', '              '];
   const layFrames = [
-    { lines: beastArt,          color: '#ff8040',               delay: 180 },
-    { lines: beastArt,          color: '#ffffff',               delay: 120 },
-    { lines: beastArt,          color: '#cc2010',               delay: 150 },
-    { lines: beastArt,          color: '#ff6020',               delay: 110 },
-    { lines: EMBERS_ART,        color: '#ff6020',               delay: 140 },
-    { lines: EMBERS_ART,        color: '#993010',               delay: 110 },
-    { lines: DRAGON_EGG_STAGES[0].art, color: '#8b2500',        delay: 0   },
+    { lines: beastArt,     color: flashClr1,    delay: 180 },
+    { lines: beastArt,     color: '#ffffff',    delay: 120 },
+    { lines: beastArt,     color: flashClr2,    delay: 150 },
+    { lines: beastArt,     color: dissolveClr1, delay: 110 },
+    { lines: dissolveArt,  color: dissolveClr1, delay: 140 },
+    { lines: dissolveArt,  color: dissolveClr2, delay: 110 },
+    { lines: eggStageArt,  color: eggClr,       delay: 0   },
   ];
 
   runLayFrame(layFrames, 0, () => {
@@ -487,7 +507,7 @@ function completeBeast(beast) {
       x: beast.x, y: beast.y,
       foodSequence: [], rarityRoll: rand(0, 10000),
       inv: emptyInv(), fed: 0,
-      biome: 'badlands',
+      biome: eggBiome,
       isDragonEgg: true,
       noGems: true,
       beastType: beast.beastType,
@@ -496,7 +516,7 @@ function completeBeast(beast) {
     G.dragonInteract = null;
     G.sacrificeMode  = false;
     G.showCollection = false;
-    addLog('The dragon dissolves into embers! A Dragon Egg remains...');
+    addLog(dissolveLog);
     G.phase = 'playing';
     autoSave();
     render();
@@ -681,6 +701,9 @@ if (isDev) {
     { label: 'Dragon Egg',                 type: 'dragonEgg'                     },
     { label: 'Dragon Beast (asleep)',      type: 'dragonBeast', awake: false     },
     { label: 'Dragon Beast (awake)',       type: 'dragonBeast', awake: true      },
+    { label: 'Kraken Egg',                 type: 'krakenEgg'                     },
+    { label: 'Kraken Beast (asleep)',      type: 'krakenBeast', awake: false     },
+    { label: 'Kraken Beast (awake)',       type: 'krakenBeast', awake: true      },
     { label: 'Chest',                      type: 'chest'                         },
     { label: '+10 food  +30 gems',         type: 'resources'                     },
     { label: 'Force shiny',                type: 'toggleShiny'                   },
@@ -757,9 +780,29 @@ if (isDev) {
       devForceShiny = !devForceShiny;
       addLog(`[DEV] Force shiny: ${devForceShiny ? 'ON' : 'OFF'}.`);
       render(); return;
+    } else if (item.type === 'krakenEgg') {
+      G.worldEggs.set(key, {
+        x: nx, y: ny, foodSequence: [], rarityRoll: rand(0, 10000),
+        inv: emptyInv(), fed: 0, biome: 'wetlands',
+        isDragonEgg: true, noGems: true, beastType: 'kraken',
+        sacrificedCreatures: [
+          { id: 'dev011', name: 'Dev Alpha',   rarity: { name: 'Common'    } },
+          { id: 'dev012', name: 'Dev Beta',    rarity: { name: 'Uncommon'  } },
+          { id: 'dev013', name: 'Dev Gamma',   rarity: { name: 'Rare'      } },
+          { id: 'dev014', name: 'Dev Delta',   rarity: { name: 'Common'    } },
+          { id: 'dev015', name: 'Dev Epsilon', rarity: { name: 'Legendary' } },
+        ],
+      });
     } else if (item.type === 'dragonBeast') {
       G.worldBeasts.set(key, {
-        x: nx, y: ny, beastType: 'dragon',
+        x: nx, y: ny, beastType: 'dragon', biome: 'badlands',
+        phase: item.awake ? 'awake' : 'sleeping',
+        gemsReceived: item.awake ? DRAGON_GEM_COST : 0,
+        sacrificedCreatures: [],
+      });
+    } else if (item.type === 'krakenBeast') {
+      G.worldBeasts.set(key, {
+        x: nx, y: ny, beastType: 'kraken', biome: 'wetlands',
         phase: item.awake ? 'awake' : 'sleeping',
         gemsReceived: item.awake ? DRAGON_GEM_COST : 0,
         sacrificedCreatures: [],

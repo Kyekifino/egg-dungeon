@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines } from '../modules/creature.js';
+import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines, generateKraken, regenKrakenLines, buildKrakenAnimSeq, buildGreatBeastAnimSeq } from '../modules/creature.js';
 import { emptyInv, FOOD_KEYS, RARITIES } from '../modules/utils.js';
 
 function makeEgg(overrides = {}) {
@@ -314,5 +314,141 @@ describe('generateGreatBeast / regenGreatBeastLines', () => {
     d.lines = null;
     regenGreatBeastLines(d);
     assert.deepEqual(d.lines, originalLines);
+  });
+});
+
+function makeKrakenEgg(overrides = {}) {
+  return {
+    foodSequence: Array(10).fill('fish'),
+    rarityRoll: 0,
+    sacrificedCreatures: [
+      { id: 'aaa111', name: 'First',  rarity: { name: 'Common'   } },
+      { id: 'bbb222', name: 'Second', rarity: { name: 'Uncommon' } },
+    ],
+    beastType: 'kraken',
+    ...overrides,
+  };
+}
+
+describe('KRAKEN_EGG_STAGES', () => {
+  it('has the same number of stages as EGG_STAGES', () => {
+    assert.equal(KRAKEN_EGG_STAGES.length, EGG_STAGES.length);
+  });
+
+  it('each stage has art and color', () => {
+    for (const stage of KRAKEN_EGG_STAGES) {
+      assert.ok(Array.isArray(stage.art) && stage.art.length > 0);
+      assert.ok(typeof stage.color === 'string');
+    }
+  });
+});
+
+describe('generateKraken', () => {
+  it('returns all required fields', () => {
+    const k = generateKraken(makeKrakenEgg());
+    assert.ok(k.id, 'missing id');
+    assert.ok(k.name, 'missing name');
+    assert.ok(k.lines, 'missing lines');
+    assert.ok(k.color, 'missing color');
+    assert.ok(k.rarity, 'missing rarity');
+    assert.ok(k.traits, 'missing traits');
+    assert.ok(typeof k.hashVal === 'number', 'missing hashVal');
+    assert.equal(k.isGreatBeast, true);
+    assert.equal(k.beastType, 'kraken');
+    assert.equal(k.dom, null);
+  });
+
+  it('lines is a non-empty array of strings', () => {
+    const k = generateKraken(makeKrakenEgg());
+    assert.ok(Array.isArray(k.lines) && k.lines.length > 0);
+    assert.ok(k.lines.every(l => typeof l === 'string'));
+  });
+
+  it('traits includes Great Beast', () => {
+    const k = generateKraken(makeKrakenEgg());
+    assert.ok(k.traits.includes('Great Beast'));
+  });
+
+  it('is deterministic for same egg', () => {
+    const egg = makeKrakenEgg();
+    const a = generateKraken(egg);
+    const b = generateKraken(egg);
+    assert.equal(a.name, b.name);
+    assert.deepEqual(a.lines, b.lines);
+    assert.equal(a.hashVal, b.hashVal);
+  });
+
+  it('different sacrificed creatures produce different krakens', () => {
+    const a = generateKraken(makeKrakenEgg({ sacrificedCreatures: [{ id: 'x1' }, { id: 'x2' }] }));
+    const b = generateKraken(makeKrakenEgg({ sacrificedCreatures: [{ id: 'y3' }, { id: 'y4' }] }));
+    assert.notEqual(a.hashVal, b.hashVal);
+  });
+
+  it('Legendary rarity gets color shifted toward cyan', () => {
+    const k = generateKraken(makeKrakenEgg({ rarityRoll: 9800 }));
+    const common = generateKraken(makeKrakenEgg({ rarityRoll: 0 }));
+    assert.equal(k.rarity.name, 'Legendary');
+    assert.notEqual(k.color, common.color);
+  });
+});
+
+describe('regenKrakenLines', () => {
+  it('restores lines from hashVal', () => {
+    const k = generateKraken(makeKrakenEgg());
+    const originalLines = [...k.lines];
+    k.lines = null;
+    regenKrakenLines(k);
+    assert.deepEqual(k.lines, originalLines);
+  });
+});
+
+describe('buildKrakenAnimSeq', () => {
+  it('returns a non-empty array', () => {
+    const k = generateKraken(makeKrakenEgg());
+    const seq = buildKrakenAnimSeq(k);
+    assert.ok(Array.isArray(seq) && seq.length > 0);
+  });
+
+  it('last frame has delay 0 (stop signal)', () => {
+    const k = generateKraken(makeKrakenEgg());
+    const seq = buildKrakenAnimSeq(k);
+    assert.equal(seq.at(-1).delay, 0);
+  });
+
+  it('every frame has lines array and string color', () => {
+    const k = generateKraken(makeKrakenEgg());
+    for (const frame of buildKrakenAnimSeq(k)) {
+      assert.ok(Array.isArray(frame.lines));
+      assert.ok(typeof frame.color === 'string');
+    }
+  });
+});
+
+describe('buildGreatBeastAnimSeq', () => {
+  it('returns dragon anim for dragon', () => {
+    const d = generateDragon(makeDragonEgg());
+    const seq = buildGreatBeastAnimSeq(d);
+    assert.ok(Array.isArray(seq) && seq.length > 0);
+  });
+
+  it('returns kraken anim for kraken', () => {
+    const k = generateKraken(makeKrakenEgg());
+    const seq = buildGreatBeastAnimSeq(k);
+    assert.ok(Array.isArray(seq) && seq.length > 0);
+    assert.notDeepEqual(seq, buildDragonAnimSeq(generateDragon(makeDragonEgg())));
+  });
+
+  it('generateGreatBeast returns kraken for beastType kraken', () => {
+    const k = generateGreatBeast(makeKrakenEgg());
+    assert.equal(k.beastType, 'kraken');
+    assert.equal(k.isGreatBeast, true);
+  });
+
+  it('regenGreatBeastLines works for kraken', () => {
+    const k = generateKraken(makeKrakenEgg());
+    const originalLines = [...k.lines];
+    k.lines = null;
+    regenGreatBeastLines(k);
+    assert.deepEqual(k.lines, originalLines);
   });
 });
