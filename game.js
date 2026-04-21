@@ -506,7 +506,7 @@ function tryChest() {
   const dirs = [[0,1],[0,-1],[1,0],[-1,0]];
   const found = dirs.map(([dx, dy]) => ({ x: G.px + dx, y: G.py + dy }))
     .find(p => getTile(p.x, p.y) === CHEST_CHAR);
-  if (!found) { addLog('No chest nearby. (Stand adjacent, press E)'); render(); return; }
+  if (!found) return;
 
   const sweetStart = 2 + Math.floor(Math.random() * (CHEST_BAR - CHEST_SWEET - 4));
   chestMinigame = {
@@ -672,6 +672,7 @@ if (isDev) {
     { label: 'Dragon Egg',                 type: 'dragonEgg'                     },
     { label: 'Dragon Beast (asleep)',      type: 'dragonBeast', awake: false     },
     { label: 'Dragon Beast (awake)',       type: 'dragonBeast', awake: true      },
+    { label: 'Chest',                      type: 'chest'                         },
     { label: '+10 food  +30 gems',         type: 'resources'                     },
   ];
 
@@ -735,6 +736,8 @@ if (isDev) {
           { id: 'dev005', name: 'Dev Epsilon', rarity: { name: 'Legendary' } },
         ],
       });
+    } else if (item.type === 'chest') {
+      setTile(nx, ny, CHEST_CHAR);
     } else if (item.type === 'dragonBeast') {
       G.worldBeasts.set(key, {
         x: nx, y: ny, beastType: 'dragon',
