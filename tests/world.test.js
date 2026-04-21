@@ -1,6 +1,6 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { resetWorld, getChunk, getTile, setTile, isWalkable, getChunkBiome, getChunkEggSpawn, isRoomTile, getGreatBeastSpawn, chunkX, chunkY, localX, localY } from '../modules/world.js';
+import { resetWorld, getChunk, getTile, setTile, isWalkable, getChunkBiome, getChunkEggSpawn, isRoomTile, getGreatBeastSpawn, chunkX, chunkY, localX, localY, markChestOpened, setOpenedChests, getOpenedChests } from '../modules/world.js';
 import { CW, CH, CORR_X, CORR_Y, BIOME_KEYS, CHEST_CHAR, GEM_CHAR } from '../modules/utils.js';
 
 beforeEach(() => resetWorld(42));
@@ -183,5 +183,42 @@ describe('getGreatBeastSpawn', () => {
     assert.equal(typeof spawn.wx, 'number');
     assert.equal(typeof spawn.wy, 'number');
     assert.equal(spawn.beastType, 'dragon');
+  });
+});
+
+describe('openedChests', () => {
+  beforeEach(() => resetWorld(42));
+
+  it('markChestOpened / getOpenedChests round-trips', () => {
+    markChestOpened(5, 10);
+    assert.ok(getOpenedChests().has('5,10'));
+  });
+
+  it('setOpenedChests replaces the set', () => {
+    markChestOpened(1, 2);
+    setOpenedChests(new Set(['3,4', '5,6']));
+    assert.ok(!getOpenedChests().has('1,2'));
+    assert.ok(getOpenedChests().has('3,4'));
+  });
+
+  it('regenerated chunk has opened chest replaced with floor', () => {
+    resetWorld(42);
+    let chestWx, chestWy;
+    outer: for (let cx = 0; cx < 50 && chestWx === undefined; cx++)
+      for (let cy = 0; cy < 50 && chestWx === undefined; cy++) {
+        const chunk = getChunk(cx, cy);
+        const lh = chunk.grid.length, lw = chunk.grid[0].length;
+        for (let ly = 0; ly < lh; ly++)
+          for (let lx = 0; lx < lw; lx++)
+            if (chunk.grid[ly][lx] === CHEST_CHAR) {
+              chestWx = cx * lw + lx;
+              chestWy = cy * lh + ly;
+              break outer;
+            }
+      }
+    assert.ok(chestWx !== undefined, 'no chest found in scan');
+    resetWorld(42);
+    setOpenedChests(new Set([`${chestWx},${chestWy}`]));
+    assert.equal(getTile(chestWx, chestWy), '.', 'opened chest should regenerate as floor');
   });
 });

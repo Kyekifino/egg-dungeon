@@ -2,7 +2,7 @@
 // All rendering, audio, world, and creature logic lives in modules/.
 
 import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
-import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn } from './modules/world.js';
+import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn, markChestOpened, setOpenedChests, getOpenedChests } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildDragonAnimSeq, regenGreatBeastLines, DRAGON_EGG_STAGES } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
 import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxDragonHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
@@ -266,9 +266,11 @@ function runAnimFrame() {
 
 // ── Save / Load ───────────────────────────────────────────────────
 
+const CHUNK_SAVE_LIMIT = 200;
+
 function buildSaveData() {
-  const chunkData = {};
-  for (const [key, chunk] of chunks) chunkData[key] = chunk.grid;
+  const recentChunks = [...chunks.entries()].slice(-CHUNK_SAVE_LIMIT);
+  const chunkData = Object.fromEntries(recentChunks.map(([k, c]) => [k, c.grid]));
   return {
     version: 5, worldSeed: WORLD_SEED, selectedFood, muted: getMuted(),
     player:  { x: G.px, y: G.py, inventory: G.inventory },
@@ -282,6 +284,7 @@ function buildSaveData() {
     collectionTab: G.collectionTab,
     gbSelectedIdx: G.gbSelectedIdx,
     chunkData,
+    openedChests: [...getOpenedChests()],
     revealed: [...G.revealed],
     log:   G.log,
     steps: G.steps,
@@ -291,6 +294,7 @@ function buildSaveData() {
 function applySaveData(data) {
   animCancelled = true;
   resetWorld(data.worldSeed);
+  setOpenedChests(new Set(data.openedChests || []));
   for (const [key, grid] of Object.entries(data.chunkData || {}))
     chunks.set(key, { grid });
   setSelectedFood(data.selectedFood || 'meat');
@@ -558,6 +562,7 @@ function tryLockpick() {
     setTimeout(() => {
       closeChest();
       setTile(cx, cy, '.');
+      markChestOpened(cx, cy);
       FOOD_KEYS.forEach(k => { G.inventory[k]++; });
       G.inventory.gem += 3;
       addLog('Chest unlocked! Found food and 3 gems.');
