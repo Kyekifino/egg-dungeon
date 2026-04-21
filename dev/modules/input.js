@@ -25,7 +25,7 @@ export function init({
     if (e.key === '?') { openFeedback(); return; }
 
     if (isChestActive()) {
-      if (e.key === ' ') { e.preventDefault(); lockpick(); }
+      if (e.key === ' ' || e.key === 'e' || e.key === 'E') { e.preventDefault(); lockpick(); }
       else if (e.key === 'Escape') closeChest();
       return;
     }
@@ -51,12 +51,12 @@ export function init({
       if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
         e.preventDefault(); if (n > 0) { G.colSelectedIdx = Math.min(n - 1, G.colSelectedIdx + 1); render(); } return;
       }
-      if (e.key === ' ') { e.preventDefault(); sacrificeCreature(); return; }
+      if (e.key === ' ' || e.key === 'e' || e.key === 'E') { e.preventDefault(); sacrificeCreature(); return; }
       if (e.key === 'Escape') { exitSacrificeMode(); return; }
       return;
     }
 
-    if (e.key === 'e' || e.key === 'E') { tryE(); return; }
+    if (e.key === 'e' || e.key === 'E' || e.key === ' ') { e.preventDefault(); tryE(); return; }
     if (e.key === 'c' || e.key === 'C') {
       G.showCollection = !G.showCollection;
       if (!G.showCollection) stopColAnims();
@@ -73,10 +73,10 @@ export function init({
       if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
         e.preventDefault(); if (n > 0) { G[idxKey] = Math.min(n - 1, G[idxKey] + 1); render(); } return;
       }
-      if (e.key === 'ArrowLeft' || e.key === '[') {
+      if (e.key === 'ArrowLeft' || e.key === '[' || e.key === 'a' || e.key === 'A') {
         e.preventDefault(); G.collectionTab = 'creatures'; stopColAnims(); render(); return;
       }
-      if (e.key === 'ArrowRight' || e.key === ']') {
+      if (e.key === 'ArrowRight' || e.key === ']' || e.key === 'd' || e.key === 'D') {
         e.preventDefault(); G.collectionTab = 'greatBeasts'; stopColAnims(); render(); return;
       }
       return;
