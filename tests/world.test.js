@@ -1,7 +1,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { resetWorld, getChunk, getTile, setTile, isWalkable, getChunkBiome, chunkX, chunkY, localX, localY } from '../modules/world.js';
-import { CW, CH, CORR_X, CORR_Y, BIOME_KEYS } from '../modules/utils.js';
+import { resetWorld, getChunk, getTile, setTile, isWalkable, getChunkBiome, getChunkEggSpawn, isRoomTile, getGreatBeastSpawn, chunkX, chunkY, localX, localY } from '../modules/world.js';
+import { CW, CH, CORR_X, CORR_Y, BIOME_KEYS, CHEST_CHAR, GEM_CHAR } from '../modules/utils.js';
 
 beforeEach(() => resetWorld(42));
 
@@ -78,5 +78,110 @@ describe('getTile / setTile', () => {
 describe('isWalkable', () => {
   it('corridor tiles are walkable', () => {
     assert.equal(isWalkable(CORR_X, CORR_Y), true);
+  });
+});
+
+describe('item tile generation', () => {
+  it('some chunks contain chest tiles', () => {
+    let found = false;
+    outer: for (let cx = 0; cx < 25 && !found; cx++)
+      for (let cy = 0; cy < 25 && !found; cy++) {
+        const { grid } = getChunk(cx, cy);
+        for (const row of grid)
+          if (row.includes(CHEST_CHAR)) { found = true; break outer; }
+      }
+    assert.ok(found, 'no chest tile found in 625-chunk scan');
+  });
+
+  it('some chunks contain gem tiles', () => {
+    let found = false;
+    outer: for (let cx = 0; cx < 25 && !found; cx++)
+      for (let cy = 0; cy < 25 && !found; cy++) {
+        const { grid } = getChunk(cx, cy);
+        for (const row of grid)
+          if (row.includes(GEM_CHAR)) { found = true; break outer; }
+      }
+    assert.ok(found, 'no gem tile found in 625-chunk scan');
+  });
+});
+
+describe('getChunkEggSpawn', () => {
+  it('returns null for most chunks (~85% spawn rate)', () => {
+    let nullCount = 0;
+    for (let cx = 0; cx < 5; cx++)
+      for (let cy = 0; cy < 5; cy++)
+        if (getChunkEggSpawn(cx, cy) === null) nullCount++;
+    assert.ok(nullCount > 0, 'expected some chunks to have no egg spawn');
+  });
+
+  it('returns spawn with wx, wy, rarityRoll for qualifying chunks', () => {
+    let spawn = null;
+    for (let cx = 0; cx < 10 && !spawn; cx++)
+      for (let cy = 0; cy < 10 && !spawn; cy++)
+        spawn = getChunkEggSpawn(cx, cy);
+    assert.ok(spawn !== null, 'no egg spawn found in 100-chunk scan');
+    assert.equal(typeof spawn.wx, 'number');
+    assert.equal(typeof spawn.wy, 'number');
+    assert.ok(spawn.rarityRoll >= 0 && spawn.rarityRoll < 10000);
+  });
+
+  it('spawn wx/wy lands on a floor tile', () => {
+    let spawn = null;
+    for (let cx = 0; cx < 10 && !spawn; cx++)
+      for (let cy = 0; cy < 10 && !spawn; cy++)
+        spawn = getChunkEggSpawn(cx, cy);
+    assert.ok(spawn !== null);
+    assert.equal(getTile(spawn.wx, spawn.wy), '.');
+  });
+});
+
+describe('isRoomTile', () => {
+  it('returns true at corridor intersection (4 walkable neighbours)', () => {
+    assert.equal(isRoomTile(CORR_X, CORR_Y), true);
+  });
+
+  it('returns false somewhere in the map (corridor-only tile or wall)', () => {
+    let falseSeen = false;
+    for (let wx = 0; wx < CW * 3 && !falseSeen; wx++)
+      for (let wy = 0; wy < CH * 3 && !falseSeen; wy++)
+        if (!isRoomTile(wx, wy)) falseSeen = true;
+    assert.ok(falseSeen, 'expected at least one tile with < 3 walkable neighbours');
+  });
+});
+
+describe('getGreatBeastSpawn', () => {
+  it('returns null for a non-badlands chunk', () => {
+    let tested = false;
+    for (let cx = 0; cx < 30 && !tested; cx++) {
+      for (let cy = 0; cy < 30 && !tested; cy++) {
+        if (getChunkBiome(cx, cy) !== 'badlands') {
+          assert.equal(getGreatBeastSpawn(cx, cy), null);
+          tested = true;
+        }
+      }
+    }
+    assert.ok(tested, 'could not find a non-badlands chunk in scan range');
+  });
+
+  it('returns null for most badlands chunks (zone hash not qualifying)', () => {
+    let nullSeen = false;
+    for (let cx = 0; cx < 50 && !nullSeen; cx++) {
+      for (let cy = 0; cy < 50 && !nullSeen; cy++) {
+        if (getChunkBiome(cx, cy) === 'badlands' && getGreatBeastSpawn(cx, cy) === null)
+          nullSeen = true;
+      }
+    }
+    assert.ok(nullSeen, 'expected most badlands chunks to return null');
+  });
+
+  it('returns spawn with wx, wy, beastType for qualifying chunk', () => {
+    let spawn = null;
+    for (let cx = 0; cx < 100 && !spawn; cx++)
+      for (let cy = 0; cy < 100 && !spawn; cy++)
+        spawn = getGreatBeastSpawn(cx, cy);
+    assert.ok(spawn !== null, 'no great beast spawn found in 10000-chunk scan');
+    assert.equal(typeof spawn.wx, 'number');
+    assert.equal(typeof spawn.wy, 'number');
+    assert.equal(spawn.beastType, 'dragon');
   });
 });

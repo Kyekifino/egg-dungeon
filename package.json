@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test": "c8 --lines 50 node --test tests/utils.test.js tests/world.test.js tests/creature.test.js",
+    "test": "c8 --lines 95 node --test tests/utils.test.js tests/world.test.js tests/creature.test.js",
     "lint": "eslint modules/ game.js smoke.js"
   },
   "devDependencies": {

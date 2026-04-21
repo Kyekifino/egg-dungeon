@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, getEggStage, EYE_ROW } from '../modules/creature.js';
+import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines } from '../modules/creature.js';
 import { emptyInv, FOOD_KEYS, RARITIES } from '../modules/utils.js';
 
 function makeEgg(overrides = {}) {
@@ -130,5 +130,175 @@ describe('EGG_STAGES / getEggStage', () => {
       assert.ok(Array.isArray(stage.art) && stage.art.length > 0);
       assert.ok(typeof stage.color === 'string');
     }
+  });
+});
+
+function makeDragonEgg(overrides = {}) {
+  return {
+    foodSequence: Array(10).fill('meat'),
+    rarityRoll: 0,
+    sacrificedCreatures: [
+      { id: 'aaa111', name: 'FirstCreature', rarity: { name: 'Common' } },
+      { id: 'bbb222', name: 'SecondCreature', rarity: { name: 'Uncommon' } },
+    ],
+    beastType: 'dragon',
+    ...overrides,
+  };
+}
+
+describe('generateDragon', () => {
+  it('returns all required fields', () => {
+    const d = generateDragon(makeDragonEgg());
+    assert.ok(d.id, 'missing id');
+    assert.ok(d.name, 'missing name');
+    assert.ok(d.lines, 'missing lines');
+    assert.ok(d.color, 'missing color');
+    assert.ok(d.rarity, 'missing rarity');
+    assert.ok(d.traits, 'missing traits');
+    assert.ok(typeof d.hashVal === 'number', 'missing hashVal');
+    assert.equal(d.isGreatBeast, true);
+    assert.equal(d.beastType, 'dragon');
+    assert.equal(d.dom, null);
+  });
+
+  it('lines is a non-empty array of strings', () => {
+    const d = generateDragon(makeDragonEgg());
+    assert.ok(Array.isArray(d.lines) && d.lines.length > 0);
+    assert.ok(d.lines.every(l => typeof l === 'string'));
+  });
+
+  it('traits includes Great Beast', () => {
+    const d = generateDragon(makeDragonEgg());
+    assert.ok(d.traits.includes('Great Beast'));
+  });
+
+  it('is deterministic for same egg', () => {
+    const egg = makeDragonEgg();
+    const a = generateDragon(egg);
+    const b = generateDragon(egg);
+    assert.equal(a.name, b.name);
+    assert.deepEqual(a.lines, b.lines);
+    assert.equal(a.hashVal, b.hashVal);
+  });
+
+  it('different sacrificed creatures produce different dragons', () => {
+    const a = generateDragon(makeDragonEgg({ sacrificedCreatures: [{ id: 'x1' }, { id: 'x2' }] }));
+    const b = generateDragon(makeDragonEgg({ sacrificedCreatures: [{ id: 'y3' }, { id: 'y4' }] }));
+    assert.notEqual(a.hashVal, b.hashVal);
+  });
+
+  it('handles missing sacrificedCreatures gracefully', () => {
+    const d = generateDragon({ ...makeDragonEgg(), sacrificedCreatures: undefined });
+    assert.ok(d.id);
+  });
+
+  it('Legendary rarity gets gold color', () => {
+    const d = generateDragon(makeDragonEgg({ rarityRoll: 9800 }));
+    assert.equal(d.rarity.name, 'Legendary');
+    assert.equal(d.color, '#f0c030');
+  });
+
+  it('Rare rarity gets a color blended toward blue', () => {
+    const d = generateDragon(makeDragonEgg({ rarityRoll: 9000 }));
+    assert.equal(d.rarity.name, 'Rare');
+    assert.notEqual(d.color, '#e06020');
+  });
+
+  it('Uncommon rarity gets a color blended toward orange', () => {
+    const d = generateDragon(makeDragonEgg({ rarityRoll: 7000 }));
+    assert.equal(d.rarity.name, 'Uncommon');
+    assert.notEqual(d.color, '#e06020');
+  });
+
+  it('produces fill-substituted lines when fill char is not =', () => {
+    // Try enough distinct eggs to hit a non-= fill substitution
+    let fillHit = false;
+    for (let i = 0; i < 20 && !fillHit; i++) {
+      const d = generateDragon(makeDragonEgg({ rarityRoll: i * 37 + 13,
+        sacrificedCreatures: [{ id: `s${i}` }, { id: `t${i}` }] }));
+      for (const line of d.lines) {
+        if (line.includes('#') || line.includes('~') || line.includes('X') || line.includes('+')) {
+          fillHit = true; break;
+        }
+      }
+    }
+    assert.ok(fillHit, 'expected at least one dragon to use fill substitution');
+  });
+});
+
+describe('regenDragonLines', () => {
+  it('restores lines from hashVal', () => {
+    const d = generateDragon(makeDragonEgg());
+    const originalLines = [...d.lines];
+    d.lines = null;
+    regenDragonLines(d);
+    assert.deepEqual(d.lines, originalLines);
+  });
+
+  it('applies Legendary line override on regen', () => {
+    const d = generateDragon(makeDragonEgg({ rarityRoll: 9800 }));
+    d.lines = null;
+    regenDragonLines(d);
+    assert.ok(d.lines[0].includes('*'), 'Legendary top row should have stars');
+  });
+});
+
+describe('buildDragonAnimSeq', () => {
+  it('returns a non-empty array', () => {
+    const d = generateDragon(makeDragonEgg());
+    const seq = buildDragonAnimSeq(d);
+    assert.ok(Array.isArray(seq) && seq.length > 0);
+  });
+
+  it('last frame has delay 0 (stop signal)', () => {
+    const d = generateDragon(makeDragonEgg());
+    const seq = buildDragonAnimSeq(d);
+    assert.equal(seq.at(-1).delay, 0);
+  });
+
+  it('every frame has lines array and string color', () => {
+    const d = generateDragon(makeDragonEgg());
+    for (const frame of buildDragonAnimSeq(d)) {
+      assert.ok(Array.isArray(frame.lines));
+      assert.ok(typeof frame.color === 'string');
+    }
+  });
+
+  it('all frames have the same row count as dragon lines', () => {
+    const d = generateDragon(makeDragonEgg());
+    const seq = buildDragonAnimSeq(d);
+    for (const frame of seq) {
+      assert.equal(frame.lines.length, d.lines.length);
+    }
+  });
+});
+
+describe('generateGreatBeast / regenGreatBeastLines', () => {
+  it('generateGreatBeast returns dragon for beastType dragon', () => {
+    const d = generateGreatBeast(makeDragonEgg());
+    assert.equal(d.beastType, 'dragon');
+    assert.equal(d.isGreatBeast, true);
+  });
+
+  it('generateGreatBeast falls through to dragon for unknown beastType', () => {
+    const d = generateGreatBeast({ ...makeDragonEgg(), beastType: 'unknown' });
+    assert.ok(d.id);
+  });
+
+  it('regenGreatBeastLines works for dragon', () => {
+    const d = generateDragon(makeDragonEgg());
+    const originalLines = [...d.lines];
+    d.lines = null;
+    regenGreatBeastLines(d);
+    assert.deepEqual(d.lines, originalLines);
+  });
+
+  it('regenGreatBeastLines falls through to dragon for unknown beastType', () => {
+    const d = generateDragon(makeDragonEgg());
+    d.beastType = 'unknown';
+    const originalLines = [...d.lines];
+    d.lines = null;
+    regenGreatBeastLines(d);
+    assert.deepEqual(d.lines, originalLines);
   });
 });
