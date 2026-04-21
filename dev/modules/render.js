@@ -95,7 +95,8 @@ function triggerEggShake() {
   eggShakeTimer = null;
   const egg = getAdjacentEgg();
   if (G?.phase !== 'playing' || !egg) return;
-  const stage = EGG_STAGES[getEggStage(egg.fed)];
+  const stageSet = egg.isDragonEgg ? DRAGON_EGG_STAGES : EGG_STAGES;
+  const stage = stageSet[getEggStage(egg.fed)];
   const gen   = ++idleGen;
   const offsets = [1, 0, -1, 0, 1, 0];
   let fi = 0;
