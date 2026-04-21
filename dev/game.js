@@ -6,7 +6,7 @@ import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTi
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
 import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxDragonHatch, sfxKrakenHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
-import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_ART_AWAKE } from './modules/render.js';
+import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_ART_AWAKE, KRAKEN_BEAST_ART_AWAKE } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
 
@@ -130,8 +130,9 @@ function tryMove(dx, dy) {
     if (getTile(nx, ny) === CHEST_CHAR) { addLog('A chest! Press E to pick the lock.'); render(); }
     else if (G.worldBeasts?.has(nKey)) {
       const beast = G.worldBeasts.get(nKey);
-      if (beast.phase === 'sleeping') addLog('An ancient dragon slumbers here. Press E to approach.');
-      else addLog('The dragon awaits your offering. Press E to continue.');
+      const bName = beast.beastType === 'kraken' ? 'kraken' : 'dragon';
+      if (beast.phase === 'sleeping') addLog(`An ancient ${bName} slumbers here. Press E to approach.`);
+      else addLog(`The ${bName} awaits your offering. Press E to continue.`);
       render();
     }
     return;
@@ -491,7 +492,7 @@ function completeBeast(beast) {
     ? 'The kraken sinks into the deep! A Kraken Egg bobs to the surface...'
     : 'The dragon dissolves into embers! A Dragon Egg remains...';
 
-  const beastArt = ['              ', '              ', ...BEAST_ART_AWAKE, '              ', '              '];
+  const beastArt = ['              ', '              ', ...(isKraken ? KRAKEN_BEAST_ART_AWAKE : BEAST_ART_AWAKE), '              ', '              '];
   const layFrames = [
     { lines: beastArt,     color: flashClr1,    delay: 180 },
     { lines: beastArt,     color: '#ffffff',    delay: 120 },

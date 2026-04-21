@@ -63,6 +63,7 @@ export const GEM_CHAR = '$';
 export const GEM_COLOR = '#80dfff';
 export const CHEST_CHAR = '■';
 export const DRAGON_CHAR = 'Ω';
+export const KRAKEN_CHAR = 'Ψ';
 export const DRAGON_GEM_COST = 25;
 export const DRAGON_CREATURE_COST = 5;
 
@@ -100,8 +101,8 @@ export const GREAT_BEAST_BIOMES = {
 };
 
 export const CLR = {
-  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020','Ω':'#ff6020' },
-  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08','Ω':'#601808' },
+  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020','Ω':'#ff6020','Ψ':'#40c0ff' },
+  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08','Ω':'#601808','Ψ':'#0a3050' },
 };
 
 export const RARITIES = [
