@@ -620,7 +620,8 @@ checkPatchNotes();
 if (isDev) {
   const devStyle = document.createElement('style');
   devStyle.textContent =
-    '#dev-spawn-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:400;font-family:inherit}' +
+    '#dev-spawn-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);align-items:center;justify-content:center;z-index:400;font-family:inherit}' +
+    '#dev-spawn-overlay:not([hidden]){display:flex}' +
     '#dev-spawn-box{background:#111;border:1px solid #666;padding:1.2rem 1.8rem;min-width:270px}' +
     '#dev-spawn-title{color:#ff0;font-weight:bold;margin-bottom:.9rem;letter-spacing:.06em}' +
     '.dev-item{color:#888;padding:.18rem 0;cursor:pointer}' +
