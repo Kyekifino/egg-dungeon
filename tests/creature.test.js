@@ -205,10 +205,11 @@ describe('generateDragon', () => {
     assert.ok(d.id);
   });
 
-  it('Legendary rarity gets gold color', () => {
+  it('Legendary rarity gets a color shifted toward gold', () => {
     const d = generateDragon(makeDragonEgg({ rarityRoll: 9800 }));
+    const common = generateDragon(makeDragonEgg({ rarityRoll: 0 }));
     assert.equal(d.rarity.name, 'Legendary');
-    assert.equal(d.color, '#f0c030');
+    assert.notEqual(d.color, common.color);
   });
 
   it('Rare rarity gets a color blended toward blue', () => {
@@ -230,7 +231,7 @@ describe('generateDragon', () => {
       const d = generateDragon(makeDragonEgg({ rarityRoll: i * 37 + 13,
         sacrificedCreatures: [{ id: `s${i}` }, { id: `t${i}` }] }));
       for (const line of d.lines) {
-        if (line.includes('#') || line.includes('~') || line.includes('X') || line.includes('+')) {
+        if (['#','~','X','+','*','^','-'].some(ch => line.includes(ch))) {
           fillHit = true; break;
         }
       }

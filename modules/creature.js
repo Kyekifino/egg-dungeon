@@ -228,7 +228,7 @@ export function regenLines(c) {
 }
 
 // ── Dragon body part pools ───────────────────────────────────────────
-// 14 rows × 4 options, ~24 chars wide. Hash selects one option per row.
+// 14 rows × 8 options, ~24 chars wide. Hash selects one option per row.
 export const DRAGON_BODY_PARTS = [
   // Row 0: horns / crown
   [
@@ -236,6 +236,10 @@ export const DRAGON_BODY_PARTS = [
     '       /|\\ /|\\         ',
     '      /\\  * *  /\\      ',
     '         ^^^  ^^^       ',
+    '      >>  /\\   /\\  <<  ',
+    '       *=/\\   /\\=*     ',
+    '      /\\ /\\ /\\ /\\      ',
+    '       *--/\\ /\\--*     ',
   ],
   // Row 1: head dome
   [
@@ -243,6 +247,10 @@ export const DRAGON_BODY_PARTS = [
     '      (( ===== ))       ',
     '       { ===== }        ',
     '      [  =====  ]       ',
+    '       < ===== >        ',
+    '      *( ===== )*       ',
+    '      /[ ===== ]\\       ',
+    '       ( ~~~~~ )        ',
   ],
   // Row 2: eyes  (EYE_ROW = 2 — blink swaps o → -)
   [
@@ -250,6 +258,10 @@ export const DRAGON_BODY_PARTS = [
     '     (  o     o  )      ',
     '      ( o~~   o )       ',
     '      (  o   o  )       ',
+    '      [ o     o ]       ',
+    '      < o     o >       ',
+    '      { o     o }       ',
+    '     *( o     o )*      ',
   ],
   // Row 3: snout / maw
   [
@@ -257,6 +269,10 @@ export const DRAGON_BODY_PARTS = [
     '      ( >=====< )       ',
     '     (  >-----<  )      ',
     '      ( >~~~~~< )       ',
+    '      [ >=====< ]       ',
+    '      ( >*****< )       ',
+    '     (  >=====<  )      ',
+    '      ( >|||I|< )       ',
   ],
   // Row 4: neck
   [
@@ -264,6 +280,10 @@ export const DRAGON_BODY_PARTS = [
     '       /  ===  \\        ',
     '      (   ===   )       ',
     '       |  ===  |        ',
+    '      *|  ===  |*       ',
+    '      /|  ===  |\\       ',
+    '       \\  ~~~  /        ',
+    '       >  ===  <        ',
   ],
   // Row 5: upper wing attachment
   [
@@ -271,6 +291,10 @@ export const DRAGON_BODY_PARTS = [
     '  /\\   |=========| /\\   ',
     '   *   |=========|   *  ',
     '  \\*   |=========|  */  ',
+    ' *=\\   |=========| /=*  ',
+    ' /|\\   |=========| /|\\ ',
+    '  ^\\   |=========|  /^  ',
+    ' <*\\   |=========|  /*> ',
   ],
   // Row 6: wings spread
   [
@@ -278,6 +302,10 @@ export const DRAGON_BODY_PARTS = [
     '*    \\ |=========| /   *',
     ' *  (  |=========|  ) * ',
     '*    ( |=========| )   *',
+    ' * /\\  |=========|  /\\ *',
+    '*  --  |=========|  --  *',
+    ' * ^^  |=========|  ^^ *',
+    '*  =\\  |=========|  /=  *',
   ],
   // Row 7: upper body
   [
@@ -285,6 +313,10 @@ export const DRAGON_BODY_PARTS = [
     '     \\ |=========| /    ',
     '    (   |=========|   ) ',
     '    ( \\ |=========| /)  ',
+    '    [  \\|=========|/  ] ',
+    '    *( \\|=========|/ )* ',
+    '   (  * |=========| *  )',
+    '    ( = |=========| = ) ',
   ],
   // Row 8: body
   [
@@ -292,6 +324,10 @@ export const DRAGON_BODY_PARTS = [
     '      \\|=========|/     ',
     '     (||=========||)    ',
     '      ( ========= )     ',
+    '     [ |=========| ]    ',
+    '     *||=========||*    ',
+    '    ( ( ========= ) )   ',
+    '      <|=========|>     ',
   ],
   // Row 9: lower body
   [
@@ -299,6 +335,10 @@ export const DRAGON_BODY_PARTS = [
     '      |{=========}|     ',
     '     /||=========||\\ ',
     '     ( |=========| )    ',
+    '     *||=========||*    ',
+    '      ||~~~~~~~~~||     ',
+    '      [|=========|]     ',
+    '     (>|=========|<)    ',
   ],
   // Row 10: hips / haunches
   [
@@ -306,6 +346,10 @@ export const DRAGON_BODY_PARTS = [
     '    / |  =======  | \\   ',
     '    ( |  =======  | )   ',
     '     \\|  =======  |/    ',
+    '    *[|  =======  |]*   ',
+    '    /[|  =======  |]\\   ',
+    '    <(|  =======  |)>   ',
+    '     ||  =======  ||    ',
   ],
   // Row 11: upper legs
   [
@@ -313,6 +357,10 @@ export const DRAGON_BODY_PARTS = [
     '   (|  \\         /  |)  ',
     '  ( |  |         |  | ) ',
     '   (|  \\         /  |)  ',
+    '  ([   \\         /   ]) ',
+    '   *|  |         |  |*  ',
+    '  ( |  (         )  | ) ',
+    '  ((   \\         /   )) ',
   ],
   // Row 12: lower legs
   [
@@ -320,6 +368,10 @@ export const DRAGON_BODY_PARTS = [
     '   |   |         |   |  ',
     '  /|   \\         /   |\\ ',
     ' ( |   |         |   | )',
+    '  [|   |         |   |] ',
+    ' *||   |         |   ||*',
+    '  ||   |         |   || ',
+    ' (||   \\         /   ||)',
   ],
   // Row 13: claws / feet
   [
@@ -327,23 +379,45 @@ export const DRAGON_BODY_PARTS = [
     '  V    V         V    V ',
     ' (U) (V)         (V) (U)',
     '  \\_/  \\_/     \\_/  \\_/ ',
+    ' /V\\  /V\\       /V\\  /V\\',
+    '  >>   >>        >>   >> ',
+    ' {_}  {_}       {_}  {_}',
+    ' *V*  *V*        *V*  *V*',
   ],
 ];
 
-export const DRAGON_FILL_SUBS = { from: '=', to: ['=', '#', '~', 'X', '+'] };
+export const DRAGON_FILL_SUBS = { from: '=', to: ['=', '#', '~', 'X', '+', '*', '^', '-'] };
+
+export const DRAGON_BASE_COLORS = [
+  '#e06020',  // fire orange
+  '#cc1a1a',  // deep crimson
+  '#20a844',  // emerald
+  '#7020cc',  // arcane violet
+  '#1a60d8',  // sapphire
+  '#b08020',  // bronze
+  '#c01878',  // blood rose
+  '#1a8888',  // jade teal
+  '#884400',  // rust
+  '#406020',  // deep forest
+  '#cc6000',  // molten amber
+  '#302080',  // deep indigo
+];
 
 export const DRAGON_NAME_POOLS = {
-  pre: ['Ignis','Pyrax','Cinder','Embyr','Scorx','Flare','Grimm','Slag','Forge','Crag','Sear','Brax','Char','Blaze','Infern','Pyral'],
-  suf: ['wyrm','scale','fang','claw','wing','fire','blaze','scorch','brand','char','smelt','drake','bane','ash','coal','forge'],
+  pre: ['Ignis','Pyrax','Cinder','Embyr','Scorx','Flare','Grimm','Slag','Forge','Crag','Sear','Brax','Char','Blaze','Infern','Pyral',
+        'Vex','Drak','Gorlax','Vorn','Keld','Thrak','Obsid','Kryx','Ruun','Glaiv','Dusk','Nox','Vael','Crypt','Morg','Zyx'],
+  suf: ['wyrm','scale','fang','claw','wing','fire','blaze','scorch','brand','char','smelt','drake','bane','ash','coal','forge',
+        'spine','wrath','horn','skull','ire','rend','void','doom','veil','storm','siege','rift','spite','gale','tide','grim'],
 };
 
 export const DRAGON_TITLE_POOLS = [
-  'the Ancient', 'the Burning', 'the Eternal', 'the Vast', 'the Terrible',
-  'the Undying', 'the Merciless', 'the Colossus', 'the Scorching', 'the Boundless',
-  'the Primordial', 'the Infernal', 'the Desolate', 'the Smoldering', 'the Ravenous', 'the Immortal',
+  'the Ancient','the Burning','the Eternal','the Vast','the Terrible',
+  'the Undying','the Merciless','the Colossus','the Scorching','the Boundless',
+  'the Primordial','the Infernal','the Desolate','the Smoldering','the Ravenous','the Immortal',
+  'the Ruinous','the Abyssal','the Sovereign','the Wrathful','the Forsaken',
+  'the Venomous','the Ashen','the Thunderous','the Dreadful','the Voracious',
+  'the Relentless','the Unyielding','the Catastrophic',
 ];
-
-export const DRAGON_BASE_COLOR = '#e06020';
 
 // All dragon properties deterministically derived from hash.
 // Hash mixes sacrificed creature IDs + food sequence + rarity roll.
@@ -370,10 +444,11 @@ export function generateDragon(dragonEgg) {
   const title = DRAGON_TITLE_POOLS[Math.floor(rng.next() * DRAGON_TITLE_POOLS.length)];
   const name = cap(pre + suf) + ' ' + title;
 
-  let color = DRAGON_BASE_COLOR;
-  if (rarity.name === 'Legendary')     color = '#f0c030';
-  else if (rarity.name === 'Rare')     color = lerpColor(color, '#8888ff', 0.35);
-  else if (rarity.name === 'Uncommon') color = lerpColor(color, '#ffaa44', 0.30);
+  const baseColor = DRAGON_BASE_COLORS[hashVal % DRAGON_BASE_COLORS.length];
+  let color = baseColor;
+  if (rarity.name === 'Legendary')     color = lerpColor(baseColor, '#f8e040', 0.55);
+  else if (rarity.name === 'Rare')     color = lerpColor(baseColor, '#6090ff', 0.42);
+  else if (rarity.name === 'Uncommon') color = lerpColor(baseColor, '#ffcc44', 0.28);
 
   const diet = foodSequence.length
     ? Object.entries(foodSequence.reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, {}))
