@@ -13,6 +13,7 @@ import * as Feedback from './modules/feedback.js';
 // ── Game logic ────────────────────────────────────────────────────
 
 let animCancelled = false;
+let devForceShiny = false;
 
 const EMBERS_ART = [
   '              ', '  ·   * ·     ', '    · *  . ·  ', '  .   ·  *    ',
@@ -213,6 +214,7 @@ function startHatch(egg) {
   stopIdleAnims();
   G.worldEggs.delete(`${egg.x},${egg.y}`);
   G.creature    = generateCreature(egg);
+  if (devForceShiny) G.creature.shiny = true;
   G.phase       = 'animating';
   G.animFrames  = buildAnimSeq(G.creature);
   G.animFrame   = 0;
@@ -230,6 +232,7 @@ function startDragonHatch(egg) {
   stopIdleAnims();
   G.worldEggs.delete(`${egg.x},${egg.y}`);
   G.creature    = generateGreatBeast(egg);
+  if (devForceShiny) G.creature.shiny = true;
   G.phase       = 'animating';
   G.animFrames  = buildDragonAnimSeq(G.creature);
   G.animFrame   = 0;
@@ -674,6 +677,7 @@ if (isDev) {
     { label: 'Dragon Beast (awake)',       type: 'dragonBeast', awake: true      },
     { label: 'Chest',                      type: 'chest'                         },
     { label: '+10 food  +30 gems',         type: 'resources'                     },
+    { label: 'Force shiny',                type: 'toggleShiny'                   },
   ];
 
   let devIdx = 0;
@@ -694,7 +698,12 @@ if (isDev) {
     devEl.hidden = !devOpen;
     if (!devOpen) return;
     document.getElementById('dev-spawn-list').innerHTML = DEV_ITEMS
-      .map((item, i) => `<div class="dev-item${i === devIdx ? ' dev-item-sel' : ''}">${escHtml(item.label)}</div>`)
+      .map((item, i) => {
+        const label = item.type === 'toggleShiny'
+          ? `Force shiny: ${devForceShiny ? 'ON  [*]' : 'OFF'}`
+          : item.label;
+        return `<div class="dev-item${i === devIdx ? ' dev-item-sel' : ''}">${escHtml(label)}</div>`;
+      })
       .join('');
   }
 
@@ -738,6 +747,10 @@ if (isDev) {
       });
     } else if (item.type === 'chest') {
       setTile(nx, ny, CHEST_CHAR);
+    } else if (item.type === 'toggleShiny') {
+      devForceShiny = !devForceShiny;
+      addLog(`[DEV] Force shiny: ${devForceShiny ? 'ON' : 'OFF'}.`);
+      render(); return;
     } else if (item.type === 'dragonBeast') {
       G.worldBeasts.set(key, {
         x: nx, y: ny, beastType: 'dragon',
