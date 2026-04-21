@@ -156,7 +156,8 @@ body {
   align-items: center;
   gap: 28px;
   width: 660px;
-  min-height: 280px;
+  height: 300px;
+  overflow: hidden;
   padding: 12px 18px;
   border: 1px solid #1a1a1a;
   background: #050505;
