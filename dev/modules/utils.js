@@ -62,6 +62,9 @@ export const HUNGER_STEPS = 75;
 export const GEM_CHAR = '$';
 export const GEM_COLOR = '#80dfff';
 export const CHEST_CHAR = '■';
+export const DRAGON_CHAR = 'Ω';
+export const DRAGON_GEM_COST = 25;
+export const DRAGON_CREATURE_COST = 5;
 
 // Chunk dimensions & corridor positions (guaranteed connectivity)
 export const CW = 26;
@@ -91,9 +94,13 @@ export const BIOMES = {
 };
 export const BIOME_KEYS = Object.keys(BIOMES);
 
+export const GREAT_BEAST_BIOMES = {
+  badlands: { beastType: 'dragon', spawnRate: 20 },
+};
+
 export const CLR = {
-  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020' },
-  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08' },
+  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020','Ω':'#ff6020' },
+  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08','Ω':'#601808' },
 };
 
 export const RARITIES = [

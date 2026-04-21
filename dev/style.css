@@ -129,6 +129,26 @@ body {
 .col-id   { font-size: 0.68rem; color: #555; }
 
 #col-legend { font-size: 0.68rem; color: #5a5a5a; border-top: 1px solid #1a1a1a; padding-top: 6px; }
+#col-legend[hidden] { display: none; }
+
+/* ── Collection tabs ──────────────────────────────────────── */
+#col-tab-bar { display: flex; align-items: center; margin: 0 10px; }
+.col-tab { font-size: 0.72rem; color: #5a5a5a; cursor: pointer; padding: 1px 6px; }
+.col-tab:hover { color: #888; }
+.col-tab-active { color: #f0e060; border-bottom: 1px solid #f0e060; }
+.col-tab-sep { color: #2a2a2a; font-size: 0.72rem; }
+
+/* ── Sacrifice mode ───────────────────────────────────────── */
+#col-sacrifice-warning {
+  font-size: 0.72rem;
+  color: #e07050;
+  padding: 4px 8px;
+  border: 1px solid #3a1010;
+  background: #120808;
+  text-align: center;
+}
+#col-sacrifice-warning[hidden] { display: none; }
+.col-sacrifice-selected { background: #1e0808 !important; }
 
 /* ── Bottom panel ─────────────────────────────────────────── */
 #bottom-panel {
@@ -305,6 +325,37 @@ body {
   100% { color: #ff9999; }
 }
 .shiny-anim { animation: shiny-cycle 3s linear infinite; }
+
+/* ── Dragon / Great Beast overlay ────────────────────────── */
+#dragon-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#dragon-overlay[hidden] { display: none; }
+#dragon-box {
+  background: #050505;
+  border: 1px solid #3a1808;
+  padding: 22px 28px;
+  width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#dragon-title  { color: #ff6020; letter-spacing: 0.2em; font-size: 0.9rem; }
+#dragon-phase  { font-size: 0.8rem; line-height: 1.5; }
+#dragon-gem-progress { font-size: 0.9rem; }
+#dragon-creatures { font-size: 0.82rem; }
+#dragon-hint {
+  font-size: 0.72rem;
+  color: #5a5a5a;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 8px;
+}
 
 /* ── Chest / lockpicking overlay ─────────────────────────── */
 #chest-overlay {

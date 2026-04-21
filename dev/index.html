@@ -36,8 +36,16 @@
       <div id="collection-overlay" hidden>
         <div id="col-header">
           <span id="col-title">COLLECTION</span>
+          <span id="col-tab-bar">
+            <span id="col-tab-creatures" class="col-tab col-tab-active">Creatures</span>
+            <span class="col-tab-sep"> | </span>
+            <span id="col-tab-beasts" class="col-tab">Great Beasts</span>
+          </span>
           <span id="col-count"></span>
-          <span id="col-close">C: close &nbsp;·&nbsp; W/S or ↑↓: navigate</span>
+          <span id="col-close">C: close &nbsp;·&nbsp; ↑↓: navigate &nbsp;·&nbsp; ←→: switch tab</span>
+        </div>
+        <div id="col-sacrifice-warning" hidden>
+          ⚠ Sacrificed creatures are permanently removed from your collection.
         </div>
         <div id="col-body">
           <div id="col-list"></div>
@@ -102,6 +110,17 @@
         <button id="fb-cancel">Cancel</button>
         <button id="fb-submit">Submit</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Dragon / Great Beast interaction modal -->
+  <div id="dragon-overlay" hidden>
+    <div id="dragon-box">
+      <div id="dragon-title">Ω &nbsp; ANCIENT DRAGON</div>
+      <div id="dragon-phase"></div>
+      <div id="dragon-gem-progress"></div>
+      <div id="dragon-creatures"></div>
+      <div id="dragon-hint"></div>
     </div>
   </div>
 

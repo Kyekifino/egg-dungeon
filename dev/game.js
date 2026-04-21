@@ -1,12 +1,12 @@
 // Orchestrator: game logic, save/load, startup.
 // All rendering, audio, world, and creature logic lives in modules/.
 
-import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml } from './modules/utils.js';
-import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn } from './modules/world.js';
-import { generateCreature, buildAnimSeq, regenLines } from './modules/creature.js';
+import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
+import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn } from './modules/world.js';
+import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildDragonAnimSeq, regenGreatBeastLines } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
 import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, renderControls } from './modules/audio.js';
-import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg } from './modules/render.js';
+import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
 
@@ -32,6 +32,20 @@ function spawnChunkEgg(cx, cy) {
   });
 }
 
+function spawnChunkGreatBeast(cx, cy) {
+  const spawn = getGreatBeastSpawn(cx, cy);
+  if (!spawn) return;
+  const wKey = `${spawn.wx},${spawn.wy}`;
+  if (G.worldBeasts.has(wKey) || G.worldEggs.has(wKey)) return;
+  G.worldBeasts.set(wKey, {
+    x: spawn.wx, y: spawn.wy,
+    beastType: spawn.beastType,
+    phase: 'sleeping',
+    gemsReceived: 0,
+    sacrificedCreatures: [],
+  });
+}
+
 function updateFOV() {
   const { revealed, spawnedChunks, px, py } = G;
   const R = 6;
@@ -41,7 +55,7 @@ function updateFOV() {
       if (Math.hypot(dx, dy) > R) continue;
       revealed.add(`${nx},${ny}`);
       const ck = `${chunkX(nx)},${chunkY(ny)}`;
-      if (!spawnedChunks.has(ck)) { spawnedChunks.add(ck); spawnChunkEgg(chunkX(nx), chunkY(ny)); }
+      if (!spawnedChunks.has(ck)) { spawnedChunks.add(ck); spawnChunkEgg(chunkX(nx), chunkY(ny)); spawnChunkGreatBeast(chunkX(nx), chunkY(ny)); }
     }
 }
 
@@ -59,13 +73,19 @@ function newGame() {
     px, py,
     inventory:      emptyInv(),
     worldEggs:      new Map(),
+    worldBeasts:    new Map(),
     spawnedChunks:  new Set([startChunk]),
     phase:          'playing',
     creature:       null,
     collection:     [],
+    greatBeasts:    [],
     revealed:       new Set(),
     showCollection: false,
     colSelectedIdx: 0,
+    collectionTab:  'creatures',
+    gbSelectedIdx:  0,
+    dragonInteract: null,
+    sacrificeMode:  false,
     steps:          0,
     animFrames:     [],
     animFrame:      0,
@@ -91,8 +111,15 @@ function newGame() {
 function tryMove(dx, dy) {
   if (G.phase === 'animating') return;
   const nx = G.px + dx, ny = G.py + dy;
-  if (!isWalkable(nx, ny) || G.worldEggs?.has(`${nx},${ny}`)) {
+  const nKey = `${nx},${ny}`;
+  if (!isWalkable(nx, ny) || G.worldEggs?.has(nKey) || G.worldBeasts?.has(nKey)) {
     if (getTile(nx, ny) === CHEST_CHAR) { addLog('A chest! Press E to pick the lock.'); render(); }
+    else if (G.worldBeasts?.has(nKey)) {
+      const beast = G.worldBeasts.get(nKey);
+      if (beast.phase === 'sleeping') addLog('An ancient dragon slumbers here. Press E to approach.');
+      else addLog('The dragon awaits your offering. Press E to continue.');
+      render();
+    }
     return;
   }
 
@@ -130,12 +157,17 @@ function tryMove(dx, dy) {
 
 function tryFeed() {
   if (G.phase === 'animating') return;
+
+  // Dragon overlay open: offer a gem to the beast
+  if (G.dragonInteract) { tryFeedBeastGem(); return; }
+
   const egg = getAdjacentEgg();
   if (!egg) { addLog('No egg nearby to feed.'); render(); return; }
   if (egg.fed >= FOOD_NEEDED) return;
   const key = selectedFood;
 
   if (key === 'gem') {
+    if (egg.noGems) { addLog('Dragon eggs cannot be enhanced with gems.'); render(); return; }
     if (G.inventory.gem === 0) { addLog('No gems! Find $ in the dungeon.'); render(); return; }
     const curRarity = getRarity(egg.rarityRoll);
     const curIdx = RARITIES.indexOf(curRarity);
@@ -157,7 +189,7 @@ function tryFeed() {
   egg.fed++;
   addLog(`Fed the egg ${key}. (${egg.fed}/${FOOD_NEEDED})`);
   render();
-  if (egg.fed >= FOOD_NEEDED) setTimeout(() => startHatch(egg), 900);
+  if (egg.fed >= FOOD_NEEDED) setTimeout(() => egg.isDragonEgg ? startDragonHatch(egg) : startHatch(egg), 900);
 }
 
 function startHatch(egg) {
@@ -173,6 +205,23 @@ function startHatch(egg) {
     G.collection.push({ ...G.creature, date: new Date().toLocaleDateString() });
   }
   addLog(`THE EGG HATCHES!  [${G.creature.rarity.name}]`);
+  autoSave();
+  runAnimFrame();
+}
+
+function startDragonHatch(egg) {
+  stopIdleAnims();
+  G.worldEggs.delete(`${egg.x},${egg.y}`);
+  G.creature    = generateGreatBeast(egg);
+  G.phase       = 'animating';
+  G.animFrames  = buildDragonAnimSeq(G.creature);
+  G.animFrame   = 0;
+  animCancelled = false;
+
+  if (!G.greatBeasts.find(b => b.hashVal === G.creature.hashVal)) {
+    G.greatBeasts.push({ ...G.creature, date: new Date().toLocaleDateString() });
+  }
+  addLog(`A DRAGON AWAKENS!  [${G.creature.rarity.name}]`);
   autoSave();
   runAnimFrame();
 }
@@ -201,13 +250,17 @@ function buildSaveData() {
   const chunkData = {};
   for (const [key, chunk] of chunks) chunkData[key] = chunk.grid;
   return {
-    version: 4, worldSeed: WORLD_SEED, selectedFood, muted: getMuted(),
+    version: 5, worldSeed: WORLD_SEED, selectedFood, muted: getMuted(),
     player:  { x: G.px, y: G.py, inventory: G.inventory },
     phase:   G.phase === 'animating' ? 'playing' : G.phase,
-    creature: G.creature,
-    collection: G.collection.map(({ lines: _, ...c }) => c),
-    worldEggs: [...G.worldEggs.entries()],
+    creature: G.creature ? { ...G.creature, lines: undefined } : null,
+    collection:  G.collection.map(({ lines: _, ...c }) => c),
+    greatBeasts: G.greatBeasts.map(({ lines: _, ...b }) => b),
+    worldEggs:   [...G.worldEggs.entries()],
+    worldBeasts: [...G.worldBeasts.entries()],
     spawnedChunks: [...G.spawnedChunks],
+    collectionTab: G.collectionTab,
+    gbSelectedIdx: G.gbSelectedIdx,
     chunkData,
     revealed: [...G.revealed],
     log:   G.log,
@@ -224,21 +277,29 @@ function applySaveData(data) {
   setMuted(data.muted ?? false);
   setG({
     px: data.player.x, py: data.player.y,
-    inventory:    { ...emptyInv(), ...(data.player.inventory || {}) },
-    phase:        data.phase || 'playing',
-    creature:     data.creature || null,
-    collection:   data.collection || [],
-    worldEggs:    new Map(data.worldEggs || []),
+    inventory:     { ...emptyInv(), ...(data.player.inventory || {}) },
+    phase:         data.phase || 'playing',
+    creature:      data.creature || null,
+    collection:    data.collection || [],
+    greatBeasts:   data.greatBeasts || [],
+    worldEggs:     new Map(data.worldEggs || []),
+    worldBeasts:   new Map(data.worldBeasts || []),
     spawnedChunks: new Set(data.spawnedChunks || []),
-    revealed:     new Set(data.revealed || []),
+    revealed:      new Set(data.revealed || []),
     showCollection: false,
     colSelectedIdx: 0,
-    steps:        data.steps || 0,
+    collectionTab:  data.collectionTab || 'creatures',
+    gbSelectedIdx:  data.gbSelectedIdx || 0,
+    dragonInteract: null,
+    sacrificeMode:  false,
+    steps:         data.steps || 0,
     animFrames: [], animFrame: 0,
-    log:          data.log || [],
+    log:           data.log || [],
   });
   G.collection.forEach(regenLines);
-  if (G.creature) regenLines(G.creature);
+  G.greatBeasts.forEach(regenGreatBeastLines);
+  if (G.creature?.isGreatBeast) regenGreatBeastLines(G.creature);
+  else if (G.creature) regenLines(G.creature);
   updateFOV();
 }
 
@@ -281,6 +342,124 @@ async function loadGame() {
     addLog('Game loaded!');
     render();
   } catch (e) { if (e.name !== 'AbortError') { addLog('Load failed.'); console.error(e); } }
+}
+
+// ── Dragon / Great Beast interaction ─────────────────────────────
+
+function tryE() {
+  if (G.phase === 'animating') return;
+  const adjBeast = getAdjacentBeast();
+  if (adjBeast) { openBeastOverlay(adjBeast); return; }
+  tryChest();
+}
+
+function openBeastOverlay(beast) {
+  G.dragonInteract = `${beast.x},${beast.y}`;
+  G.showCollection = false;
+  G.sacrificeMode  = false;
+  render();
+}
+
+function closeBeastOverlay() {
+  G.dragonInteract = null;
+  G.sacrificeMode  = false;
+  G.showCollection = false;
+  render();
+}
+
+function tryFeedBeastGem() {
+  if (!G.dragonInteract) return;
+  const beast = G.worldBeasts.get(G.dragonInteract);
+  if (!beast || beast.phase !== 'sleeping') {
+    addLog('The dragon is already awake.'); render(); return;
+  }
+  if (selectedFood !== 'gem') {
+    addLog('Select gems (key 6) to offer to the dragon.'); render(); return;
+  }
+  if (G.inventory.gem === 0) {
+    addLog('No gems! Find $ in the dungeon.'); render(); return;
+  }
+  G.inventory.gem--;
+  beast.gemsReceived++;
+  if (beast.gemsReceived >= DRAGON_GEM_COST) {
+    beast.phase = 'awake';
+    addLog(`The dragon AWAKENS! Offer ${DRAGON_CREATURE_COST} creatures from your collection (C).`);
+  } else {
+    addLog(`Offered a gem. (${beast.gemsReceived}/${DRAGON_GEM_COST})`);
+  }
+  autoSave();
+  render();
+}
+
+function enterSacrificeMode() {
+  if (!G.dragonInteract) return;
+  const beast = G.worldBeasts.get(G.dragonInteract);
+  if (!beast || beast.phase !== 'awake') {
+    addLog(`Wake the dragon with ${DRAGON_GEM_COST} gems first.`); render(); return;
+  }
+  if (!G.collection.length) {
+    addLog('No creatures to sacrifice! Hatch some eggs first.'); render(); return;
+  }
+  G.sacrificeMode  = true;
+  G.showCollection = true;
+  G.collectionTab  = 'creatures';
+  render();
+}
+
+function exitSacrificeMode() {
+  G.sacrificeMode  = false;
+  G.showCollection = false;
+  render();
+}
+
+function sacrificeCreature() {
+  if (!G.dragonInteract || !G.sacrificeMode) return;
+  const beast = G.worldBeasts.get(G.dragonInteract);
+  if (!beast || beast.phase !== 'awake') return;
+  if (!G.collection.length) { addLog('No creatures to sacrifice!'); render(); return; }
+
+  const order  = { Legendary: 0, Rare: 1, Uncommon: 2, Common: 3 };
+  const sorted = [...G.collection].sort(
+    (a, b) => (order[a.rarity.name] ?? 9) - (order[b.rarity.name] ?? 9) || a.name.localeCompare(b.name)
+  );
+  const idx     = Math.max(0, Math.min(G.colSelectedIdx, sorted.length - 1));
+  const creature = sorted[idx];
+
+  const collIdx = G.collection.findIndex(c => c.hashVal === creature.hashVal);
+  G.collection.splice(collIdx, 1);
+  beast.sacrificedCreatures.push({ id: creature.id, name: creature.name, rarity: creature.rarity });
+
+  addLog(`Offered ${creature.name}. (${beast.sacrificedCreatures.length}/${DRAGON_CREATURE_COST})`);
+
+  if (beast.sacrificedCreatures.length >= DRAGON_CREATURE_COST) {
+    completeBeast(beast);
+    return;
+  }
+
+  G.colSelectedIdx = Math.max(0, Math.min(G.colSelectedIdx, G.collection.length - 1));
+  autoSave();
+  render();
+}
+
+function completeBeast(beast) {
+  const key = `${beast.x},${beast.y}`;
+  G.worldBeasts.delete(key);
+  G.worldEggs.set(key, {
+    x: beast.x, y: beast.y,
+    foodSequence: [], rarityRoll: rand(0, 10000),
+    inv: emptyInv(), fed: 0,
+    biome: 'badlands',
+    isDragonEgg: true,
+    noGems: true,
+    beastType: beast.beastType,
+    sacrificedCreatures: beast.sacrificedCreatures,
+  });
+  G.dragonInteract = null;
+  G.sacrificeMode  = false;
+  G.showCollection = false;
+  addLog('The dragon dissolves into embers! A Dragon Egg remains...');
+  autoSave();
+  render();
 }
 
 // ── Chest / lockpicking minigame ─────────────────────────────────
@@ -416,10 +595,16 @@ Input.init({
   setSelectedFood,
   tryMove,
   tryFeed,
-  tryChest,
+  tryE,
   lockpick: tryLockpick,
   closeChest,
   isChestActive: () => chestMinigame !== null,
+  isDragonActive:   () => !!(G?.dragonInteract && !G.sacrificeMode),
+  isDragonSacrifice: () => !!G?.sacrificeMode,
+  enterSacrificeMode,
+  exitSacrificeMode,
+  sacrificeCreature,
+  closeDragonOverlay: closeBeastOverlay,
   render,
   stopColAnims,
 });

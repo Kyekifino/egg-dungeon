@@ -209,6 +209,217 @@ export function regenLines(c) {
   c.lines = centerLines(lines);
 }
 
+// ── Dragon body part pools ───────────────────────────────────────────
+// 14 rows × 4 options, ~24 chars wide. Hash selects one option per row.
+export const DRAGON_BODY_PARTS = [
+  // Row 0: horns / crown
+  [
+    '        /\\   /\\        ',
+    '       /|\\ /|\\         ',
+    '      /\\  * *  /\\      ',
+    '         ^^^  ^^^       ',
+  ],
+  // Row 1: head dome
+  [
+    '       ( ===== )        ',
+    '      (( ===== ))       ',
+    '       { ===== }        ',
+    '      [  =====  ]       ',
+  ],
+  // Row 2: eyes  (EYE_ROW = 2 — blink swaps o → -)
+  [
+    '      ( o     o )       ',
+    '     (  o     o  )      ',
+    '      ( o~~   o )       ',
+    '      (  o   o  )       ',
+  ],
+  // Row 3: snout / maw
+  [
+    '      ( >=---=< )       ',
+    '      ( >=====< )       ',
+    '     (  >-----<  )      ',
+    '      ( >~~~~~< )       ',
+  ],
+  // Row 4: neck
+  [
+    '       \\  ===  /        ',
+    '       /  ===  \\        ',
+    '      (   ===   )       ',
+    '       |  ===  |        ',
+  ],
+  // Row 5: upper wing attachment
+  [
+    '  *\\   |=========| /*   ',
+    '  /\\   |=========| /\\   ',
+    '   *   |=========|   *  ',
+    '  \\*   |=========|  */  ',
+  ],
+  // Row 6: wings spread
+  [
+    ' *  \\  |=========|  / * ',
+    '*    \\ |=========| /   *',
+    ' *  (  |=========|  ) * ',
+    '*    ( |=========| )   *',
+  ],
+  // Row 7: upper body
+  [
+    '    ( \\|=========|/ )   ',
+    '     \\ |=========| /    ',
+    '    (   |=========|   ) ',
+    '    ( \\ |=========| /)  ',
+  ],
+  // Row 8: body
+  [
+    '     ( |=========| )    ',
+    '      \\|=========|/     ',
+    '     (||=========||)    ',
+    '      ( ========= )     ',
+  ],
+  // Row 9: lower body
+  [
+    '      ||=========||     ',
+    '      |{=========}|     ',
+    '     /||=========||\\ ',
+    '     ( |=========| )    ',
+  ],
+  // Row 10: hips / haunches
+  [
+    '     /|  =======  |\\    ',
+    '    / |  =======  | \\   ',
+    '    ( |  =======  | )   ',
+    '     \\|  =======  |/    ',
+  ],
+  // Row 11: upper legs
+  [
+    '   (/ \\           / \\)  ',
+    '   (|  \\         /  |)  ',
+    '  ( |  |         |  | ) ',
+    '   (|  \\         /  |)  ',
+  ],
+  // Row 12: lower legs
+  [
+    '  (|   |         |   |) ',
+    '   |   |         |   |  ',
+    '  /|   \\         /   |\\ ',
+    ' ( |   |         |   | )',
+  ],
+  // Row 13: claws / feet
+  [
+    ' (_)  (_)       (_)  (_)',
+    '  V    V         V    V ',
+    ' (U) (V)         (V) (U)',
+    '  \\_/  \\_/     \\_/  \\_/ ',
+  ],
+];
+
+export const DRAGON_FILL_SUBS = { from: '=', to: ['=', '#', '~', 'X', '+'] };
+
+export const DRAGON_NAME_POOLS = {
+  pre: ['Ignis','Pyrax','Cinder','Embyr','Scorx','Flare','Grimm','Slag','Forge','Crag','Sear','Brax','Char','Blaze','Infern','Pyral'],
+  suf: ['wyrm','scale','fang','claw','wing','fire','blaze','scorch','brand','char','smelt','drake','bane','ash','coal','forge'],
+};
+
+export const DRAGON_TITLE_POOLS = [
+  'the Ancient', 'the Burning', 'the Eternal', 'the Vast', 'the Terrible',
+  'the Undying', 'the Merciless', 'the Colossus', 'the Scorching', 'the Boundless',
+  'the Primordial', 'the Infernal', 'the Desolate', 'the Smoldering', 'the Ravenous', 'the Immortal',
+];
+
+export const DRAGON_BASE_COLOR = '#e06020';
+
+// All dragon properties deterministically derived from hash.
+// Hash mixes sacrificed creature IDs + food sequence + rarity roll.
+export function generateDragon(dragonEgg) {
+  const { foodSequence, rarityRoll, sacrificedCreatures } = dragonEgg;
+  const sacrificedIds = (sacrificedCreatures || []).map(c => c.id).sort();
+  const hashStr = sacrificedIds.join(',') + ':' + foodSequence.join(',') + ':' + rarityRoll;
+  const hashVal = djb2(hashStr);
+  const rng = mulberry32(hashVal);
+  const rarity = getRarity(rarityRoll);
+
+  const lines = DRAGON_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+
+  const fillCh = rng.pick(DRAGON_FILL_SUBS.to);
+  if (fillCh !== DRAGON_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(DRAGON_FILL_SUBS.from).join(fillCh);
+
+  if (rarity.name === 'Legendary') lines[0] = '  * * * * * * * * *  ';
+  const centeredLines = centerLines(lines);
+
+  const pre = DRAGON_NAME_POOLS.pre[Math.floor(rng.next() * DRAGON_NAME_POOLS.pre.length)];
+  const suf = DRAGON_NAME_POOLS.suf[Math.floor(rng.next() * DRAGON_NAME_POOLS.suf.length)];
+  const title = DRAGON_TITLE_POOLS[Math.floor(rng.next() * DRAGON_TITLE_POOLS.length)];
+  const name = cap(pre + suf) + ' ' + title;
+
+  let color = DRAGON_BASE_COLOR;
+  if (rarity.name === 'Legendary')     color = '#f0c030';
+  else if (rarity.name === 'Rare')     color = lerpColor(color, '#8888ff', 0.35);
+  else if (rarity.name === 'Uncommon') color = lerpColor(color, '#ffaa44', 0.30);
+
+  const diet = foodSequence.length
+    ? Object.entries(foodSequence.reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, {}))
+        .map(([k, v]) => `${v}x ${k}`).join(', ')
+    : 'none';
+
+  const id = toID(hashVal);
+  const shiny = rng.int(0, 1000) === 0;
+
+  return {
+    id, hashVal, hashStr, name, color, rarity, lines: centeredLines,
+    diet, dom: null, sec: null, shiny,
+    isGreatBeast: true, beastType: 'dragon',
+    sacrificedCreatureIds: sacrificedIds,
+    traits: ['Great Beast'],
+  };
+}
+
+export function regenDragonLines(d) {
+  const rng = mulberry32(d.hashVal);
+  const lines = DRAGON_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+  const fillCh = rng.pick(DRAGON_FILL_SUBS.to);
+  if (fillCh !== DRAGON_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(DRAGON_FILL_SUBS.from).join(fillCh);
+  if (d.rarity?.name === 'Legendary') lines[0] = '  * * * * * * * * *  ';
+  d.lines = centerLines(lines);
+}
+
+export function buildDragonAnimSeq(dragon) {
+  const pad = Array(4).fill('              ');
+  const s4ext     = [...EGG_STAGES[4].art, ...pad];
+  const crack1ext = [...ANIM_CRACK1,        ...pad];
+  const crack2ext = [...ANIM_CRACK2,        ...pad];
+  const burstExt  = [...ANIM_BURST,         ...pad];
+  return [
+    { lines: s4ext,          color: '#ffffff',                    delay: 320 },
+    { lines: s4ext,          color: '#ffff88',                    delay: 200 },
+    { lines: crack1ext,      color: '#ffaa00',                    delay: 180 },
+    { lines: crack2ext,      color: '#ff6600',                    delay: 150 },
+    { lines: burstExt,       color: '#ffffff',                    delay: 130 },
+    { lines: burstExt,       color: '#ffcc88',                    delay: 100 },
+    { lines: dragon.lines,   color: hexDim(dragon.color, 0.22),  delay: 220 },
+    { lines: dragon.lines,   color: hexDim(dragon.color, 0.50),  delay: 200 },
+    { lines: dragon.lines,   color: hexDim(dragon.color, 0.80),  delay: 260 },
+    { lines: dragon.lines,   color: dragon.color,                delay: 0   },
+  ];
+}
+
+// Dispatcher — extend with new beastType cases as new Great Beasts are added.
+export function generateGreatBeast(egg) {
+  switch (egg.beastType) {
+    case 'dragon': return generateDragon(egg);
+    default:       return generateDragon(egg);
+  }
+}
+
+export function regenGreatBeastLines(b) {
+  switch (b.beastType) {
+    case 'dragon': regenDragonLines(b); break;
+    default:       regenDragonLines(b);
+  }
+}
+
 // All creature properties deterministically derived from hash.
 // Biome of the egg's home chunk gives a +3 bonus to its food type.
 export function generateCreature(egg) {

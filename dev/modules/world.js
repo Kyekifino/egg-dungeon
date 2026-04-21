@@ -1,7 +1,7 @@
 // Infinite chunked world: generation, tile access, biome lookup.
 // Owns WORLD_SEED and the chunk cache.
 
-import { BIOMES, BIOME_KEYS, FOOD_INFO, FOOD_CHARS, GEM_CHAR, CHEST_CHAR, CW, CH, CORR_X, CORR_Y, djb2, mulberry32 } from './utils.js';
+import { BIOMES, BIOME_KEYS, FOOD_INFO, FOOD_CHARS, GEM_CHAR, CHEST_CHAR, CW, CH, CORR_X, CORR_Y, djb2, mulberry32, GREAT_BEAST_BIOMES } from './utils.js';
 
 export let WORLD_SEED = 0;
 export const chunks = new Map();
@@ -108,4 +108,30 @@ export function getChunkEggSpawn(cx, cy) {
 // Room = 3+ cardinal neighbours walkable (corridors have ≤2)
 export function isRoomTile(wx, wy) {
   return [[0, -1], [0, 1], [-1, 0], [1, 0]].filter(([dx, dy]) => isWalkable(wx + dx, wy + dy)).length >= 3;
+}
+
+// Returns {wx, wy, beastType} for a great beast spawn in this chunk, or null.
+// Each biome in GREAT_BEAST_BIOMES has one beast per spawnRate zones (3×3 chunks).
+export function getGreatBeastSpawn(cx, cy) {
+  const biomeKey = getChunkBiome(cx, cy);
+  const cfg = GREAT_BEAST_BIOMES[biomeKey];
+  if (!cfg) return null;
+
+  const zx = Math.floor(cx / 3), zy = Math.floor(cy / 3);
+  const h = djb2(`gb${WORLD_SEED},${zx},${zy}`);
+  if (h % cfg.spawnRate !== 0) return null;
+
+  // Designate one chunk within the 3×3 zone to host the beast
+  if (cx !== zx * 3 + (h % 3) || cy !== zy * 3 + (Math.floor(h / 3) % 3)) return null;
+
+  const chunk = getChunk(cx, cy);
+  const rng = mulberry32(h ^ 0x6b4e2f1a);
+  const candidates = [];
+  for (let ly = 0; ly < CH; ly++)
+    for (let lx = 0; lx < CW; lx++)
+      if (chunk.grid[ly][lx] === '.' && lx !== CORR_X && ly !== CORR_Y)
+        candidates.push([cx * CW + lx, cy * CH + ly]);
+  if (!candidates.length) return null;
+  const [wx, wy] = candidates[rng.int(0, candidates.length)];
+  return { wx, wy, beastType: cfg.beastType };
 }
