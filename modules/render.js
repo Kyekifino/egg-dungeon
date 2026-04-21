@@ -3,7 +3,7 @@
 
 import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, getRarity, escHtml, rand, DRAGON_CHAR, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './utils.js';
 import { getTile, getChunkBiome, chunkX, chunkY } from './world.js';
-import { EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
+import { EGG_STAGES, DRAGON_EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
 import { G, selectedFood } from './state.js';
 import { startBiomeLoop } from './audio.js';
 
@@ -16,7 +16,7 @@ const BEAST_ART_SLEEPING = [
   '  ~~===~~   ',
   ' /~~~~~~~\\  ',
 ];
-const BEAST_ART_AWAKE = [
+export const BEAST_ART_AWAKE = [
   '  !  !!  !   ',
   '    ~\u03a9~     ',
   '   /o^o\\    ',
@@ -307,7 +307,8 @@ function renderBottomPlaying() {
   }
 
   if (adjEgg) {
-    const stage = EGG_STAGES[getEggStage(adjEgg.fed)];
+    const stageSet = adjEgg.isDragonEgg ? DRAGON_EGG_STAGES : EGG_STAGES;
+    const stage = stageSet[getEggStage(adjEgg.fed)];
     document.getElementById('egg-display').innerHTML =
       stage.art.map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
 
@@ -367,13 +368,13 @@ function renderBottomPlaying() {
   }
 }
 
-export function renderAnimFrame(frame) {
+export function renderAnimFrame(frame, label = 'HATCHING...') {
   document.getElementById('egg-display').innerHTML =
     frame.lines.map(l => `<span style="color:${frame.color}">${escHtml(l)}</span>`).join('\n');
   document.getElementById('egg-info').innerHTML =
     `<div id="egg-bar"><span style="color:#fff">${'█'.repeat(10)}</span></div>
      <div id="egg-fed-count">${FOOD_NEEDED} / ${FOOD_NEEDED} fed</div>
-     <div id="anim-label" style="margin-top:8px">HATCHING...</div>`;
+     <div id="anim-label" style="margin-top:8px">${label}</div>`;
 }
 
 

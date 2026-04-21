@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines } from '../modules/creature.js';
+import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines } from '../modules/creature.js';
 import { emptyInv, FOOD_KEYS, RARITIES } from '../modules/utils.js';
 
 function makeEgg(overrides = {}) {
@@ -127,6 +127,19 @@ describe('EGG_STAGES / getEggStage', () => {
 
   it('each stage has art and color', () => {
     for (const stage of EGG_STAGES) {
+      assert.ok(Array.isArray(stage.art) && stage.art.length > 0);
+      assert.ok(typeof stage.color === 'string');
+    }
+  });
+});
+
+describe('DRAGON_EGG_STAGES', () => {
+  it('has the same number of stages as EGG_STAGES', () => {
+    assert.equal(DRAGON_EGG_STAGES.length, EGG_STAGES.length);
+  });
+
+  it('each stage has art and color', () => {
+    for (const stage of DRAGON_EGG_STAGES) {
       assert.ok(Array.isArray(stage.art) && stage.art.length > 0);
       assert.ok(typeof stage.color === 'string');
     }

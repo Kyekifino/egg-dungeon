@@ -163,6 +163,17 @@ export function sfxHatch() {
   playTone(67, t + 0.25, 0.32, 'triangle', 0.08, ctx);
 }
 
+export function sfxDragonHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  [33, 36, 40].forEach((m, i) => playTone(m, t + i * 0.08, 0.6, 'sawtooth', 0.12, ctx));
+  [45, 52, 57, 64].forEach((m, i) => playTone(m, t + 0.30 + i * 0.10, 0.5, 'triangle', 0.14 - i * 0.02, ctx));
+  playTone(64, t + 0.80, 0.7, 'triangle', 0.15, ctx);
+  playTone(67, t + 0.90, 0.6, 'triangle', 0.12, ctx);
+  playTone(72, t + 1.00, 0.8, 'triangle', 0.10, ctx);
+}
+
 export function sfxBeastAwaken() {
   const ctx = ensureAudio();
   if (!ctx) return;
@@ -177,8 +188,8 @@ export function sfxSacrifice() {
   const ctx = ensureAudio();
   if (!ctx) return;
   const t = ctx.currentTime;
-  [69, 65, 62, 57, 53].forEach((m, i) => playTone(m, t + i * 0.12, 0.3, 'sine', 0.09, ctx));
-  playTone(45, t + 0.65, 0.9, 'triangle', 0.06, ctx);
+  [69, 65, 62, 57, 53].forEach((m, i) => playTone(m, t + i * 0.08, 0.18, 'sine', 0.09, ctx));
+  playTone(45, t + 0.45, 0.45, 'triangle', 0.06, ctx);
 }
 
 export function getMuted() { return muted; }

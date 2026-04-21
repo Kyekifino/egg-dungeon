@@ -3,16 +3,22 @@
 
 import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn } from './modules/world.js';
-import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildDragonAnimSeq, regenGreatBeastLines } from './modules/creature.js';
+import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildDragonAnimSeq, regenGreatBeastLines, DRAGON_EGG_STAGES } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
-import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
-import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast } from './modules/render.js';
+import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxDragonHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
+import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_ART_AWAKE } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
 
 // ── Game logic ────────────────────────────────────────────────────
 
 let animCancelled = false;
+
+const EMBERS_ART = [
+  '              ', '  ·   * ·     ', '    · *  . ·  ', '  .   ·  *    ',
+  '  * ·    · .  ', '   · *  ·     ', ' *  .   · * · ', '  ·  *    ·   ',
+  '    ·  *  .   ', '              ',
+];
 
 function addLog(msg) {
   G.log.push(msg);
@@ -192,6 +198,17 @@ function tryFeed() {
   if (egg.fed >= FOOD_NEEDED) setTimeout(() => egg.isDragonEgg ? startDragonHatch(egg) : startHatch(egg), 900);
 }
 
+function runLayFrame(frames, idx, callback) {
+  if (animCancelled) return;
+  const frame = frames[idx];
+  renderAnimFrame(frame, '<span style="color:#ff6020">DISSOLVING...</span>');
+  if (frame.delay === 0) {
+    setTimeout(() => { if (!animCancelled) callback(); }, 300);
+    return;
+  }
+  setTimeout(() => runLayFrame(frames, idx + 1, callback), frame.delay);
+}
+
 function startHatch(egg) {
   stopIdleAnims();
   G.worldEggs.delete(`${egg.x},${egg.y}`);
@@ -234,7 +251,7 @@ function runAnimFrame() {
     setTimeout(() => {
       if (!animCancelled) {
         G.phase = 'playing';
-        sfxHatch();
+        G.creature?.isGreatBeast ? sfxDragonHatch() : sfxHatch();
         render();
       }
     }, 400);
@@ -442,22 +459,40 @@ function sacrificeCreature() {
 function completeBeast(beast) {
   const key = `${beast.x},${beast.y}`;
   G.worldBeasts.delete(key);
-  G.worldEggs.set(key, {
-    x: beast.x, y: beast.y,
-    foodSequence: [], rarityRoll: rand(0, 10000),
-    inv: emptyInv(), fed: 0,
-    biome: 'badlands',
-    isDragonEgg: true,
-    noGems: true,
-    beastType: beast.beastType,
-    sacrificedCreatures: beast.sacrificedCreatures,
+  G.phase = 'animating';
+  animCancelled = false;
+  stopIdleAnims();
+
+  const beastArt = ['              ', '              ', ...BEAST_ART_AWAKE, '              ', '              '];
+  const layFrames = [
+    { lines: beastArt,          color: '#ff8040',               delay: 180 },
+    { lines: beastArt,          color: '#ffffff',               delay: 120 },
+    { lines: beastArt,          color: '#cc2010',               delay: 150 },
+    { lines: beastArt,          color: '#ff6020',               delay: 110 },
+    { lines: EMBERS_ART,        color: '#ff6020',               delay: 140 },
+    { lines: EMBERS_ART,        color: '#993010',               delay: 110 },
+    { lines: DRAGON_EGG_STAGES[0].art, color: '#8b2500',        delay: 0   },
+  ];
+
+  runLayFrame(layFrames, 0, () => {
+    G.worldEggs.set(key, {
+      x: beast.x, y: beast.y,
+      foodSequence: [], rarityRoll: rand(0, 10000),
+      inv: emptyInv(), fed: 0,
+      biome: 'badlands',
+      isDragonEgg: true,
+      noGems: true,
+      beastType: beast.beastType,
+      sacrificedCreatures: beast.sacrificedCreatures,
+    });
+    G.dragonInteract = null;
+    G.sacrificeMode  = false;
+    G.showCollection = false;
+    addLog('The dragon dissolves into embers! A Dragon Egg remains...');
+    G.phase = 'playing';
+    autoSave();
+    render();
   });
-  G.dragonInteract = null;
-  G.sacrificeMode  = false;
-  G.showCollection = false;
-  addLog('The dragon dissolves into embers! A Dragon Egg remains...');
-  autoSave();
-  render();
 }
 
 // ── Chest / lockpicking minigame ─────────────────────────────────
