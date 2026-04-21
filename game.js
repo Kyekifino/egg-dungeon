@@ -614,3 +614,122 @@ document.getElementById('version').textContent = 'v' + VERSION + (isDev ? '-dev'
 renderControls();
 if (!autoLoad()) newGame();
 checkPatchNotes();
+
+// ── Dev spawn (dev environment only) ─────────────────────────────
+
+if (isDev) {
+  const devStyle = document.createElement('style');
+  devStyle.textContent =
+    '#dev-spawn-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);display:flex;align-items:center;justify-content:center;z-index:400;font-family:inherit}' +
+    '#dev-spawn-box{background:#111;border:1px solid #666;padding:1.2rem 1.8rem;min-width:270px}' +
+    '#dev-spawn-title{color:#ff0;font-weight:bold;margin-bottom:.9rem;letter-spacing:.06em}' +
+    '.dev-item{color:#888;padding:.18rem 0;cursor:pointer}' +
+    '.dev-item::before{content:"  "}' +
+    '.dev-item-sel{color:#fff}' +
+    '.dev-item-sel::before{content:"> "}' +
+    '#dev-spawn-hint{color:#444;font-size:.8em;margin-top:.9rem;border-top:1px solid #2a2a2a;padding-top:.55rem}';
+  document.head.appendChild(devStyle);
+
+  const DEV_ITEMS = [
+    { label: 'Egg \u2014 Common',          type: 'egg',         rarityRoll: 0    },
+    { label: 'Egg \u2014 Uncommon',        type: 'egg',         rarityRoll: 6000 },
+    { label: 'Egg \u2014 Rare',            type: 'egg',         rarityRoll: 8500 },
+    { label: 'Egg \u2014 Legendary',       type: 'egg',         rarityRoll: 9700 },
+    { label: 'Dragon Egg',                 type: 'dragonEgg'                     },
+    { label: 'Dragon Beast (asleep)',      type: 'dragonBeast', awake: false     },
+    { label: 'Dragon Beast (awake)',       type: 'dragonBeast', awake: true      },
+    { label: '+10 food  +30 gems',         type: 'resources'                     },
+  ];
+
+  let devIdx = 0;
+  let devOpen = false;
+
+  const devEl = document.createElement('div');
+  devEl.id = 'dev-spawn-overlay';
+  devEl.hidden = true;
+  devEl.innerHTML =
+    '<div id="dev-spawn-box">' +
+      '<div id="dev-spawn-title">~ DEV SPAWN ~</div>' +
+      '<div id="dev-spawn-list"></div>' +
+      '<div id="dev-spawn-hint">\u2191\u2193\u00a0navigate &nbsp;\u00b7&nbsp; Enter\u00a0spawn &nbsp;\u00b7&nbsp; Esc / `\u00a0close</div>' +
+    '</div>';
+  document.body.appendChild(devEl);
+
+  const devRender = () => {
+    devEl.hidden = !devOpen;
+    if (!devOpen) return;
+    document.getElementById('dev-spawn-list').innerHTML = DEV_ITEMS
+      .map((item, i) => `<div class="dev-item${i === devIdx ? ' dev-item-sel' : ''}">${escHtml(item.label)}</div>`)
+      .join('');
+  }
+
+  const devFreePos = () => {
+    for (const [dx, dy] of [[0,-1],[0,1],[1,0],[-1,0],[1,-1],[-1,-1],[1,1],[-1,1]]) {
+      const nx = G.px + dx, ny = G.py + dy;
+      const key = `${nx},${ny}`;
+      if (isWalkable(nx, ny) && !G.worldEggs?.has(key) && !G.worldBeasts?.has(key)) return [nx, ny];
+    }
+    return null;
+  }
+
+  const devSpawn = item => {
+    if (item.type === 'resources') {
+      FOOD_KEYS.forEach(k => { G.inventory[k] += 10; });
+      G.inventory.gem += 30;
+      addLog('[DEV] Added 10\u00d7 each food and 30 gems.');
+      render(); return;
+    }
+    const pos = devFreePos();
+    if (!pos) { addLog('[DEV] No free adjacent tile.'); render(); return; }
+    const [nx, ny] = pos;
+    const key = `${nx},${ny}`;
+    if (item.type === 'egg') {
+      G.worldEggs.set(key, {
+        x: nx, y: ny, foodSequence: [], rarityRoll: item.rarityRoll,
+        inv: emptyInv(), fed: 0, biome: getChunkBiome(chunkX(nx), chunkY(ny)),
+      });
+    } else if (item.type === 'dragonEgg') {
+      G.worldEggs.set(key, {
+        x: nx, y: ny, foodSequence: [], rarityRoll: rand(0, 10000),
+        inv: emptyInv(), fed: 0, biome: 'badlands',
+        isDragonEgg: true, noGems: true, beastType: 'dragon',
+        sacrificedCreatures: [
+          { id: 'dev001', name: 'Dev Alpha',   rarity: { name: 'Common'    } },
+          { id: 'dev002', name: 'Dev Beta',    rarity: { name: 'Uncommon'  } },
+          { id: 'dev003', name: 'Dev Gamma',   rarity: { name: 'Rare'      } },
+          { id: 'dev004', name: 'Dev Delta',   rarity: { name: 'Common'    } },
+          { id: 'dev005', name: 'Dev Epsilon', rarity: { name: 'Legendary' } },
+        ],
+      });
+    } else if (item.type === 'dragonBeast') {
+      G.worldBeasts.set(key, {
+        x: nx, y: ny, beastType: 'dragon',
+        phase: item.awake ? 'awake' : 'sleeping',
+        gemsReceived: item.awake ? DRAGON_GEM_COST : 0,
+        sacrificedCreatures: [],
+      });
+    }
+    addLog(`[DEV] Spawned ${item.label}.`);
+    render();
+  }
+
+  devEl.addEventListener('click', e => {
+    const el = e.target.closest('.dev-item');
+    if (!el) return;
+    const idx = [...document.getElementById('dev-spawn-list').children].indexOf(el);
+    if (idx >= 0) { devSpawn(DEV_ITEMS[idx]); devOpen = false; devRender(); }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === '`' || e.key === '~') {
+      e.preventDefault(); e.stopPropagation();
+      devOpen = !devOpen; devRender(); return;
+    }
+    if (!devOpen) return;
+    e.stopPropagation();
+    if (e.key === 'ArrowUp')        { e.preventDefault(); devIdx = Math.max(0, devIdx - 1); devRender(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); devIdx = Math.min(DEV_ITEMS.length - 1, devIdx + 1); devRender(); }
+    else if (e.key === 'Enter')     { e.preventDefault(); devSpawn(DEV_ITEMS[devIdx]); devOpen = false; devRender(); }
+    else if (e.key === 'Escape')    { devOpen = false; devRender(); }
+  }, true);
+}
