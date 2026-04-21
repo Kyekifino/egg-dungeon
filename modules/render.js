@@ -60,7 +60,7 @@ export function getColSelected() {
 }
 
 const cLine = (c, l) => c.shiny
-  ? `<span class="shiny-anim">${escHtml(l)}</span>`
+  ? `<span class="shiny-anim" style="animation-delay:${(-(performance.now()/1000%3)).toFixed(3)}s">${escHtml(l)}</span>`
   : `<span style="color:${c.color}">${escHtml(l)}</span>`;
 
 const shinyTag = () => {
