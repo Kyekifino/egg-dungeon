@@ -270,6 +270,7 @@ const CHUNK_SAVE_LIMIT = 200;
 
 function buildSaveData() {
   const recentChunks = [...chunks.entries()].slice(-CHUNK_SAVE_LIMIT);
+  const savedChunkKeys = new Set(recentChunks.map(([k]) => k));
   const chunkData = Object.fromEntries(recentChunks.map(([k, c]) => [k, c.grid]));
   return {
     version: 5, worldSeed: WORLD_SEED, selectedFood, muted: getMuted(),
@@ -285,8 +286,8 @@ function buildSaveData() {
     gbSelectedIdx: G.gbSelectedIdx,
     chunkData,
     openedChests: [...getOpenedChests()],
-    revealed: [...G.revealed],
-    log:   G.log,
+    revealed: [...G.revealed].filter(k => { const [wx, wy] = k.split(','); return savedChunkKeys.has(`${chunkX(+wx)},${chunkY(+wy)}`); }),
+    log:   G.log.slice(-50),
     steps: G.steps,
   };
 }
