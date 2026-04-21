@@ -5,7 +5,7 @@ import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHES
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildDragonAnimSeq, regenGreatBeastLines } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
-import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, renderControls } from './modules/audio.js';
+import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
 import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
@@ -373,9 +373,6 @@ function tryFeedBeastGem() {
   if (!beast || beast.phase !== 'sleeping') {
     addLog('The dragon is already awake.'); render(); return;
   }
-  if (selectedFood !== 'gem') {
-    addLog('Select gems (key 6) to offer to the dragon.'); render(); return;
-  }
   if (G.inventory.gem === 0) {
     addLog('No gems! Find $ in the dungeon.'); render(); return;
   }
@@ -383,6 +380,7 @@ function tryFeedBeastGem() {
   beast.gemsReceived++;
   if (beast.gemsReceived >= DRAGON_GEM_COST) {
     beast.phase = 'awake';
+    sfxBeastAwaken();
     addLog(`The dragon AWAKENS! Offer ${DRAGON_CREATURE_COST} creatures from your collection (C).`);
   } else {
     addLog(`Offered a gem. (${beast.gemsReceived}/${DRAGON_GEM_COST})`);
@@ -428,7 +426,7 @@ function sacrificeCreature() {
   const collIdx = G.collection.findIndex(c => c.hashVal === creature.hashVal);
   G.collection.splice(collIdx, 1);
   beast.sacrificedCreatures.push({ id: creature.id, name: creature.name, rarity: creature.rarity });
-
+  sfxSacrifice();
   addLog(`Offered ${creature.name}. (${beast.sacrificedCreatures.length}/${DRAGON_CREATURE_COST})`);
 
   if (beast.sacrificedCreatures.length >= DRAGON_CREATURE_COST) {

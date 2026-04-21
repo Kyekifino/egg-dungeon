@@ -7,6 +7,24 @@ import { EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
 import { G, selectedFood } from './state.js';
 import { startBiomeLoop } from './audio.js';
 
+// ── World-beast static art ────────────────────────────────────────
+const BEAST_ART_SLEEPING = [
+  '   z  z  z   ',
+  '    ~\u03a9~     ',
+  '   /~^~\\    ',
+  '  ( z z  )  ',
+  '  ~~===~~   ',
+  ' /~~~~~~~\\  ',
+];
+const BEAST_ART_AWAKE = [
+  '  !  !!  !   ',
+  '    ~\u03a9~     ',
+  '   /o^o\\    ',
+  '  (  *  )   ',
+  '  ~~===~~   ',
+  ' /~~~~~~~\\  ',
+];
+
 // ── Idle animation state ──────────────────────────────────────────
 let idleGen             = 0;
 let eggShakeTimer       = null;
@@ -267,7 +285,26 @@ function renderWorldPanel() {
 
 function renderBottomPlaying() {
   idleGen++;
-  const adjEgg = getAdjacentEgg();
+  const adjEgg   = getAdjacentEgg();
+  const adjBeast = getAdjacentBeast();
+
+  if (adjBeast && !adjEgg) {
+    const asleep = adjBeast.phase === 'sleeping';
+    const art    = asleep ? BEAST_ART_SLEEPING : BEAST_ART_AWAKE;
+    const color  = asleep ? CLR.dim[DRAGON_CHAR] : CLR.bright[DRAGON_CHAR];
+    document.getElementById('egg-display').innerHTML =
+      art.map(l => `<span style="color:${color}">${escHtml(l)}</span>`).join('\n');
+    const gemFilled = Math.round(adjBeast.gemsReceived / DRAGON_GEM_COST * 10);
+    const gemBar    = '█'.repeat(gemFilled) + '░'.repeat(10 - gemFilled);
+    const offered   = adjBeast.sacrificedCreatures?.length ?? 0;
+    document.getElementById('egg-info').innerHTML = `
+      <div style="color:${CLR.bright[DRAGON_CHAR]};font-size:.9rem">&#937; Ancient Dragon</div>
+      <div style="font-size:.75rem;color:#888;margin-bottom:4px">${asleep ? 'Slumbering' : '<span style="color:#ff8040">Awoken</span>'}</div>
+      <div style="font-size:.75rem;color:#666">${adjBeast.gemsReceived}/${DRAGON_GEM_COST} gems &nbsp;<span style="color:${GEM_COLOR}">${gemBar}</span></div>
+      ${asleep ? '' : `<div style="font-size:.72rem;color:#666;margin-top:2px">${offered}/${DRAGON_CREATURE_COST} creatures offered</div>`}
+      <div style="font-size:.72rem;color:#555;margin-top:6px">Press E to interact</div>`;
+    return;
+  }
 
   if (adjEgg) {
     const stage = EGG_STAGES[getEggStage(adjEgg.fed)];
@@ -311,7 +348,7 @@ function renderBottomPlaying() {
       G.creature.lines.map(l => cLine(G.creature, l)).join('\n');
     const r = G.creature.rarity;
     const beastBadge = G.creature.isGreatBeast
-      ? `<div style="color:#ff6020;font-size:.72rem">&#937; Great Beast</div>` : '';
+      ? `<div style="color:#ff6020;font-size:.72rem">&#937; Great Beast &middot; ${escHtml(G.creature.beastType ?? 'dragon')}</div>` : '';
     document.getElementById('egg-info').innerHTML = `
       <div id="creature-name-display" style="color:${G.creature.color}">&ldquo;${escHtml(G.creature.name)}&rdquo;</div>
       <div id="creature-rarity-display" style="color:${r.color}">${r.badge} ${r.name}</div>
@@ -451,7 +488,7 @@ function renderCollection() {
   if (sacrificeMode) {
     document.getElementById('col-count').textContent = `${G.collection.length} available`;
     document.getElementById('col-close').innerHTML =
-      '<span style="color:#e05050">Enter: sacrifice &nbsp;·&nbsp; ESC: cancel</span>';
+      '<span style="color:#e05050"><span style="white-space:nowrap">Space:&nbsp;sacrifice</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;cancel</span></span>';
     sacWarn.hidden = false;
     colLeg.hidden  = true;
   } else {
@@ -459,7 +496,7 @@ function renderCollection() {
     const label = tab === 'creatures' ? 'hatched' : 'found';
     document.getElementById('col-count').textContent = `${arr.length} ${label}`;
     document.getElementById('col-close').innerHTML =
-      'C: close &nbsp;·&nbsp; &#8593;&#8595;: navigate &nbsp;·&nbsp; &#8592;&#8594;: switch tab';
+      '<span style="white-space:nowrap">C:&nbsp;close</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">&#8593;&#8595;:&nbsp;navigate</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">&#8592;&#8594;:&nbsp;switch&nbsp;tab</span>';
     sacWarn.hidden = true;
     colLeg.hidden  = false;
   }
@@ -508,10 +545,10 @@ export function renderDragonOverlay() {
 
   const noCreatures = !G.collection?.length;
   const hint = phase === 'sleeping'
-    ? 'Select gems (6) and press F to offer &nbsp;&middot;&nbsp; ESC to leave'
+    ? '<span style="white-space:nowrap">F:&nbsp;offer gem</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;leave</span>'
     : (noCreatures
-        ? 'No creatures to offer &mdash; hatch some eggs first! &nbsp;&middot;&nbsp; ESC to leave'
-        : 'C to offer a creature from your collection &nbsp;&middot;&nbsp; ESC to leave');
+        ? '<span style="white-space:nowrap">No creatures to offer &mdash; hatch some eggs first!</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;leave</span>'
+        : '<span style="white-space:nowrap">C:&nbsp;offer a creature</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;leave</span>');
   document.getElementById('dragon-hint').innerHTML = hint;
 }
 
