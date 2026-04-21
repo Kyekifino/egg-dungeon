@@ -326,6 +326,7 @@ body {
   100% { color: #ff9999; }
 }
 .shiny-anim { animation: shiny-cycle 3s linear infinite; }
+.shiny-tag { color: #ffd700; font-weight: bold; animation: shiny-cycle 3s linear infinite; letter-spacing: 0.03em; }
 
 /* ── Dragon / Great Beast overlay ────────────────────────── */
 #dragon-overlay {
