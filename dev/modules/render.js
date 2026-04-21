@@ -241,10 +241,10 @@ function renderViewport() {
       const gx = camX + vx;
       if (gx === px && gy === py)                              { html += span('@', CLR.bright['@']); continue; }
       if (worldEggs?.has(`${gx},${gy}`))                       { html += span('Θ', CLR.bright['Θ']); continue; }
+      if (worldBeasts?.has(`${gx},${gy}`))                     { html += span(DRAGON_CHAR, CLR.bright[DRAGON_CHAR]); continue; }
       const inLight = Math.hypot(gx - px, gy - py) <= LIGHT_R;
       const seen = revealed.has(`${gx},${gy}`);
       if (!seen && !inLight)                 { html += span(' ', '#000'); continue; }
-      if (worldBeasts?.has(`${gx},${gy}`))   { html += span(DRAGON_CHAR, inLight ? CLR.bright[DRAGON_CHAR] : CLR.dim[DRAGON_CHAR]); continue; }
       const ch = getTile(gx, gy);
       const biome = BIOMES[getChunkBiome(chunkX(gx), chunkY(gy))];
       let color;
