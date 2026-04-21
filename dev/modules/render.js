@@ -63,6 +63,11 @@ const cLine = (c, l) => c.shiny
   ? `<span class="shiny-anim">${escHtml(l)}</span>`
   : `<span style="color:${c.color}">${escHtml(l)}</span>`;
 
+const shinyTag = () => {
+  const delay = -(performance.now() / 1000 % 3);
+  return `<span class="shiny-tag" style="animation-delay:${delay.toFixed(3)}s">&#10022; SHINY</span>`;
+};
+
 export function getAdjacentEgg() {
   if (!G?.worldEggs) return null;
   for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
@@ -353,7 +358,7 @@ function renderBottomPlaying() {
       ? `<div style="color:#ff6020;font-size:.72rem">&#937; Great Beast &middot; ${escHtml(G.creature.beastType ?? 'dragon')}</div>` : '';
     document.getElementById('egg-info').innerHTML = `
       <div id="creature-name-display" style="color:${G.creature.color}">&ldquo;${escHtml(G.creature.name)}&rdquo;</div>
-      <div id="creature-rarity-display" style="color:${r.color}">${r.badge} ${r.name}${G.creature.shiny ? ' <span class="shiny-tag">&#10022; SHINY</span>' : ''}</div>
+      <div id="creature-rarity-display" style="color:${r.color}">${r.badge} ${r.name}${G.creature.shiny ? shinyTag() : ''}</div>
       ${beastBadge}
       <div id="creature-traits-display">${G.creature.traits.join(' &middot; ')}</div>
       <div id="creature-diet-display">${escHtml(G.creature.diet)}</div>
@@ -402,7 +407,7 @@ function renderCreaturesTab(sacrificeMode) {
   document.getElementById('col-list').innerHTML = sorted.map((c, i) => `
     <div class="col-entry${i === G.colSelectedIdx ? ' col-selected' + (sacrificeMode ? ' col-sacrifice-selected' : '') : ''}" data-idx="${i}">
       <div class="col-name">
-        <span style="color:${c.rarity.color}">${c.rarity.badge}</span>${c.shiny ? ' <span class="shiny-tag">&#10022; SHINY</span>' : ''}
+        <span style="color:${c.rarity.color}">${c.rarity.badge}</span>${c.shiny ? shinyTag() : ''}
         &nbsp;<span style="color:${c.color}">&ldquo;${escHtml(c.name)}&rdquo;</span>
       </div>
       <div class="col-id">${c.date || ''}</div>
@@ -422,7 +427,7 @@ function renderCreaturesTab(sacrificeMode) {
     : '';
   document.getElementById('col-detail-info').innerHTML = `
     <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
-    <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}${sel.shiny ? ' <span class="shiny-tag">&#10022; SHINY</span>' : ''}</div>
+    <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}${sel.shiny ? shinyTag() : ''}</div>
     <div style="color:#7a7a7a;font-size:0.72rem">${sel.traits.join(' &middot; ')}</div>
     <div style="color:#606060;font-size:0.68rem">${escHtml(sel.diet)}</div>
     <div style="color:#555;font-size:0.65rem">ID: ${sel.id}</div>
@@ -451,7 +456,7 @@ function renderGreatBeastsTab() {
   document.getElementById('col-list').innerHTML = sorted.map((b, i) => `
     <div class="col-entry${i === G.gbSelectedIdx ? ' col-selected' : ''}" data-idx="${i}">
       <div class="col-name">
-        <span style="color:${b.rarity.color}">${b.rarity.badge}</span>${b.shiny ? ' <span class="shiny-tag">&#10022; SHINY</span>' : ''}
+        <span style="color:${b.rarity.color}">${b.rarity.badge}</span>${b.shiny ? shinyTag() : ''}
         &nbsp;<span style="color:${b.color}">&ldquo;${escHtml(b.name)}&rdquo;</span>
       </div>
       <div class="col-id">${b.date || ''}</div>
@@ -468,7 +473,7 @@ function renderGreatBeastsTab() {
 
   document.getElementById('col-detail-info').innerHTML = `
     <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
-    <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}${sel.shiny ? ' <span class="shiny-tag">&#10022; SHINY</span>' : ''}</div>
+    <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}${sel.shiny ? shinyTag() : ''}</div>
     <div style="color:#ff6020;font-size:0.72rem">&#937; Great Beast &middot; ${escHtml(sel.beastType ?? 'dragon')}</div>
     <div style="color:#606060;font-size:0.68rem">${escHtml(sel.diet)}</div>
     <div style="color:#555;font-size:0.65rem">ID: ${sel.id}</div>`;
