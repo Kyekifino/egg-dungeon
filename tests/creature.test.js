@@ -356,6 +356,7 @@ describe('generateKraken', () => {
     assert.equal(k.isGreatBeast, true);
     assert.equal(k.beastType, 'kraken');
     assert.equal(k.dom, null);
+    assert.equal(k.eyeRow, 5);
   });
 
   it('lines is a non-empty array of strings', () => {
