@@ -803,27 +803,333 @@ export function buildKrakenAnimSeq(kraken) {
   ];
 }
 
+// ── Griffon egg stages ─────────────────────────────────────────────
+export const GRIFFON_EGG_STAGES = [
+  { color: '#1a3010', art: [
+    '              ', '   ________   ', '  /        \\  ', ' |    /\\    | ',
+    ' |   (  )   | ', ' |    \\/    | ', '  \\________/  ', '              ', '              ', '              '] },
+  { color: '#2a5a18', art: [
+    '              ', '   ________   ', '  / ^  ^ ^ \\  ', ' | ^ ^^  ^  | ',
+    ' |  ^ ^ ^   | ', ' | ^  ^ ^ ^ | ', '  \\________/  ', '              ', '              ', '              '] },
+  { color: '#608018', art: [
+    '      ^       ', '   ___^____   ', '  /   ^    \\  ', ' | ^  |     | ',
+    ' |    ^     | ', ' |    |  ^  | ', '  \\___^____/  ', '      ^       ', '              ', '              '] },
+  { color: '#b08010', art: [
+    '      *       ', '   __/\\_____  ', '  /^  \\ ^   \\ ', ' |  /\\ \\   ^| ',
+    ' | /  \\/\\   | ', ' |/   / \\^  | ', '  \\/\\^/  \\^/  ', '      *       ', '              ', '              '] },
+  { color: '#f0c820', art: [
+    '  ^   ^   ^   ', '  ^_________^ ', ' ^/ ^ * ^ · \\^', ' |^ · ^ * ^ ^|',
+    '^|· ^ · ^ * ·|^', ' |^ · ^ * · ^|', ' ^\\· ^ * · /^ ', '  ^_________^ ', '  ^   ^   ^   ', '              '] },
+];
+
+const GRIFFON_ANIM_FLAP1 = [
+  '  ^   ^   ^   ', '  ^__^_^___^  ', ' ^/ · ^ · · \\^', ' |· ^ · · · | ',
+  '^|· · ^ · · |^', ' |· · · ^ · | ', ' ^\\· · ^ · /^ ', '  ^___^____^  ',
+  '  ^   ^   ^   ', '              ', '              ', '              ', '              ', '              '];
+const GRIFFON_ANIM_FLAP2 = [
+  '  ^   ^   ^   ', '  _/\\^_/\\___  ', ' /  \\^/  \\  \\ ', '|^  /\\^   |  |',
+  '| ^/  \\^  |  |', '|^   /  \\^|  |', ' \\^/    \\^/  /', '  ^___^___^   ',
+  '  ^   ^   ^   ', '              ', '              ', '              ', '              ', '              '];
+const GRIFFON_ANIM_BURST = [
+  '^  ^ ^ ^ ^    ', '^ ^ ^ ^ ^ ^ ^ ', ' ^ ^ ^ ^ ^ ^  ', '^ ^ ^ ^ ^ ^ ^ ',
+  ' ^ ^ ^ ^ ^ ^  ', '^ ^ ^ ^ ^ ^ ^ ', ' ^ ^ ^ ^ ^ ^  ', '^ ^ ^ ^ ^ ^ ^ ',
+  '^  ^ ^ ^ ^    ', '              ', '              ', '              ', '              ', '              '];
+
+// ── Griffon body part pools ──────────────────────────────────────────
+// 14 rows × 8 options. Eagle head (rows 0-4), spread wings (rows 5-7),
+// lion body/belly (rows 8-9), lion haunches/legs/paws (rows 10-13).
+// Fill char '^' substituted throughout for feather texture variation.
+export const GRIFFON_BODY_PARTS = [
+  // Row 0: eagle crown — crest feathers pointing upward
+  [
+    '      ^ ^ ^ ^ ^      ',
+    '     ^^ ^ ^ ^ ^^     ',
+    '    ^ ^^ ^ ^^ ^ ^    ',
+    '      ^^^  ^  ^^^     ',
+    '     ^  ^ ^ ^  ^     ',
+    '    ^ ^ ^ ^ ^ ^ ^    ',
+    '     ^^^ ^^^ ^^^      ',
+    '      ^^ ^ ^ ^^       ',
+  ],
+  // Row 1: eagle head dome — feathered, round
+  [
+    '      ( ^^^^^^^ )     ',
+    '     (( ^^^^^^^ ))    ',
+    '      { ^^^^^^^ }     ',
+    '     [  ^^^^^^^  ]    ',
+    '      < ^^^^^^^ >     ',
+    '     *( ^^^^^^^ )*    ',
+    '     /[ ^^^^^^^ ]\\   ',
+    '      ( ------- )     ',
+  ],
+  // Row 2: eyes  (EYE_ROW = 2 — blink swaps o → -)
+  [
+    '      ( o     o )     ',
+    '     (  o     o  )    ',
+    '      ( o^^   o )     ',
+    '      (  o   o  )     ',
+    '      [ o     o ]     ',
+    '      < o     o >     ',
+    '      { o     o }     ',
+    '     *( o     o )*    ',
+  ],
+  // Row 3: hooked eagle beak — short and curved, distinct from dragon snout
+  [
+    '       (  >^<  )      ',
+    '       ( >^^^< )      ',
+    '      (  >>^<<  )     ',
+    '       [ >^-< ]       ',
+    '       (  >-<  )      ',
+    '      (  >^^<   )     ',
+    '       { >^< }        ',
+    '      *( >^< )*       ',
+  ],
+  // Row 4: feathered collar / neck
+  [
+    '       {  ^^^  }      ',
+    '       [  ^^^  ]      ',
+    '      {{  ^^^  }}     ',
+    '       (  ^^^  )      ',
+    '       {  ---  }      ',
+    '       [  ---  ]      ',
+    '      {   ^^^   }     ',
+    '       (  ---  )      ',
+  ],
+  // Row 5: upper wing attachment — feathers sweep outward
+  [
+    '  v^\\  |^^^^^^^^^|  /^v  ',
+    '  /^\\  |^^^^^^^^^|  /^\\  ',
+    '   v^   |^^^^^^^^^|   ^v   ',
+    ' \\v^   |^^^^^^^^^|  ^v/   ',
+    ' v^\\   |^^^^^^^^^|  /^v   ',
+    '/|^\\   |^^^^^^^^^|  /^|\\ ',
+    '  ^^\\  |^^^^^^^^^|  /^^   ',
+    ' <v^\\  |^^^^^^^^^|  /^v>  ',
+  ],
+  // Row 6: wings spread wide
+  [
+    'v^  \\  |^^^^^^^^^|  /  ^v  ',
+    '^    \\ |^^^^^^^^^| /     ^ ',
+    'v^  (  |^^^^^^^^^|  )  ^v  ',
+    '^    ( |^^^^^^^^^| )     ^  ',
+    'v^ /\\  |^^^^^^^^^|  /\\ ^v ',
+    '^  vv  |^^^^^^^^^|  vv   ^  ',
+    'v^ ^^  |^^^^^^^^^|  ^^ ^v  ',
+    '^  v\\  |^^^^^^^^^|  /v   ^  ',
+  ],
+  // Row 7: lower wing / chest
+  [
+    '   ( \\|^^^^^^^^^|/ )   ',
+    '    \\ |^^^^^^^^^| /    ',
+    '   (   |^^^^^^^^^|   ) ',
+    '   ( \\ |^^^^^^^^^| /) ',
+    '   [  \\|^^^^^^^^^|/  ] ',
+    '   *( \\|^^^^^^^^^|/ )* ',
+    '  (  ^ |^^^^^^^^^| ^  )',
+    '   ( ^ |^^^^^^^^^| ^ ) ',
+  ],
+  // Row 8: lion chest / upper belly
+  [
+    '    ( |^^^^^^^^^| )    ',
+    '     \\|^^^^^^^^^|/    ',
+    '    (||^^^^^^^^^||)    ',
+    '     ( ^^^^^^^^^ )     ',
+    '    [ |^^^^^^^^^| ]    ',
+    '    *||^^^^^^^^^||*    ',
+    '   ( ( ^^^^^^^^^ ) )   ',
+    '     <|^^^^^^^^^|>     ',
+  ],
+  // Row 9: lion belly / midsection — rounded, uses - not ^
+  [
+    '     ( --------- )     ',
+    '     ( ========= )     ',
+    '     [ --------- ]     ',
+    '    ( (--------- ) )   ',
+    '     { --------- }     ',
+    '     ( --- --- -- )    ',
+    '     [ === === == ]    ',
+    '    ( ----------- )    ',
+  ],
+  // Row 10: lion haunches — powerful, wide
+  [
+    '    /|  -------  |\\   ',
+    '   / |  -------  | \\  ',
+    '   ( |  -------  | )  ',
+    '    \\|  -------  |/   ',
+    '   *[|  -------  |]*  ',
+    '   /[|  -------  |]\\ ',
+    '   <(|  -------  |)>  ',
+    '    ||  -------  ||   ',
+  ],
+  // Row 11: lion upper legs
+  [
+    '  (/ \\            / \\)  ',
+    '  (|  \\          /  |)  ',
+    ' ( |  |          |  | ) ',
+    '  (|  \\          /  |)  ',
+    ' ([   \\          /   ]) ',
+    '  *|  |          |  |*  ',
+    ' ( |  (          )  | ) ',
+    ' ((   \\          /   )) ',
+  ],
+  // Row 12: lion lower legs
+  [
+    ' (|   |          |   |) ',
+    '  |   |          |   |  ',
+    ' /|   \\          /   |\\ ',
+    '( |   |          |   | )',
+    ' [|   |          |   |] ',
+    '*||   |          |   ||*',
+    ' ||   |          |   || ',
+    '(||   \\          /   ||)',
+  ],
+  // Row 13: lion paws — rounded pads, distinct from dragon claws
+  [
+    ' (oo)(oo)        (oo)(oo) ',
+    '  UU  UU          UU  UU  ',
+    ' (U) (U)          (U) (U) ',
+    '  uu  uu          uu  uu  ',
+    ' (uu)(uu)        (uu)(uu) ',
+    '  UU   UU        UU   UU  ',
+    ' {U}  {U}        {U}  {U} ',
+    '  U    U            U    U  ',
+  ],
+];
+
+export const GRIFFON_FILL_SUBS = { from: '^', to: ['^', '*', '=', 'v', '+', '~', '-', '#'] };
+
+export const GRIFFON_BASE_COLORS = [
+  '#c09018',  // golden
+  '#d07020',  // amber
+  '#a07030',  // tawny
+  '#c0a020',  // harvest gold
+  '#b06010',  // burnt sienna
+  '#d4b000',  // bright gold
+  '#8a6020',  // dark honey
+  '#c8840c',  // bronze
+  '#e0c040',  // pale gold
+  '#a08030',  // warm tan
+  '#c07018',  // rust gold
+  '#b09028',  // wheat
+];
+
+export const GRIFFON_NAME_POOLS = {
+  pre: ['Aur','Sol','Gale','Swift','Crest','Pyre','Gilt','Lum','Talm','Aeri','Storm','Veil','Flare','Gild','Cirr',
+        'Zeph','Halo','Aero','Loft','Blaze','Forge','Dawn','Dusk','Claw','Talon','Regal','Keen','Vex','Surge','Prow'],
+  suf: ['wing','crest','talon','feather','beak','soar','gale','strike','plume','fang','valor','pride','mane','crown',
+        'pinion','mantle','swoop','reign','perch','rush','gust','flight','peak','sky','claw','lance','rise','sun','gold','fire'],
+};
+
+export const GRIFFON_TITLE_POOLS = [
+  'the Noble','the Swift','the Proud','the Watchful','the Undying',
+  'the Ancient','the Regal','the Keen','the Fierce','the Boundless',
+  'the Primordial','the Soaring','the Majestic','the Vigilant','the Resplendent','the Immortal',
+  'the Radiant','the Unbroken','the Sovereign','the Wrathful','the Hallowed',
+  'the Golden','the Exalted','the Ferocious','the Glorious','the Unyielding',
+  'the Relentless','the Indomitable','the Luminous',
+];
+
+export function generateGriffon(griffonEgg) {
+  const { foodSequence, rarityRoll, sacrificedCreatures } = griffonEgg;
+  const sacrificedIds = (sacrificedCreatures || []).map(c => c.id).sort();
+  const hashStr = sacrificedIds.join(',') + ':' + foodSequence.join(',') + ':' + rarityRoll;
+  const hashVal = djb2(hashStr);
+  const rng = mulberry32(hashVal);
+  const rarity = getRarity(rarityRoll);
+
+  const lines = GRIFFON_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+
+  const fillCh = rng.pick(GRIFFON_FILL_SUBS.to);
+  if (fillCh !== GRIFFON_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(GRIFFON_FILL_SUBS.from).join(fillCh);
+
+  if (rarity.name === 'Legendary') lines[0] = '  ^ ^ ^ ^ ^ ^ ^ ^ ^  ';
+  const centeredLines = centerLines(lines);
+
+  const pre = GRIFFON_NAME_POOLS.pre[Math.floor(rng.next() * GRIFFON_NAME_POOLS.pre.length)];
+  const suf = GRIFFON_NAME_POOLS.suf[Math.floor(rng.next() * GRIFFON_NAME_POOLS.suf.length)];
+  const title = GRIFFON_TITLE_POOLS[Math.floor(rng.next() * GRIFFON_TITLE_POOLS.length)];
+  const name = cap(pre + suf) + ' ' + title;
+
+  const baseColor = GRIFFON_BASE_COLORS[hashVal % GRIFFON_BASE_COLORS.length];
+  let color = baseColor;
+  if (rarity.name === 'Legendary')     color = lerpColor(baseColor, '#fff080', 0.55);
+  else if (rarity.name === 'Rare')     color = lerpColor(baseColor, '#a0e0ff', 0.42);
+  else if (rarity.name === 'Uncommon') color = lerpColor(baseColor, '#ffe080', 0.28);
+
+  const diet = foodSequence.length
+    ? Object.entries(foodSequence.reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, {}))
+        .map(([k, v]) => `${v}x ${k}`).join(', ')
+    : 'none';
+
+  const id = toID(hashVal);
+  const shiny = rng.int(0, 100) === 0;
+
+  return {
+    id, hashVal, hashStr, name, color, rarity, lines: centeredLines,
+    diet, dom: null, sec: null, shiny,
+    isGreatBeast: true, beastType: 'griffon',
+    sacrificedCreatureIds: sacrificedIds,
+    traits: ['Great Beast', 'Griffon'],
+  };
+}
+
+export function regenGriffonLines(g) {
+  const rng = mulberry32(g.hashVal);
+  const lines = GRIFFON_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+  const fillCh = rng.pick(GRIFFON_FILL_SUBS.to);
+  if (fillCh !== GRIFFON_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(GRIFFON_FILL_SUBS.from).join(fillCh);
+  if (g.rarity?.name === 'Legendary') lines[0] = '  ^ ^ ^ ^ ^ ^ ^ ^ ^  ';
+  g.lines = centerLines(lines);
+}
+
+export function buildGriffonAnimSeq(griffon) {
+  const pad = Array(4).fill('              ');
+  const s4ext    = [...GRIFFON_EGG_STAGES[4].art, ...pad];
+  const flap1ext = [...GRIFFON_ANIM_FLAP1];
+  const flap2ext = [...GRIFFON_ANIM_FLAP2];
+  const burstExt = [...GRIFFON_ANIM_BURST];
+  return [
+    { lines: s4ext,         color: '#f0c820',                    delay: 320 },
+    { lines: s4ext,         color: '#fff8a0',                    delay: 200 },
+    { lines: flap1ext,      color: '#e0a820',                    delay: 180 },
+    { lines: flap2ext,      color: '#c08010',                    delay: 150 },
+    { lines: burstExt,      color: '#fff8a0',                    delay: 130 },
+    { lines: burstExt,      color: '#f0c820',                    delay: 100 },
+    { lines: griffon.lines, color: hexDim(griffon.color, 0.22), delay: 220 },
+    { lines: griffon.lines, color: hexDim(griffon.color, 0.50), delay: 200 },
+    { lines: griffon.lines, color: hexDim(griffon.color, 0.80), delay: 260 },
+    { lines: griffon.lines, color: griffon.color,               delay: 0   },
+  ];
+}
+
 // Dispatcher — extend with new beastType cases as new Great Beasts are added.
 export function generateGreatBeast(egg) {
   switch (egg.beastType) {
-    case 'kraken': return generateKraken(egg);
-    case 'dragon': return generateDragon(egg);
-    default:       return generateDragon(egg);
+    case 'kraken':  return generateKraken(egg);
+    case 'griffon': return generateGriffon(egg);
+    case 'dragon':  return generateDragon(egg);
+    default:        return generateDragon(egg);
   }
 }
 
 export function regenGreatBeastLines(b) {
   switch (b.beastType) {
-    case 'kraken': regenKrakenLines(b); break;
-    case 'dragon': regenDragonLines(b); break;
-    default:       regenDragonLines(b);
+    case 'kraken':  regenKrakenLines(b);  break;
+    case 'griffon': regenGriffonLines(b); break;
+    case 'dragon':  regenDragonLines(b);  break;
+    default:        regenDragonLines(b);
   }
 }
 
 export function buildGreatBeastAnimSeq(beast) {
   switch (beast.beastType) {
-    case 'kraken': return buildKrakenAnimSeq(beast);
-    default:       return buildDragonAnimSeq(beast);
+    case 'kraken':  return buildKrakenAnimSeq(beast);
+    case 'griffon': return buildGriffonAnimSeq(beast);
+    default:        return buildDragonAnimSeq(beast);
   }
 }
 

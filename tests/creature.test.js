@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines, generateKraken, regenKrakenLines, buildKrakenAnimSeq, buildGreatBeastAnimSeq } from '../modules/creature.js';
+import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines, generateKraken, regenKrakenLines, buildKrakenAnimSeq, generateGriffon, regenGriffonLines, buildGriffonAnimSeq, buildGreatBeastAnimSeq } from '../modules/creature.js';
 import { emptyInv, FOOD_KEYS, RARITIES } from '../modules/utils.js';
 
 function makeEgg(overrides = {}) {
@@ -425,6 +425,108 @@ describe('buildKrakenAnimSeq', () => {
   });
 });
 
+describe('GRIFFON_EGG_STAGES', () => {
+  it('has the same number of stages as EGG_STAGES', () => {
+    assert.equal(GRIFFON_EGG_STAGES.length, EGG_STAGES.length);
+  });
+  it('each stage has art and color', () => {
+    for (const stage of GRIFFON_EGG_STAGES) {
+      assert.ok(stage.color, 'missing color');
+      assert.ok(Array.isArray(stage.art) && stage.art.length > 0, 'missing art');
+    }
+  });
+});
+
+function makeGriffonEgg(overrides = {}) {
+  return {
+    foodSequence: ['berries', 'berries', 'berries', 'berries', 'berries'],
+    rarityRoll: 0,
+    sacrificedCreatures: [],
+    beastType: 'griffon',
+    isDragonEgg: true,
+    noGems: true,
+    biome: 'forest',
+    ...overrides,
+  };
+}
+
+describe('generateGriffon', () => {
+  it('returns all required fields', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    assert.ok(g.id, 'missing id');
+    assert.ok(g.name, 'missing name');
+    assert.ok(g.lines, 'missing lines');
+    assert.ok(g.color, 'missing color');
+    assert.ok(g.rarity, 'missing rarity');
+    assert.ok(g.traits, 'missing traits');
+    assert.ok(typeof g.hashVal === 'number', 'missing hashVal');
+    assert.equal(g.isGreatBeast, true);
+    assert.equal(g.beastType, 'griffon');
+    assert.equal(g.dom, null);
+  });
+
+  it('lines is a non-empty array of strings', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    assert.ok(Array.isArray(g.lines) && g.lines.length > 0);
+    assert.ok(g.lines.every(l => typeof l === 'string'));
+  });
+
+  it('traits includes Great Beast', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    assert.ok(g.traits.includes('Great Beast'));
+  });
+
+  it('is deterministic for same egg', () => {
+    const egg = makeGriffonEgg();
+    const a = generateGriffon(egg);
+    const b = generateGriffon(egg);
+    assert.deepEqual(a.lines, b.lines);
+    assert.equal(a.name, b.name);
+    assert.equal(a.color, b.color);
+  });
+
+  it('different sacrificed creatures produce different griffons', () => {
+    const a = generateGriffon(makeGriffonEgg({ sacrificedCreatures: [{ id: 'x1' }, { id: 'x2' }] }));
+    const b = generateGriffon(makeGriffonEgg({ sacrificedCreatures: [{ id: 'y3' }, { id: 'y4' }] }));
+    assert.notEqual(a.hashVal, b.hashVal);
+  });
+
+  it('Legendary rarity gets color shifted toward yellow', () => {
+    const g = generateGriffon(makeGriffonEgg({ rarityRoll: 9800 }));
+    const common = generateGriffon(makeGriffonEgg({ rarityRoll: 0 }));
+    assert.notEqual(g.color, common.color);
+  });
+});
+
+describe('regenGriffonLines', () => {
+  it('restores lines from hashVal', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    const originalLines = [...g.lines];
+    g.lines = null;
+    regenGriffonLines(g);
+    assert.deepEqual(g.lines, originalLines);
+  });
+});
+
+describe('buildGriffonAnimSeq', () => {
+  it('returns a non-empty array', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    assert.ok(Array.isArray(buildGriffonAnimSeq(g)) && buildGriffonAnimSeq(g).length > 0);
+  });
+  it('last frame has delay 0', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    const seq = buildGriffonAnimSeq(g);
+    assert.equal(seq.at(-1).delay, 0);
+  });
+  it('every frame has lines array and string color', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    for (const frame of buildGriffonAnimSeq(g)) {
+      assert.ok(Array.isArray(frame.lines));
+      assert.ok(typeof frame.color === 'string');
+    }
+  });
+});
+
 describe('buildGreatBeastAnimSeq', () => {
   it('returns dragon anim for dragon', () => {
     const d = generateDragon(makeDragonEgg());
@@ -439,10 +541,23 @@ describe('buildGreatBeastAnimSeq', () => {
     assert.notDeepEqual(seq, buildDragonAnimSeq(generateDragon(makeDragonEgg())));
   });
 
+  it('returns griffon anim for griffon', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    const seq = buildGreatBeastAnimSeq(g);
+    assert.ok(Array.isArray(seq) && seq.length > 0);
+    assert.notDeepEqual(seq, buildDragonAnimSeq(generateDragon(makeDragonEgg())));
+  });
+
   it('generateGreatBeast returns kraken for beastType kraken', () => {
     const k = generateGreatBeast(makeKrakenEgg());
     assert.equal(k.beastType, 'kraken');
     assert.equal(k.isGreatBeast, true);
+  });
+
+  it('generateGreatBeast returns griffon for beastType griffon', () => {
+    const g = generateGreatBeast(makeGriffonEgg());
+    assert.equal(g.beastType, 'griffon');
+    assert.equal(g.isGreatBeast, true);
   });
 
   it('regenGreatBeastLines works for kraken', () => {
@@ -451,5 +566,13 @@ describe('buildGreatBeastAnimSeq', () => {
     k.lines = null;
     regenGreatBeastLines(k);
     assert.deepEqual(k.lines, originalLines);
+  });
+
+  it('regenGreatBeastLines works for griffon', () => {
+    const g = generateGriffon(makeGriffonEgg());
+    const originalLines = [...g.lines];
+    g.lines = null;
+    regenGreatBeastLines(g);
+    assert.deepEqual(g.lines, originalLines);
   });
 });

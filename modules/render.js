@@ -1,9 +1,9 @@
 // All DOM rendering, idle animation state, and animation timers.
 // Reads G and selectedFood as live bindings from state.js.
 
-import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, getRarity, escHtml, rand, DRAGON_CHAR, KRAKEN_CHAR, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './utils.js';
+import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, getRarity, escHtml, rand, DRAGON_CHAR, KRAKEN_CHAR, GRIFFON_CHAR, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './utils.js';
 import { getTile, getChunkBiome, chunkX, chunkY } from './world.js';
-import { EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
+import { EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
 import { G, selectedFood } from './state.js';
 import { startBiomeLoop } from './audio.js';
 
@@ -39,6 +39,22 @@ export const KRAKEN_BEAST_ART_AWAKE = [
   '  (  *  )    ',
   '   ~~~~~     ',
   '  (~~~~~)    ',
+];
+const GRIFFON_BEAST_ART_SLEEPING = [
+  '   z  z  z   ',
+  '    ~Λ~      ',
+  '   /^v^\\     ',
+  '  ( z z  )   ',
+  '  ==^^^==    ',
+  ' /^^^^^^^\\   ',
+];
+export const GRIFFON_BEAST_ART_AWAKE = [
+  '  !  !!  !   ',
+  '    ~Λ~      ',
+  '   /o^o\\     ',
+  '  (  *  )    ',
+  '  ==^^^==    ',
+  ' /^^^^^^^\\   ',
 ];
 
 // ── Idle animation state ──────────────────────────────────────────
@@ -257,7 +273,7 @@ function renderViewport() {
       const gx = camX + vx;
       if (gx === px && gy === py)                              { html += span('@', CLR.bright['@']); continue; }
       if (worldEggs?.has(`${gx},${gy}`))                       { html += span('Θ', CLR.bright['Θ']); continue; }
-      if (worldBeasts?.has(`${gx},${gy}`))                     { const _b = worldBeasts.get(`${gx},${gy}`); const _bc = _b.beastType === 'kraken' ? KRAKEN_CHAR : DRAGON_CHAR; html += span(_bc, CLR.bright[_bc]); continue; }
+      if (worldBeasts?.has(`${gx},${gy}`))                     { const _b = worldBeasts.get(`${gx},${gy}`); const _bc = _b.beastType === 'kraken' ? KRAKEN_CHAR : _b.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR; html += span(_bc, CLR.bright[_bc]); continue; }
       const inLight = Math.hypot(gx - px, gy - py) <= LIGHT_R;
       const seen = revealed.has(`${gx},${gy}`);
       if (!seen && !inLight)                 { html += span(' ', '#000'); continue; }
@@ -311,15 +327,16 @@ function renderBottomPlaying() {
   const adjBeast = getAdjacentBeast();
 
   if (adjBeast && !adjEgg) {
-    const isKrakenBeast = adjBeast.beastType === 'kraken';
-    const beastChar     = isKrakenBeast ? KRAKEN_CHAR : DRAGON_CHAR;
-    const asleep        = adjBeast.phase === 'sleeping';
-    const art = isKrakenBeast
+    const beastChar  = adjBeast.beastType === 'kraken' ? KRAKEN_CHAR : adjBeast.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR;
+    const asleep     = adjBeast.phase === 'sleeping';
+    const art = adjBeast.beastType === 'kraken'
       ? (asleep ? KRAKEN_BEAST_ART_SLEEPING : KRAKEN_BEAST_ART_AWAKE)
-      : (asleep ? BEAST_ART_SLEEPING : BEAST_ART_AWAKE);
+      : adjBeast.beastType === 'griffon'
+        ? (asleep ? GRIFFON_BEAST_ART_SLEEPING : GRIFFON_BEAST_ART_AWAKE)
+        : (asleep ? BEAST_ART_SLEEPING : BEAST_ART_AWAKE);
     const color      = asleep ? CLR.dim[beastChar] : CLR.bright[beastChar];
-    const awakenClr  = isKrakenBeast ? '#40c0ff' : '#ff8040';
-    const beastTitle = isKrakenBeast ? 'Ancient Kraken' : 'Ancient Dragon';
+    const awakenClr  = adjBeast.beastType === 'kraken' ? '#40c0ff' : adjBeast.beastType === 'griffon' ? '#f0c820' : '#ff8040';
+    const beastTitle = adjBeast.beastType === 'kraken' ? 'Ancient Kraken' : adjBeast.beastType === 'griffon' ? 'Ancient Griffon' : 'Ancient Dragon';
     document.getElementById('egg-display').innerHTML =
       art.map(l => `<span style="color:${color}">${escHtml(l)}</span>`).join('\n');
     const gemFilled = Math.round(adjBeast.gemsReceived / DRAGON_GEM_COST * 10);
@@ -335,7 +352,7 @@ function renderBottomPlaying() {
   }
 
   if (adjEgg) {
-    const stageSet = !adjEgg.isDragonEgg ? EGG_STAGES : adjEgg.beastType === 'kraken' ? KRAKEN_EGG_STAGES : DRAGON_EGG_STAGES;
+    const stageSet = !adjEgg.isDragonEgg ? EGG_STAGES : adjEgg.beastType === 'kraken' ? KRAKEN_EGG_STAGES : adjEgg.beastType === 'griffon' ? GRIFFON_EGG_STAGES : DRAGON_EGG_STAGES;
     const stage = stageSet[getEggStage(adjEgg.fed)];
     document.getElementById('egg-display').innerHTML =
       stage.art.map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
@@ -350,14 +367,14 @@ function renderBottomPlaying() {
     const selLabel = isGem ? `${GEM_CHAR} gem` : `${selCh} ${selectedFood}`;
     const selAmt  = isGem ? G.inventory.gem : G.inventory[selectedFood];
     const isGreatBeastEgg = !!adjEgg.isDragonEgg;
-    const beastEggLabel = adjEgg.beastType === 'kraken' ? 'Kraken Egg' : 'Dragon Egg';
+    const beastEggLabel = adjEgg.beastType === 'kraken' ? 'Kraken Egg' : adjEgg.beastType === 'griffon' ? 'Griffon Egg' : 'Dragon Egg';
     const feedMsg = isGem
       ? (isGreatBeastEgg ? `<span style="color:#e05050">${beastEggLabel}s cannot be enhanced with gems.</span>` : 'Press F to boost rarity!')
       : 'Press F to feed!';
     const currRarity = getRarity(adjEgg.rarityRoll);
     const eggBiome = adjEgg.biome ? BIOMES[adjEgg.biome] : null;
-    const beastEggChar  = adjEgg.beastType === 'kraken' ? KRAKEN_CHAR : DRAGON_CHAR;
-    const beastEggColor = adjEgg.beastType === 'kraken' ? CLR.bright[KRAKEN_CHAR] : '#ff6020';
+    const beastEggChar  = adjEgg.beastType === 'kraken' ? KRAKEN_CHAR : adjEgg.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR;
+    const beastEggColor = CLR.bright[beastEggChar];
     const biomeLabel = isGreatBeastEgg
       ? `<span style="color:${beastEggColor};font-size:.72rem">${escHtml(beastEggChar)} ${beastEggLabel} &nbsp;<span style="color:#888;font-size:.68rem">(rarity locked)</span></span>`
       : (eggBiome ? `<span style="color:${eggBiome.accent};font-size:.72rem">&#9672; ${eggBiome.name} egg</span>` : '');
@@ -379,8 +396,8 @@ function renderBottomPlaying() {
     document.getElementById('egg-display').innerHTML =
       G.creature.lines.map(l => cLine(G.creature, l)).join('\n');
     const r = G.creature.rarity;
-    const _gbChar  = G.creature.beastType === 'kraken' ? KRAKEN_CHAR : DRAGON_CHAR;
-    const _gbColor = G.creature.beastType === 'kraken' ? CLR.bright[KRAKEN_CHAR] : '#ff6020';
+    const _gbChar  = G.creature.beastType === 'kraken' ? KRAKEN_CHAR : G.creature.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR;
+    const _gbColor = CLR.bright[_gbChar];
     const beastBadge = G.creature.isGreatBeast
       ? `<div style="color:${_gbColor};font-size:.72rem">${escHtml(_gbChar)} Great Beast &middot; ${escHtml(G.creature.beastType ?? 'dragon')}</div>` : '';
     document.getElementById('egg-info').innerHTML = `
@@ -501,7 +518,7 @@ function renderGreatBeastsTab() {
   document.getElementById('col-detail-info').innerHTML = `
     <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
     <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}${sel.shiny ? shinyTag() : ''}</div>
-    <div style="color:${sel.beastType === 'kraken' ? CLR.bright[KRAKEN_CHAR] : '#ff6020'};font-size:0.72rem">${escHtml(sel.beastType === 'kraken' ? KRAKEN_CHAR : DRAGON_CHAR)} Great Beast &middot; ${escHtml(sel.beastType ?? 'dragon')}</div>
+    <div style="color:${CLR.bright[sel.beastType === 'kraken' ? KRAKEN_CHAR : sel.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR]};font-size:0.72rem">${escHtml(sel.beastType === 'kraken' ? KRAKEN_CHAR : sel.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR)} Great Beast &middot; ${escHtml(sel.beastType ?? 'dragon')}</div>
     <div style="color:#606060;font-size:0.68rem">${escHtml(sel.diet)}</div>
     <div style="color:#555;font-size:0.65rem">ID: ${sel.id}</div>`;
 }
@@ -552,19 +569,26 @@ export function renderDragonOverlay() {
   if (!beast) { el.hidden = true; return; }
 
   const { phase, gemsReceived: gems, sacrificedCreatures: offered, beastType } = beast;
-  const isKraken = beastType === 'kraken';
+  const _bChar = beastType === 'kraken' ? KRAKEN_CHAR : beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR;
   const gemFilled = Math.round(gems / DRAGON_GEM_COST * 20);
   const gemBar    = '█'.repeat(gemFilled) + '░'.repeat(20 - gemFilled);
 
-  document.getElementById('dragon-title').textContent = isKraken ? `${KRAKEN_CHAR}  ANCIENT KRAKEN` : `${DRAGON_CHAR}  ANCIENT DRAGON`;
+  document.getElementById('dragon-title').textContent =
+    beastType === 'kraken'  ? `${KRAKEN_CHAR}  ANCIENT KRAKEN`  :
+    beastType === 'griffon' ? `${GRIFFON_CHAR}  ANCIENT GRIFFON` :
+                              `${DRAGON_CHAR}  ANCIENT DRAGON`;
 
   document.getElementById('dragon-phase').innerHTML = phase === 'sleeping'
-    ? (isKraken
+    ? (beastType === 'kraken'
         ? '<span style="color:#888">The kraken lies dormant, tentacles drifting in the cold dark...</span>'
-        : '<span style="color:#888">The dragon lies dormant, scales flickering with dying embers...</span>')
-    : (isKraken
+        : beastType === 'griffon'
+          ? '<span style="color:#888">The griffon slumbers, great wings folded, eyes half-closed...</span>'
+          : '<span style="color:#888">The dragon lies dormant, scales flickering with dying embers...</span>')
+    : (beastType === 'kraken'
         ? '<span style="color:#40c0ff">The kraken stirs, vast eyes regarding you from the depths.</span>'
-        : '<span style="color:#ff8040">The dragon stirs, ancient eyes regarding you with hunger.</span>');
+        : beastType === 'griffon'
+          ? '<span style="color:#f0c820">The griffon raises its proud head, keen eyes fixing upon you.</span>'
+          : '<span style="color:#ff8040">The dragon stirs, ancient eyes regarding you with hunger.</span>');
 
   document.getElementById('dragon-gem-progress').innerHTML =
     `<span style="color:${phase === 'awake' ? '#50c080' : GEM_COLOR}">${gemBar}</span>` +

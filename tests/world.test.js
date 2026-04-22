@@ -182,7 +182,7 @@ describe('getGreatBeastSpawn', () => {
     assert.ok(spawn !== null, 'no great beast spawn found in 10000-chunk scan');
     assert.equal(typeof spawn.wx, 'number');
     assert.equal(typeof spawn.wy, 'number');
-    assert.ok(['dragon', 'kraken'].includes(spawn.beastType));
+    assert.ok(['dragon', 'kraken', 'griffon'].includes(spawn.beastType));
   });
 });
 
