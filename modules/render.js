@@ -569,7 +569,6 @@ export function renderDragonOverlay() {
   if (!beast) { el.hidden = true; return; }
 
   const { phase, gemsReceived: gems, sacrificedCreatures: offered, beastType } = beast;
-  const _bChar = beastType === 'kraken' ? KRAKEN_CHAR : beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR;
   const gemFilled = Math.round(gems / DRAGON_GEM_COST * 20);
   const gemBar    = '█'.repeat(gemFilled) + '░'.repeat(20 - gemFilled);
 
