@@ -128,11 +128,18 @@ export function shiftArt(lines, dx) {
 
 // ── Idle animation triggers ───────────────────────────────────────
 
+function getEggStageSet(egg) {
+  if (!egg.isDragonEgg) return EGG_STAGES;
+  if (egg.beastType === 'kraken')  return KRAKEN_EGG_STAGES;
+  if (egg.beastType === 'griffon') return GRIFFON_EGG_STAGES;
+  return DRAGON_EGG_STAGES;
+}
+
 function triggerEggShake() {
   eggShakeTimer = null;
   const egg = getAdjacentEgg();
   if (G?.phase !== 'playing' || !egg) return;
-  const stageSet = !egg.isDragonEgg ? EGG_STAGES : egg.beastType === 'kraken' ? KRAKEN_EGG_STAGES : DRAGON_EGG_STAGES;
+  const stageSet = getEggStageSet(egg);
   const stage = stageSet[getEggStage(egg.fed)];
   const gen   = ++idleGen;
   const offsets = [1, 0, -1, 0, 1, 0];
@@ -352,7 +359,7 @@ function renderBottomPlaying() {
   }
 
   if (adjEgg) {
-    const stageSet = !adjEgg.isDragonEgg ? EGG_STAGES : adjEgg.beastType === 'kraken' ? KRAKEN_EGG_STAGES : adjEgg.beastType === 'griffon' ? GRIFFON_EGG_STAGES : DRAGON_EGG_STAGES;
+    const stageSet = getEggStageSet(adjEgg);
     const stage = stageSet[getEggStage(adjEgg.fed)];
     document.getElementById('egg-display').innerHTML =
       stage.art.map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
