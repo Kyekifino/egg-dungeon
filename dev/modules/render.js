@@ -136,7 +136,7 @@ function triggerCreatureBlink() {
   creatureBlinkTimer = null;
   if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast()) return;
   const c  = G.creature;
-  const ri = EYE_ROW[c.dom] ?? 2;
+  const ri = c.eyeRow ?? EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
   const closed = orig.replace(/o/g, '-');
   if (closed === orig) {
@@ -191,7 +191,7 @@ function triggerColBlink() {
   if (!G?.showCollection) return;
   const c = (G.collectionTab === 'greatBeasts' && !G.sacrificeMode) ? getColBeastSelected() : getColSelected();
   if (!c) return;
-  const ri     = EYE_ROW[c.dom] ?? 2;
+  const ri     = c.eyeRow ?? EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
   const closed = orig.replace(/o/g, '-');
   if (closed === orig) {
