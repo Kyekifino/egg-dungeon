@@ -39,7 +39,13 @@ const DUST_ART = [
   '    ,  ,  ,   ', '              ',
 ];
 
-const DISSOLVE_ARTS = { embers: EMBERS_ART, splash: SPLASH_ART, feathers: FEATHERS_ART, dust: DUST_ART };
+const SHADOW_ART = [
+  '              ', '  @   @ @     ', '    @ @  @ @  ', '  @   @  @    ',
+  '  @ @    @ @  ', '   @ @  @     ', ' @  @   @ @ @ ', '  @  @    @   ',
+  '    @  @  @   ', '              ',
+];
+
+const DISSOLVE_ARTS = { embers: EMBERS_ART, splash: SPLASH_ART, feathers: FEATHERS_ART, dust: DUST_ART, shadow: SHADOW_ART };
 
 function addLog(msg) {
   G.log.push(msg);
