@@ -73,12 +73,30 @@ export const MANTICORE_BEAST_ART_AWAKE = [
   ' /~~~~~~~~~\\ ',
 ];
 
+const DEMON_BEAST_ART_SLEEPING = [
+  '   z  z  z   ',
+  '    ~Δ~      ',
+  '  (z   z)    ',
+  '  ( --- )    ',
+  '  |!!!!!|    ',
+  ' /~~~~~~~\\   ',
+];
+export const DEMON_BEAST_ART_AWAKE = [
+  '  !  !! @>   ',
+  '    ~Δ~      ',
+  '  (o   o)    ',
+  '  ( >-< )    ',
+  '  |!!!!!|    ',
+  ' /~~~~~~~\\   ',
+];
+
 // Map beastType → { sleeping, awake } art — extend for each new beast
 export const BEAST_WORLD_ART = {
   dragon:    { sleeping: BEAST_ART_SLEEPING,           awake: BEAST_ART_AWAKE           },
   kraken:    { sleeping: KRAKEN_BEAST_ART_SLEEPING,    awake: KRAKEN_BEAST_ART_AWAKE    },
   griffon:   { sleeping: GRIFFON_BEAST_ART_SLEEPING,   awake: GRIFFON_BEAST_ART_AWAKE   },
   manticore: { sleeping: MANTICORE_BEAST_ART_SLEEPING, awake: MANTICORE_BEAST_ART_AWAKE },
+  demon:     { sleeping: DEMON_BEAST_ART_SLEEPING,     awake: DEMON_BEAST_ART_AWAKE     },
 };
 
 // ── Idle animation state ──────────────────────────────────────────

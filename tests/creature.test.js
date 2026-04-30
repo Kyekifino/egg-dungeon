@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES, MANTICORE_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines, generateKraken, regenKrakenLines, buildKrakenAnimSeq, generateGriffon, regenGriffonLines, buildGriffonAnimSeq, generateManticore, regenManticoreLines, buildManticoreAnimSeq, buildGreatBeastAnimSeq } from '../modules/creature.js';
+import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES, MANTICORE_EGG_STAGES, DEMON_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines, generateKraken, regenKrakenLines, buildKrakenAnimSeq, generateGriffon, regenGriffonLines, buildGriffonAnimSeq, generateManticore, regenManticoreLines, buildManticoreAnimSeq, generateDemon, regenDemonLines, buildDemonAnimSeq, buildGreatBeastAnimSeq } from '../modules/creature.js';
 import { emptyInv, FOOD_KEYS, RARITIES } from '../modules/utils.js';
 
 function makeEgg(overrides = {}) {
@@ -705,5 +705,136 @@ describe('buildGreatBeastAnimSeq', () => {
     m.lines = null;
     regenGreatBeastLines(m);
     assert.deepEqual(m.lines, originalLines);
+  });
+
+  it('generateGreatBeast returns demon for beastType demon', () => {
+    const d = generateGreatBeast(makeDemonEgg());
+    assert.equal(d.beastType, 'demon');
+    assert.equal(d.isGreatBeast, true);
+  });
+
+  it('returns demon anim for demon', () => {
+    const d = generateDemon(makeDemonEgg());
+    const seq = buildGreatBeastAnimSeq(d);
+    assert.ok(Array.isArray(seq) && seq.length > 0);
+    assert.notDeepEqual(seq, buildDragonAnimSeq(generateDragon(makeDragonEgg())));
+  });
+
+  it('regenGreatBeastLines works for demon', () => {
+    const d = generateDemon(makeDemonEgg());
+    const originalLines = [...d.lines];
+    d.lines = null;
+    regenGreatBeastLines(d);
+    assert.deepEqual(d.lines, originalLines);
+  });
+});
+
+describe('DEMON_EGG_STAGES', () => {
+  it('has the same number of stages as EGG_STAGES', () => {
+    assert.equal(DEMON_EGG_STAGES.length, EGG_STAGES.length);
+  });
+  it('each stage has art and color', () => {
+    for (const stage of DEMON_EGG_STAGES) {
+      assert.ok(stage.color, 'missing color');
+      assert.ok(Array.isArray(stage.art) && stage.art.length > 0, 'missing art');
+    }
+  });
+});
+
+function makeDemonEgg(overrides = {}) {
+  return {
+    foodSequence: ['mushroom', 'mushroom', 'mushroom', 'mushroom', 'mushroom'],
+    rarityRoll: 0,
+    sacrificedCreatures: [],
+    beastType: 'demon',
+    isDragonEgg: true,
+    noGems: true,
+    biome: 'underground',
+    ...overrides,
+  };
+}
+
+describe('generateDemon', () => {
+  it('returns all required fields', () => {
+    const d = generateDemon(makeDemonEgg());
+    assert.ok(d.id, 'missing id');
+    assert.ok(d.name, 'missing name');
+    assert.ok(d.lines, 'missing lines');
+    assert.ok(d.color, 'missing color');
+    assert.ok(d.rarity, 'missing rarity');
+    assert.ok(d.traits, 'missing traits');
+    assert.ok(typeof d.hashVal === 'number', 'missing hashVal');
+    assert.equal(d.isGreatBeast, true);
+    assert.equal(d.beastType, 'demon');
+    assert.equal(d.dom, null);
+    assert.equal(d.eyeRow, 2);
+  });
+
+  it('lines is a non-empty array of strings', () => {
+    const d = generateDemon(makeDemonEgg());
+    assert.ok(Array.isArray(d.lines) && d.lines.length > 0);
+    assert.ok(d.lines.every(l => typeof l === 'string'));
+  });
+
+  it('traits includes Great Beast', () => {
+    const d = generateDemon(makeDemonEgg());
+    assert.ok(d.traits.includes('Great Beast'));
+  });
+
+  it('is deterministic for same egg', () => {
+    const egg = makeDemonEgg();
+    const a = generateDemon(egg);
+    const b = generateDemon(egg);
+    assert.deepEqual(a.lines, b.lines);
+    assert.equal(a.name, b.name);
+    assert.equal(a.color, b.color);
+  });
+
+  it('different sacrificed creatures produce different demons', () => {
+    const a = generateDemon(makeDemonEgg({ sacrificedCreatures: [{ id: 'x1' }, { id: 'x2' }] }));
+    const b = generateDemon(makeDemonEgg({ sacrificedCreatures: [{ id: 'y3' }, { id: 'y4' }] }));
+    assert.notEqual(a.hashVal, b.hashVal);
+  });
+
+  it('Legendary rarity gets color shifted toward violet-white', () => {
+    const d = generateDemon(makeDemonEgg({ rarityRoll: 9800 }));
+    const common = generateDemon(makeDemonEgg({ rarityRoll: 0 }));
+    assert.equal(d.rarity.name, 'Legendary');
+    assert.notEqual(d.color, common.color);
+  });
+});
+
+describe('regenDemonLines', () => {
+  it('restores lines from hashVal', () => {
+    const d = generateDemon(makeDemonEgg());
+    const originalLines = [...d.lines];
+    d.lines = null;
+    regenDemonLines(d);
+    assert.deepEqual(d.lines, originalLines);
+  });
+
+  it('restores eyeRow on regen', () => {
+    const d = generateDemon(makeDemonEgg());
+    d.eyeRow = undefined;
+    regenDemonLines(d);
+    assert.equal(d.eyeRow, 2);
+  });
+});
+
+describe('buildDemonAnimSeq', () => {
+  it('returns a non-empty array', () => {
+    const d = generateDemon(makeDemonEgg());
+    assert.ok(Array.isArray(buildDemonAnimSeq(d)) && buildDemonAnimSeq(d).length > 0);
+  });
+  it('last frame has delay 0', () => {
+    const d = generateDemon(makeDemonEgg());
+    assert.equal(buildDemonAnimSeq(d).at(-1).delay, 0);
+  });
+  it('every frame has lines array and string color', () => {
+    const d = generateDemon(makeDemonEgg());
+    for (const frame of buildDemonAnimSeq(d)) {
+      assert.ok(Array.isArray(frame.lines));
+      assert.ok(typeof frame.color === 'string');
+    }
   });
 });

@@ -138,6 +138,24 @@ export const BEAST_REGISTRY = {
     dissolveLog: 'The manticore dissolves into golden dust! A Manticore Egg settles in the sand...',
     dissolveArtKey: 'dust',
   },
+  demon: {
+    char: 'Δ',
+    colorBright: '#9030d0', colorDim: '#280850',
+    biome: 'underground', spawnRate: 20,
+    awakenColor: '#c040e0',
+    title: 'Ancient Demon',
+    overlayTitle: 'Δ  ANCIENT DEMON',
+    dormantFlavor: 'The demon lies dormant, wings folded, emanating cold dread from the dark...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The demon unfurls its great wings, violet eyes blazing with malice.',
+    awakenFlavColor: '#c040e0',
+    eggLabel: 'Demon Egg',
+    dissolveClr1: '#9030d0', dissolveClr2: '#280850',
+    flashClr1: '#c040e0',   flashClr2: '#6020a0',
+    eggClr: '#180438',
+    dissolveLog: 'The demon dissolves into shadow! A Demon Egg pulses in the darkness...',
+    dissolveArtKey: 'shadow',
+  },
 };
 
 export const BEAST_TYPES = Object.keys(BEAST_REGISTRY);
@@ -147,6 +165,7 @@ export const DRAGON_CHAR    = BEAST_REGISTRY.dragon.char;
 export const KRAKEN_CHAR    = BEAST_REGISTRY.kraken.char;
 export const GRIFFON_CHAR   = BEAST_REGISTRY.griffon.char;
 export const MANTICORE_CHAR = BEAST_REGISTRY.manticore.char;
+export const DEMON_CHAR     = BEAST_REGISTRY.demon.char;
 
 // Chunk dimensions & corridor positions (guaranteed connectivity)
 export const CW = 26;

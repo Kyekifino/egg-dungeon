@@ -228,6 +228,20 @@ export function sfxManticoreHatch() {
   playTone(76, t + 0.82, 0.6, 'triangle', 0.12, ctx);
 }
 
+export function sfxDemonHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Deep ominous boom
+  [24, 28, 31].forEach((m, i) => playTone(m, t + i * 0.08, 0.7, 'sawtooth', 0.16, ctx));
+  // Rising dark chord
+  [43, 46, 50, 55].forEach((m, i) => playTone(m, t + 0.30 + i * 0.10, 0.5, 'triangle', 0.14 - i * 0.02, ctx));
+  // Piercing shriek
+  playTone(79, t + 0.75, 0.3, 'square',   0.10, ctx);
+  playTone(84, t + 0.85, 0.4, 'sawtooth', 0.09, ctx);
+  playTone(67, t + 0.95, 0.8, 'triangle', 0.13, ctx);
+}
+
 export function getMuted() { return muted; }
 
 export const SFX_BEAST_HATCH = {
@@ -235,6 +249,7 @@ export const SFX_BEAST_HATCH = {
   kraken:    sfxKrakenHatch,
   griffon:   sfxGriffonHatch,
   manticore: sfxManticoreHatch,
+  demon:     sfxDemonHatch,
 };
 
 export function setMuted(val) {

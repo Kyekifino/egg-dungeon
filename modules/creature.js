@@ -1410,11 +1410,317 @@ export function buildManticoreAnimSeq(manticore) {
     { lines: manticore.lines, color: manticore.color,               delay: 0   },
   ];
 }
+
+export const DEMON_EGG_STAGES = [
+  { color: '#180438', art: [
+    '              ', '   ________   ', '  /   @    \\  ', ' |    @    | ',
+    ' |   @@@   | ', ' |    @    | ', '  \\________/  ', '              ', '              ', '              '] },
+  { color: '#3a1270', art: [
+    '              ', '   ________   ', '  / @ @ @@ \\  ', ' | @ @@ @  | ',
+    ' |  @ @ @  | ', ' | @@ @ @  | ', '  \\________/  ', '              ', '              ', '              '] },
+  { color: '#5a18a0', art: [
+    '      !       ', '   ___!____   ', '  /   !    \\  ', ' | !  @     | ',
+    ' |    !     | ', ' |    @  !  | ', '  \\___!____/  ', '      !       ', '              ', '              '] },
+  { color: '#9030d0', art: [
+    '      @       ', '   ___@____   ', '  /   @    \\  ', ' | @  |     | ',
+    ' |    @     | ', ' |    |  @  | ', '  \\___@____/  ', '      @       ', '              ', '              '] },
+  { color: '#ffffff', art: [
+    '  *   *   *   ', '  *_________* ', ' */ @ * @ @ \\*', ' |* @ . @ * *|',
+    '*|. * @ . @ .|*', ' |* . @ * . *|', ' *\\. @ * . /*', '  *_________* ', '  *   *   *   ', '              '] },
+];
+
+// Front-view demon: curved ram horns at top, glowing eyes at row 2,
+// bat wings spread from shoulders (rows 5-9), four legs at bottom.
+// Fill char '!' substituted throughout for arcane energy variation.
+// EYE_ROW = 2 (the 'o' in row 2).
+export const DEMON_BODY_PARTS = [
+  // Row 0: ram horn outer loops — highest point (Legendary override row)
+  [
+    '   (((      )))    ',
+    '   (((     )))     ',
+    '  ((((     ))))    ',
+    '   (((--  --)))    ',
+    '  ((((     ))))    ',
+    '   (((==  ==)))    ',
+    '  ((((--  --))))   ',
+    '   (((     )))     ',
+  ],
+  // Row 1: horns descending, head crown
+  [
+    '  ))    ---    ((  ',
+    '  ))    ===    ((  ',
+    ' ))     ---     (( ',
+    ' ))     ===     (( ',
+    '  ))    ---    ((  ',
+    '  ))    ~~~    ((  ',
+    ' ))     ---     (( ',
+    '  ))    ===    ((  ',
+  ],
+  // Row 2: head with eyes  [EYE_ROW = 2]
+  [
+    '    ( o       o )  ',
+    '   (( o       o )) ',
+    '    ( o--     o )  ',
+    '    (  o     o  )  ',
+    '    [ o       o ]  ',
+    '    < o       o >  ',
+    '    { o       o }  ',
+    '   *( o       o )* ',
+  ],
+  // Row 3: fanged maw
+  [
+    '    ( >>---<< )    ',
+    '    ( >>===<< )    ',
+    '   (  >>---<<  )   ',
+    '    ( >>~~~<< )    ',
+    '    [ >>---<< ]    ',
+    '    ( >>***<< )    ',
+    '   (  >>===<<  )   ',
+    '    ( >>>|<<< )    ',
+  ],
+  // Row 4: chin + neck collar
+  [
+    '     {  !!!  }     ',
+    '     [  !!!  ]     ',
+    '    {{  !!!  }}    ',
+    '     (  !!!  )     ',
+    '     {  ---  }     ',
+    '     [  ---  ]     ',
+    '    {   !!!   }    ',
+    '     (  ---  )     ',
+  ],
+  // Row 5: shoulders + bat wing attachment
+  [
+    '  >-\\   |!!!!!|   /-<  ',
+    '  *-\\   |!!!!!|   /-*  ',
+    ' >--\\   |!!!!!|   /--< ',
+    ' *--\\   |!!!!!|   /--* ',
+    '  >-\\   |!!!!!|   /-<  ',
+    '  <-\\   |!!!!!|   /->  ',
+    ' >--\\   |!!!!!|   /--< ',
+    ' <--\\   |!!!!!|   /--> ',
+  ],
+  // Row 6: bat wings spread wide + chest
+  [
+    '>---\\  |!!!!!!!|  /---<',
+    '<---\\  |!!!!!!!|  /--->', 
+    '>---\\  |!!!!!!!|  /---<',
+    '*---\\  |!!!!!!!|  /---*',
+    '>----\\ |!!!!!!!| /----<',
+    '<----\\ |!!!!!!!| /---->',
+    '*----\\ |!!!!!!!| /----*',
+    '>---\\  |!!!!!!!|  /---<',
+  ],
+  // Row 7: wings at full spread + body
+  [
+    '>----\\ |!!!!!!!| /----<',
+    '<----\\ |!!!!!!!| /---->',
+    '>-----\\|!!!!!!!|/-----<',
+    '<-----\\|!!!!!!!|/----->',
+    '>----\\ |!!!!!!!| /----<',
+    '<----\\ |!!!!!!!| /---->',
+    '*----\\ |!!!!!!!| /----*',
+    '>-----\\|!!!!!!!|/-----<',
+  ],
+  // Row 8: wings narrowing + belly
+  [
+    ' >---\\ |!!!!!!!| /---< ',
+    ' <---\\ |!!!!!!!| /--->', 
+    ' >---\\ |!!!!!!!| /---< ',
+    ' *---\\ |!!!!!!!| /---* ',
+    ' >--\\  |!!!!!!!|  /--< ',
+    ' <--\\  |!!!!!!!|  /-->',
+    ' *--\\  |!!!!!!!|  /--* ',
+    ' >---\\ |!!!!!!!| /---< ',
+  ],
+  // Row 9: wings tuck + lower body
+  [
+    '  >--\\ |!!!!!!| /--<   ',
+    '  <--\\ |!!!!!!| /-->   ',
+    '  >--\\ |!!!!!!| /--<   ',
+    '  *--\\ |!!!!!!| /--*   ',
+    '  >-\\  |!!!!!!|  /-<   ',
+    '  <-\\  |!!!!!!|  /->   ',
+    '  *-\\  |!!!!!!|  /-*   ',
+    '  >--\\ |!!!!!!| /--<   ',
+  ],
+  // Row 10: haunches
+  [
+    '    /|  -------  |\\    ',
+    '   / |  -------  | \\   ',
+    '   ( |  -------  | )   ',
+    '    \\|  -------  |/    ',
+    '   *[|  -------  |]*   ',
+    '   /[|  -------  |]\\   ',
+    '   <(|  -------  |)>   ',
+    '    ||  -------  ||    ',
+  ],
+  // Row 11: upper legs
+  [
+    '  (/ \\            / \\)  ',
+    '  (|  \\          /  |)  ',
+    ' ( |  |          |  | ) ',
+    '  (|  \\          /  |)  ',
+    ' ([   \\          /   ]) ',
+    '  *|  |          |  |*  ',
+    ' ( |  (          )  | ) ',
+    ' ((   \\          /   )) ',
+  ],
+  // Row 12: lower legs
+  [
+    ' (|   |          |   |) ',
+    '  |   |          |   |  ',
+    ' /|   \\          /   |\\ ',
+    '( |   |          |   | )',
+    ' [|   |          |   |] ',
+    '*||   |          |   ||*',
+    ' ||   |          |   || ',
+    '(||   \\          /   ||)',
+  ],
+  // Row 13: cloven hooves
+  [
+    '  VV   VV           VV   VV  ',
+    '  vv   vv           vv   vv  ',
+    ' (VV) (VV)         (VV) (VV) ',
+    '  VV  (VV)         (VV)  VV  ',
+    ' (vv)  vv           vv  (vv) ',
+    '  vv  (vv)         (vv)  vv  ',
+    ' {VV} {VV}         {VV} {VV} ',
+    '  VV   vv           vv   VV  ',
+  ],
+];
+
+export const DEMON_FILL_SUBS = { from: '!', to: ['!', '@', '#', '*', '+', '~', '=', '^'] };
+
+export const DEMON_BASE_COLORS = [
+  '#9030d0',  // vivid violet
+  '#7020b0',  // deep purple
+  '#a040e0',  // bright violet
+  '#6018a0',  // dark purple
+  '#b050f0',  // light violet
+  '#8028c0',  // medium purple
+  '#5010a0',  // night purple
+  '#c060e0',  // lavender
+  '#4808a0',  // very dark violet
+  '#9838d8',  // royal purple
+  '#7828b8',  // dusky violet
+  '#b840e8',  // electric purple
+];
+
+export const DEMON_NAME_POOLS = {
+  pre: ['Mal', 'Vor', 'Hex', 'Nox', 'Bael', 'Zag', 'Meph', 'Lich', 'Doom', 'Vex',
+        'Brim', 'Scorn', 'Wrath', 'Dread', 'Abyss', 'Styx', 'Infern', 'Torment', 'Agony', 'Spite',
+        'Havoc', 'Chaos', 'Ash', 'Gloom', 'Fell', 'Bane', 'Crypt', 'Sorrow', 'Aether', 'Void'],
+  suf: ['wing', 'claw', 'horn', 'fang', 'fire', 'bane', 'wrath', 'soul', 'heart', 'eye',
+        'hunger', 'scream', 'rage', 'darkness', 'shadow', 'spite', 'blood', 'void', 'doom', 'ruin',
+        'terror', 'storm', 'flame', 'plague', 'malice', 'torment', 'despair', 'oblivion', 'abyss', 'end'],
+};
+
+export const DEMON_TITLE_POOLS = [
+  'the Insatiable', 'the Wretched', 'the Malevolent', 'the Corrupt', 'the Undying',
+  'the Ancient', 'the Abyssal', 'the Forsaken', 'the Vile', 'the Boundless',
+  'the Primordial', 'the Infernal', 'the Devourer', 'the Wrathful', 'the Accursed', 'the Immortal',
+  'the Ruinous', 'the Eternal', 'the Sovereign', 'the Catastrophic', 'the Hateful',
+  'the Insidious', 'the Merciless', 'the Thunderous', 'the Ravenous', 'the Cruel',
+  'the Unyielding', 'the Indomitable', 'the Dreadful',
+];
+
+const DEMON_ANIM_SUMMON1 = [
+  '  @   @   @   ', '  @_________@ ', ' @/ @ * @ @ \\@', ' |@ @ @ @ * @|',
+  '@|@ * @ @ * @|@', ' |@ @ * @ @ @|', ' @\\@ @ * @ /@', '  @_________@ ',
+  '  @   @   @   ', '              ', '              ', '              ', '              ', '              '];
+const DEMON_ANIM_SUMMON2 = [
+  '  !   !   !   ', '  !_________! ', ' !/ ! @ ! ! \\!', ' |! ! ! ! @ !|',
+  '!|! @ ! ! @ !|!', ' |! ! @ ! ! !|', ' !\\! ! @ ! /!', '  !_________! ',
+  '  !   !   !   ', '              ', '              ', '              ', '              ', '              '];
+const DEMON_ANIM_BURST = [
+  '@  ! @ ! @    ', '@ ! @ ! @ ! @ ', ' ! @ ! @ ! @  ', '@ ! @ ! @ ! @ ',
+  ' ! @ ! @ ! @  ', '! @ ! @ ! @ ! ', ' @ ! @ ! @ !  ', '@ ! @ ! @ ! @ ',
+  '@  ! @ ! @    ', '              ', '              ', '              ', '              ', '              '];
+
+export function generateDemon(demonEgg) {
+  const { foodSequence, rarityRoll, sacrificedCreatures } = demonEgg;
+  const sacrificedIds = (sacrificedCreatures || []).map(c => c.id).sort();
+  const hashStr = sacrificedIds.join(',') + ':' + foodSequence.join(',') + ':' + rarityRoll;
+  const hashVal = djb2(hashStr);
+  const rng = mulberry32(hashVal);
+  const rarity = getRarity(rarityRoll);
+
+  const lines = DEMON_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+
+  const fillCh = rng.pick(DEMON_FILL_SUBS.to);
+  if (fillCh !== DEMON_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(DEMON_FILL_SUBS.from).join(fillCh);
+
+  if (rarity.name === 'Legendary') lines[0] = '  (((>*<   >*<)))    ';
+  const centeredLines = centerLines(lines);
+
+  const pre = DEMON_NAME_POOLS.pre[Math.floor(rng.next() * DEMON_NAME_POOLS.pre.length)];
+  const suf = DEMON_NAME_POOLS.suf[Math.floor(rng.next() * DEMON_NAME_POOLS.suf.length)];
+  const title = DEMON_TITLE_POOLS[Math.floor(rng.next() * DEMON_TITLE_POOLS.length)];
+  const name = cap(pre + suf) + ' ' + title;
+
+  const baseColor = DEMON_BASE_COLORS[hashVal % DEMON_BASE_COLORS.length];
+  let color = baseColor;
+  if (rarity.name === 'Legendary')     color = lerpColor(baseColor, '#e0a0ff', 0.55);
+  else if (rarity.name === 'Rare')     color = lerpColor(baseColor, '#ff40ff', 0.42);
+  else if (rarity.name === 'Uncommon') color = lerpColor(baseColor, '#c060ff', 0.28);
+
+  const diet = foodSequence.length
+    ? Object.entries(foodSequence.reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, {}))
+        .map(([k, v]) => v + 'x ' + k).join(', ')
+    : 'none';
+
+  const id = toID(hashVal);
+  const shiny = rng.int(0, 100) === 0;
+
+  return {
+    id, hashVal, hashStr, name, color, rarity, lines: centeredLines,
+    diet, dom: null, sec: null, shiny, eyeRow: 2,
+    isGreatBeast: true, beastType: 'demon',
+    sacrificedCreatureIds: sacrificedIds,
+    traits: ['Great Beast', 'Demon'],
+  };
+}
+
+export function regenDemonLines(d) {
+  const rng = mulberry32(d.hashVal);
+  const lines = DEMON_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+  const fillCh = rng.pick(DEMON_FILL_SUBS.to);
+  if (fillCh !== DEMON_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(DEMON_FILL_SUBS.from).join(fillCh);
+  if (d.rarity?.name === 'Legendary') lines[0] = '  (((>*<   >*<)))    ';
+  d.lines = centerLines(lines);
+  d.eyeRow = 2;
+}
+
+export function buildDemonAnimSeq(demon) {
+  const pad = Array(4).fill('              ');
+  const s4ext   = [...DEMON_EGG_STAGES[4].art, ...pad];
+  const summon1 = [...DEMON_ANIM_SUMMON1];
+  const summon2 = [...DEMON_ANIM_SUMMON2];
+  const burst   = [...DEMON_ANIM_BURST];
+  return [
+    { lines: s4ext,      color: '#9030d0',                   delay: 320 },
+    { lines: s4ext,      color: '#e0a0ff',                   delay: 200 },
+    { lines: summon1,    color: '#c040e0',                   delay: 180 },
+    { lines: summon2,    color: '#9030d0',                   delay: 150 },
+    { lines: burst,      color: '#e0a0ff',                   delay: 130 },
+    { lines: burst,      color: '#c040e0',                   delay: 100 },
+    { lines: demon.lines, color: hexDim(demon.color, 0.22), delay: 220 },
+    { lines: demon.lines, color: hexDim(demon.color, 0.50), delay: 200 },
+    { lines: demon.lines, color: hexDim(demon.color, 0.80), delay: 260 },
+    { lines: demon.lines, color: demon.color,               delay: 0   },
+  ];
+}
 export const BEAST_EGG_STAGES_MAP = {
   dragon:    DRAGON_EGG_STAGES,
   kraken:    KRAKEN_EGG_STAGES,
   griffon:   GRIFFON_EGG_STAGES,
   manticore: MANTICORE_EGG_STAGES,
+  demon:     DEMON_EGG_STAGES,
 };
 
 export const BEAST_GENERATORS = {
@@ -1422,6 +1728,7 @@ export const BEAST_GENERATORS = {
   kraken:    { generate: generateKraken,    regenLines: regenKrakenLines,    buildAnimSeq: buildKrakenAnimSeq    },
   griffon:   { generate: generateGriffon,   regenLines: regenGriffonLines,   buildAnimSeq: buildGriffonAnimSeq   },
   manticore: { generate: generateManticore, regenLines: regenManticoreLines, buildAnimSeq: buildManticoreAnimSeq },
+  demon:     { generate: generateDemon,     regenLines: regenDemonLines,     buildAnimSeq: buildDemonAnimSeq     },
 };
 
 export function generateGreatBeast(egg) {
