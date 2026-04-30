@@ -6,7 +6,7 @@ import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTi
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
 import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxDragonHatch, sfxKrakenHatch, sfxGriffonHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
-import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_ART_AWAKE, KRAKEN_BEAST_ART_AWAKE, GRIFFON_BEAST_ART_AWAKE } from './modules/render.js';
+import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_WORLD_ART } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
 
@@ -486,9 +486,9 @@ function completeBeast(beast) {
   stopIdleAnims();
 
   const beastDefs = {
-    kraken:  { dissolveArt: SPLASH_ART,   dissolveClr1: '#40c0ff', dissolveClr2: '#104060', flashClr1: '#40e0ff', flashClr2: '#1080b0', eggStageArt: KRAKEN_EGG_STAGES[0].art,  eggClr: '#0a2a40', defaultBiome: 'wetlands', dissolveLog: 'The kraken sinks into the deep! A Kraken Egg bobs to the surface...', awakeArt: KRAKEN_BEAST_ART_AWAKE  },
-    griffon: { dissolveArt: FEATHERS_ART, dissolveClr1: '#e0c040', dissolveClr2: '#705010', flashClr1: '#f0d020', flashClr2: '#c09018', eggStageArt: GRIFFON_EGG_STAGES[0].art, eggClr: '#1a3010', defaultBiome: 'forest',   dissolveLog: 'The griffon fades into golden light! A Griffon Egg drifts down...', awakeArt: GRIFFON_BEAST_ART_AWAKE },
-    dragon:  { dissolveArt: EMBERS_ART,   dissolveClr1: '#ff6020', dissolveClr2: '#993010', flashClr1: '#ff8040', flashClr2: '#cc2010', eggStageArt: DRAGON_EGG_STAGES[0].art,  eggClr: '#8b2500', defaultBiome: 'badlands', dissolveLog: 'The dragon dissolves into embers! A Dragon Egg remains...',           awakeArt: BEAST_ART_AWAKE        },
+    kraken:  { dissolveArt: SPLASH_ART,   dissolveClr1: '#40c0ff', dissolveClr2: '#104060', flashClr1: '#40e0ff', flashClr2: '#1080b0', eggStageArt: KRAKEN_EGG_STAGES[0].art,  eggClr: '#0a2a40', defaultBiome: 'wetlands', dissolveLog: 'The kraken sinks into the deep! A Kraken Egg bobs to the surface...', awakeArt: BEAST_WORLD_ART.kraken.awake  },
+    griffon: { dissolveArt: FEATHERS_ART, dissolveClr1: '#e0c040', dissolveClr2: '#705010', flashClr1: '#f0d020', flashClr2: '#c09018', eggStageArt: GRIFFON_EGG_STAGES[0].art, eggClr: '#1a3010', defaultBiome: 'forest',   dissolveLog: 'The griffon fades into golden light! A Griffon Egg drifts down...', awakeArt: BEAST_WORLD_ART.griffon.awake },
+    dragon:  { dissolveArt: EMBERS_ART,   dissolveClr1: '#ff6020', dissolveClr2: '#993010', flashClr1: '#ff8040', flashClr2: '#cc2010', eggStageArt: DRAGON_EGG_STAGES[0].art,  eggClr: '#8b2500', defaultBiome: 'badlands', dissolveLog: 'The dragon dissolves into embers! A Dragon Egg remains...',           awakeArt: BEAST_WORLD_ART.dragon.awake  },
   };
   const def = beastDefs[beast.beastType] ?? beastDefs.dragon;
   const { dissolveArt, dissolveClr1, dissolveClr2, flashClr1, flashClr2, eggStageArt, eggClr, dissolveLog } = def;

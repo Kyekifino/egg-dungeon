@@ -1,16 +1,16 @@
 // All DOM rendering, idle animation state, and animation timers.
 // Reads G and selectedFood as live bindings from state.js.
 
-import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, getRarity, escHtml, rand, DRAGON_CHAR, KRAKEN_CHAR, GRIFFON_CHAR, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './utils.js';
+import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, BEAST_REGISTRY, getRarity, escHtml, rand, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './utils.js';
 import { getTile, getChunkBiome, chunkX, chunkY } from './world.js';
-import { EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
+import { EGG_STAGES, BEAST_EGG_STAGES_MAP, getEggStage, EYE_ROW } from './creature.js';
 import { G, selectedFood } from './state.js';
 import { startBiomeLoop } from './audio.js';
 
 // ── World-beast static art ────────────────────────────────────────
 const BEAST_ART_SLEEPING = [
   '   z  z  z   ',
-  '    ~\u03a9~     ',
+  '    ~Ω~     ',
   '   /~^~\\    ',
   '  ( z z  )  ',
   '  ~~===~~   ',
@@ -18,7 +18,7 @@ const BEAST_ART_SLEEPING = [
 ];
 export const BEAST_ART_AWAKE = [
   '  !  !!  !   ',
-  '    ~\u03a9~     ',
+  '    ~Ω~     ',
   '   /o^o\\    ',
   '  (  *  )   ',
   '  ~~===~~   ',
@@ -56,6 +56,13 @@ export const GRIFFON_BEAST_ART_AWAKE = [
   '  ==^^^==    ',
   ' /^^^^^^^\\   ',
 ];
+
+// Map beastType → { sleeping, awake } art — extend for each new beast
+export const BEAST_WORLD_ART = {
+  dragon:  { sleeping: BEAST_ART_SLEEPING,         awake: BEAST_ART_AWAKE         },
+  kraken:  { sleeping: KRAKEN_BEAST_ART_SLEEPING,  awake: KRAKEN_BEAST_ART_AWAKE  },
+  griffon: { sleeping: GRIFFON_BEAST_ART_SLEEPING, awake: GRIFFON_BEAST_ART_AWAKE },
+};
 
 // ── Idle animation state ──────────────────────────────────────────
 let idleGen             = 0;
@@ -130,9 +137,7 @@ export function shiftArt(lines, dx) {
 
 function getEggStageSet(egg) {
   if (!egg.isDragonEgg) return EGG_STAGES;
-  if (egg.beastType === 'kraken')  return KRAKEN_EGG_STAGES;
-  if (egg.beastType === 'griffon') return GRIFFON_EGG_STAGES;
-  return DRAGON_EGG_STAGES;
+  return BEAST_EGG_STAGES_MAP[egg.beastType] ?? BEAST_EGG_STAGES_MAP.dragon;
 }
 
 function triggerEggShake() {
@@ -270,9 +275,14 @@ export function startCreatureAnims() {
 
 const span = (ch, color) => `<span style="color:${color}">${escHtml(ch)}</span>`;
 
+// Camera position from last renderViewport call — used by mouse coordinate resolution
+let _lastCamX = 0;
+let _lastCamY = 0;
+
 function renderViewport() {
   const { px, py, revealed, worldEggs, worldBeasts } = G;
   const camX = px - Math.floor(VW / 2), camY = py - Math.floor(VH / 2);
+  _lastCamX = camX; _lastCamY = camY;
   let html = '';
   for (let vy = 0; vy < VH; vy++) {
     const gy = camY + vy;
@@ -280,7 +290,11 @@ function renderViewport() {
       const gx = camX + vx;
       if (gx === px && gy === py)                              { html += span('@', CLR.bright['@']); continue; }
       if (worldEggs?.has(`${gx},${gy}`))                       { html += span('Θ', CLR.bright['Θ']); continue; }
-      if (worldBeasts?.has(`${gx},${gy}`))                     { const _b = worldBeasts.get(`${gx},${gy}`); const _bc = _b.beastType === 'kraken' ? KRAKEN_CHAR : _b.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR; html += span(_bc, CLR.bright[_bc]); continue; }
+      if (worldBeasts?.has(`${gx},${gy}`)) {
+        const _b = worldBeasts.get(`${gx},${gy}`);
+        const _bc = (BEAST_REGISTRY[_b.beastType] ?? BEAST_REGISTRY.dragon).char;
+        html += span(_bc, CLR.bright[_bc]); continue;
+      }
       const inLight = Math.hypot(gx - px, gy - py) <= LIGHT_R;
       const seen = revealed.has(`${gx},${gy}`);
       if (!seen && !inLight)                 { html += span(' ', '#000'); continue; }
@@ -295,6 +309,20 @@ function renderViewport() {
     if (vy < VH - 1) html += '\n';
   }
   return html;
+}
+
+// Resolve a viewport click to world coordinates using the last-known camera position.
+// Returns { wx, wy } or null if outside the viewport.
+export function getWorldCoordsFromViewportClick(clientX, clientY) {
+  const el = document.getElementById('viewport');
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  const cellW = rect.width  / VW;
+  const cellH = rect.height / VH;
+  const vx = Math.floor((clientX - rect.left) / cellW);
+  const vy = Math.floor((clientY - rect.top)  / cellH);
+  if (vx < 0 || vx >= VW || vy < 0 || vy >= VH) return null;
+  return { wx: _lastCamX + vx, wy: _lastCamY + vy };
 }
 
 function renderInventory() {
@@ -334,24 +362,19 @@ function renderBottomPlaying() {
   const adjBeast = getAdjacentBeast();
 
   if (adjBeast && !adjEgg) {
-    const beastChar  = adjBeast.beastType === 'kraken' ? KRAKEN_CHAR : adjBeast.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR;
+    const bDef       = BEAST_REGISTRY[adjBeast.beastType] ?? BEAST_REGISTRY.dragon;
+    const beastChar  = bDef.char;
     const asleep     = adjBeast.phase === 'sleeping';
-    const art = adjBeast.beastType === 'kraken'
-      ? (asleep ? KRAKEN_BEAST_ART_SLEEPING : KRAKEN_BEAST_ART_AWAKE)
-      : adjBeast.beastType === 'griffon'
-        ? (asleep ? GRIFFON_BEAST_ART_SLEEPING : GRIFFON_BEAST_ART_AWAKE)
-        : (asleep ? BEAST_ART_SLEEPING : BEAST_ART_AWAKE);
+    const art        = (BEAST_WORLD_ART[adjBeast.beastType] ?? BEAST_WORLD_ART.dragon)[asleep ? 'sleeping' : 'awake'];
     const color      = asleep ? CLR.dim[beastChar] : CLR.bright[beastChar];
-    const awakenClr  = adjBeast.beastType === 'kraken' ? '#40c0ff' : adjBeast.beastType === 'griffon' ? '#f0c820' : '#ff8040';
-    const beastTitle = adjBeast.beastType === 'kraken' ? 'Ancient Kraken' : adjBeast.beastType === 'griffon' ? 'Ancient Griffon' : 'Ancient Dragon';
     document.getElementById('egg-display').innerHTML =
       art.map(l => `<span style="color:${color}">${escHtml(l)}</span>`).join('\n');
     const gemFilled = Math.round(adjBeast.gemsReceived / DRAGON_GEM_COST * 10);
     const gemBar    = '█'.repeat(gemFilled) + '░'.repeat(10 - gemFilled);
     const offered   = adjBeast.sacrificedCreatures?.length ?? 0;
     document.getElementById('egg-info').innerHTML = `
-      <div style="color:${CLR.bright[beastChar]};font-size:.9rem">${escHtml(beastChar)} ${escHtml(beastTitle)}</div>
-      <div style="font-size:.75rem;color:#888;margin-bottom:4px">${asleep ? 'Slumbering' : `<span style="color:${awakenClr}">Awoken</span>`}</div>
+      <div style="color:${CLR.bright[beastChar]};font-size:.9rem">${escHtml(beastChar)} ${escHtml(bDef.title)}</div>
+      <div style="font-size:.75rem;color:#888;margin-bottom:4px">${asleep ? 'Slumbering' : `<span style="color:${bDef.awakenColor}">Awoken</span>`}</div>
       <div style="font-size:.75rem;color:#666">${adjBeast.gemsReceived}/${DRAGON_GEM_COST} gems &nbsp;<span style="color:${GEM_COLOR}">${gemBar}</span></div>
       ${asleep ? '' : `<div style="font-size:.72rem;color:#666;margin-top:2px">${offered}/${DRAGON_CREATURE_COST} creatures offered</div>`}
       <div style="font-size:.72rem;color:#555;margin-top:6px">Press E to interact</div>`;
@@ -374,14 +397,15 @@ function renderBottomPlaying() {
     const selLabel = isGem ? `${GEM_CHAR} gem` : `${selCh} ${selectedFood}`;
     const selAmt  = isGem ? G.inventory.gem : G.inventory[selectedFood];
     const isGreatBeastEgg = !!adjEgg.isDragonEgg;
-    const beastEggLabel = adjEgg.beastType === 'kraken' ? 'Kraken Egg' : adjEgg.beastType === 'griffon' ? 'Griffon Egg' : 'Dragon Egg';
+    const beastEggDef   = BEAST_REGISTRY[adjEgg.beastType] ?? BEAST_REGISTRY.dragon;
+    const beastEggLabel = beastEggDef.eggLabel;
+    const beastEggChar  = beastEggDef.char;
+    const beastEggColor = CLR.bright[beastEggChar];
     const feedMsg = isGem
       ? (isGreatBeastEgg ? `<span style="color:#e05050">${beastEggLabel}s cannot be enhanced with gems.</span>` : 'Press F to boost rarity!')
       : 'Press F to feed!';
     const currRarity = getRarity(adjEgg.rarityRoll);
     const eggBiome = adjEgg.biome ? BIOMES[adjEgg.biome] : null;
-    const beastEggChar  = adjEgg.beastType === 'kraken' ? KRAKEN_CHAR : adjEgg.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR;
-    const beastEggColor = CLR.bright[beastEggChar];
     const biomeLabel = isGreatBeastEgg
       ? `<span style="color:${beastEggColor};font-size:.72rem">${escHtml(beastEggChar)} ${beastEggLabel} &nbsp;<span style="color:#888;font-size:.68rem">(rarity locked)</span></span>`
       : (eggBiome ? `<span style="color:${eggBiome.accent};font-size:.72rem">&#9672; ${eggBiome.name} egg</span>` : '');
@@ -403,10 +427,10 @@ function renderBottomPlaying() {
     document.getElementById('egg-display').innerHTML =
       G.creature.lines.map(l => cLine(G.creature, l)).join('\n');
     const r = G.creature.rarity;
-    const _gbChar  = G.creature.beastType === 'kraken' ? KRAKEN_CHAR : G.creature.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR;
-    const _gbColor = CLR.bright[_gbChar];
+    const _gbDef   = BEAST_REGISTRY[G.creature.beastType] ?? BEAST_REGISTRY.dragon;
+    const _gbColor = CLR.bright[_gbDef.char];
     const beastBadge = G.creature.isGreatBeast
-      ? `<div style="color:${_gbColor};font-size:.72rem">${escHtml(_gbChar)} Great Beast &middot; ${escHtml(G.creature.beastType ?? 'dragon')}</div>` : '';
+      ? `<div style="color:${_gbColor};font-size:.72rem">${escHtml(_gbDef.char)} Great Beast &middot; ${escHtml(G.creature.beastType ?? 'dragon')}</div>` : '';
     document.getElementById('egg-info').innerHTML = `
       <div id="creature-name-display" style="color:${G.creature.color}">&ldquo;${escHtml(G.creature.name)}&rdquo;</div>
       <div id="creature-rarity-display" style="color:${r.color}">${r.badge} ${r.name}${G.creature.shiny ? shinyTag() : ''}</div>
@@ -522,10 +546,11 @@ function renderGreatBeastsTab() {
   if (!colBlinkTimer)  colBlinkTimer  = setTimeout(triggerColBlink,  2500 + rand(0, 2000));
   if (!colJiggleTimer) colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
 
+  const selBDef = BEAST_REGISTRY[sel.beastType] ?? BEAST_REGISTRY.dragon;
   document.getElementById('col-detail-info').innerHTML = `
     <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
     <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}${sel.shiny ? shinyTag() : ''}</div>
-    <div style="color:${CLR.bright[sel.beastType === 'kraken' ? KRAKEN_CHAR : sel.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR]};font-size:0.72rem">${escHtml(sel.beastType === 'kraken' ? KRAKEN_CHAR : sel.beastType === 'griffon' ? GRIFFON_CHAR : DRAGON_CHAR)} Great Beast &middot; ${escHtml(sel.beastType ?? 'dragon')}</div>
+    <div style="color:${CLR.bright[selBDef.char]};font-size:0.72rem">${escHtml(selBDef.char)} Great Beast &middot; ${escHtml(sel.beastType ?? 'dragon')}</div>
     <div style="color:#606060;font-size:0.68rem">${escHtml(sel.diet)}</div>
     <div style="color:#555;font-size:0.65rem">ID: ${sel.id}</div>`;
 }
@@ -566,9 +591,9 @@ function renderCollection() {
   }
 }
 
-export function renderDragonOverlay() {
+export function renderBeastOverlay() {
   const show = !!(G?.dragonInteract && !G.sacrificeMode);
-  const el = document.getElementById('dragon-overlay');
+  const el = document.getElementById('beast-overlay');
   el.hidden = !show;
   if (!show || !G?.worldBeasts) return;
 
@@ -576,27 +601,17 @@ export function renderDragonOverlay() {
   if (!beast) { el.hidden = true; return; }
 
   const { phase, gemsReceived: gems, sacrificedCreatures: offered, beastType } = beast;
+  const bDef = BEAST_REGISTRY[beastType] ?? BEAST_REGISTRY.dragon;
   const gemFilled = Math.round(gems / DRAGON_GEM_COST * 20);
   const gemBar    = '█'.repeat(gemFilled) + '░'.repeat(20 - gemFilled);
 
-  document.getElementById('dragon-title').textContent =
-    beastType === 'kraken'  ? `${KRAKEN_CHAR}  ANCIENT KRAKEN`  :
-    beastType === 'griffon' ? `${GRIFFON_CHAR}  ANCIENT GRIFFON` :
-                              `${DRAGON_CHAR}  ANCIENT DRAGON`;
+  document.getElementById('beast-title').textContent = bDef.overlayTitle;
 
-  document.getElementById('dragon-phase').innerHTML = phase === 'sleeping'
-    ? (beastType === 'kraken'
-        ? '<span style="color:#888">The kraken lies dormant, tentacles drifting in the cold dark...</span>'
-        : beastType === 'griffon'
-          ? '<span style="color:#888">The griffon slumbers, great wings folded, eyes half-closed...</span>'
-          : '<span style="color:#888">The dragon lies dormant, scales flickering with dying embers...</span>')
-    : (beastType === 'kraken'
-        ? '<span style="color:#40c0ff">The kraken stirs, vast eyes regarding you from the depths.</span>'
-        : beastType === 'griffon'
-          ? '<span style="color:#f0c820">The griffon raises its proud head, keen eyes fixing upon you.</span>'
-          : '<span style="color:#ff8040">The dragon stirs, ancient eyes regarding you with hunger.</span>');
+  document.getElementById('beast-phase').innerHTML = phase === 'sleeping'
+    ? `<span style="color:${bDef.dormantFlavColor}">${bDef.dormantFlavor}</span>`
+    : `<span style="color:${bDef.awakenFlavColor}">${bDef.awakenFlavor}</span>`;
 
-  document.getElementById('dragon-gem-progress').innerHTML =
+  document.getElementById('beast-gem-progress').innerHTML =
     `<span style="color:${phase === 'awake' ? '#50c080' : GEM_COLOR}">${gemBar}</span>` +
     `  <span style="color:#888;font-size:.75rem">${gems}/${DRAGON_GEM_COST} gems</span>`;
 
@@ -607,11 +622,11 @@ export function renderDragonOverlay() {
         ? `<span style="color:${c.rarity.color};font-size:.72rem">[${escHtml(c.name.split(' ')[0])}]</span>`
         : `<span style="color:#333;font-size:.72rem">[&nbsp;&nbsp;&nbsp;?&nbsp;&nbsp;&nbsp;]</span>`;
     }).join(' ');
-    document.getElementById('dragon-creatures').innerHTML =
+    document.getElementById('beast-creatures').innerHTML =
       `<div style="display:flex;gap:4px;flex-wrap:wrap">${slots}</div>` +
       `<div style="color:#888;font-size:.72rem;margin-top:4px">${offered.length}/${DRAGON_CREATURE_COST} creatures offered</div>`;
   } else {
-    document.getElementById('dragon-creatures').innerHTML = '';
+    document.getElementById('beast-creatures').innerHTML = '';
   }
 
   const noCreatures = !G.collection?.length;
@@ -620,11 +635,11 @@ export function renderDragonOverlay() {
     : (noCreatures
         ? '<span style="white-space:nowrap">No creatures to offer &mdash; hatch some eggs first!</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;leave</span>'
         : '<span style="white-space:nowrap">C:&nbsp;offer a creature</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;leave</span>');
-  document.getElementById('dragon-hint').innerHTML = hint;
+  document.getElementById('beast-hint').innerHTML = hint;
 }
 
 export function render() {
-  renderDragonOverlay();
+  renderBeastOverlay();
   if (G.phase === 'animating') return;
 
   const showCol = G.showCollection;
