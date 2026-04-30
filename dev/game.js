@@ -33,7 +33,13 @@ const FEATHERS_ART = [
   '    ^  ^  ^   ', '              ',
 ];
 
-const DISSOLVE_ARTS = { embers: EMBERS_ART, splash: SPLASH_ART, feathers: FEATHERS_ART };
+const DUST_ART = [
+  '              ', '  ,   , ,     ', '    , ,  , ,  ', '  ,   ,  ,    ',
+  '  , ,    , ,  ', '   , ,  ,     ', ' ,  ,   , , , ', '  ,  ,    ,   ',
+  '    ,  ,  ,   ', '              ',
+];
+
+const DISSOLVE_ARTS = { embers: EMBERS_ART, splash: SPLASH_ART, feathers: FEATHERS_ART, dust: DUST_ART };
 
 function addLog(msg) {
   G.log.push(msg);

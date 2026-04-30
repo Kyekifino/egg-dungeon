@@ -120,14 +120,33 @@ export const BEAST_REGISTRY = {
     dissolveLog: 'The griffon fades into golden light! A Griffon Egg drifts down...',
     dissolveArtKey: 'feathers',
   },
+  manticore: {
+    char: 'Ξ',
+    colorBright: '#c87828', colorDim: '#4a2c0a',
+    biome: 'plains', spawnRate: 20,
+    awakenColor: '#e89030',
+    title: 'Ancient Manticore',
+    overlayTitle: 'Ξ  ANCIENT MANTICORE',
+    dormantFlavor: 'The manticore lies coiled, tail arched overhead, eyes half-closed...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The manticore raises its terrible head, stinger gleaming with venom.',
+    awakenFlavColor: '#e89030',
+    eggLabel: 'Manticore Egg',
+    dissolveClr1: '#c87828', dissolveClr2: '#4a2c0a',
+    flashClr1: '#e89030',   flashClr2: '#a05010',
+    eggClr: '#5a3010',
+    dissolveLog: 'The manticore dissolves into golden dust! A Manticore Egg settles in the sand...',
+    dissolveArtKey: 'dust',
+  },
 };
 
 export const BEAST_TYPES = Object.keys(BEAST_REGISTRY);
 
 // Named char constants derived from registry (kept for import compatibility)
-export const DRAGON_CHAR  = BEAST_REGISTRY.dragon.char;
-export const KRAKEN_CHAR  = BEAST_REGISTRY.kraken.char;
-export const GRIFFON_CHAR = BEAST_REGISTRY.griffon.char;
+export const DRAGON_CHAR    = BEAST_REGISTRY.dragon.char;
+export const KRAKEN_CHAR    = BEAST_REGISTRY.kraken.char;
+export const GRIFFON_CHAR   = BEAST_REGISTRY.griffon.char;
+export const MANTICORE_CHAR = BEAST_REGISTRY.manticore.char;
 
 // Chunk dimensions & corridor positions (guaranteed connectivity)
 export const CW = 26;

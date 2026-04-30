@@ -1106,16 +1106,322 @@ export function buildGriffonAnimSeq(griffon) {
   ];
 }
 
+
+export const MANTICORE_EGG_STAGES = [
+  { color: '#5a3a10', art: [
+    '              ', '   ________   ', '  /        \\  ', ' |   ><><   | ',
+    ' |  ( >< )  | ', ' |   ><><   | ', '  \\________/  ', '              ', '              ', '              '] },
+  { color: '#7a5018', art: [
+    '              ', '   ________   ', '  / > > >   \\  ', ' | > >< > > | ',
+    ' |  > > >   | ', ' | > >< > > | ', '  \\________/  ', '              ', '              ', '              '] },
+  { color: '#9a6820', art: [
+    '      >       ', '   ___>____   ', '  /   >    \\  ', ' | >  |     | ',
+    ' |    >     | ', ' |    |  >  | ', '  \\___>____/  ', '      >       ', '              ', '              '] },
+  { color: '#c87828', art: [
+    '      *       ', '   __/>____   ', '  />  \\ >   \\ ', ' |  /* \\   >| ',
+    ' | />  \\*   | ', ' |/   > \\ >  | ', '  \\/\\>/  \\>/  ', '      *       ', '              ', '              '] },
+  { color: '#ffffff', art: [
+    '  *   *   *   ', '  *_________* ', ' */ > * > > \\*', ' |* > . > * *|',
+    '*|> * > > * >|*', ' |* . > * . *|', ' *\\> > * > /*', '  *_________* ', '  *   *   *   ', '              '] },
+];
+
+// Side-view manticore: head faces left, tail sweeps upper-right.
+// Fill char '=' substituted throughout for body texture variation.
+// EYE_ROW = 4 (the 'o' in row 4).
+export const MANTICORE_BODY_PARTS = [
+  // Row 0: stinger tip — highest point (Legendary override row)
+  [
+    '              *>         ',
+    '             <*>         ',
+    '              >*         ',
+    '             (*>)        ',
+    '              *~>        ',
+    '            >-*->        ',
+    '              >*<        ',
+    '             <**>        ',
+  ],
+  // Row 1: upper tail curve
+  [
+    '             /~          ',
+    '            /~~          ',
+    '           (~~           ',
+    '            /~-          ',
+    '           /~~~          ',
+    '            /~|          ',
+    '           (~~~          ',
+    '           /~~           ',
+  ],
+  // Row 2: tail mid arc, head crown begins (left)
+  [
+    '  ,-         /~~         ',
+    '  ,-.       /~~~         ',
+    '  ,--       /~~          ',
+    '  ,=-.     /~~~          ',
+    '  ,-        /~~          ',
+    '  ,=.      (~~~          ',
+    '  ,--      /~~           ',
+    '  ,-.      /~~~          ',
+  ],
+  // Row 3: head upper + tail body
+  [
+    ' (   |      /~~~         ',
+    ' ( , |     /~~~~         ',
+    '(    |     /~~~          ',
+    ' (   |    (~~~~          ',
+    ' ( , |    /~~~~          ',
+    '(    |    /~~~~~         ',
+    ' (   |    (~~~           ',
+    ' ( , |    /~~~~          ',
+  ],
+  // Row 4: eye (side profile) + mane + tail  [EYE_ROW = 4]
+  [
+    '(o   |     /~~~~         ',
+    '(o   |    /~~~~~         ',
+    '(o , |    /~~~~          ',
+    '(o=  |   /~~~~~          ',
+    '(o   |    (~~~~~         ',
+    '(o , |   /~~~~~          ',
+    '(o=  |   /~~~~           ',
+    '(o   |   (~~~~           ',
+  ],
+  // Row 5: mouth + mane + body begins + tail connects
+  [
+    ' )--| ~~~~======)~~      ',
+    ' )--) ~~~~======~~~      ',
+    ' )--| ~~~~=======~~      ',
+    ' )--/ ~~~~=======~~~     ',
+    ' )---| ~~~=======~~      ',
+    ' )--/ ~~~~========~~     ',
+    ' )--| ~~~~=======~~~     ',
+    ' )--) ~~~~========~~     ',
+  ],
+  // Row 6: jaw/chin + mane + body
+  [
+    '  |   ~~~~========       ',
+    '  |  /~~~~=========      ',
+    '  |   ~~~=========       ',
+    '  | ( ~~~~=========      ',
+    '  |   ~~~~=========      ',
+    '  |  /~~~==========      ',
+    '  |   ~~~~=========      ',
+    '  | ( ~~~==========      ',
+  ],
+  // Row 7: neck post + body (widest)
+  [
+    '  |    |=========        ',
+    '  |   /|=========        ',
+    '  |    |==========       ',
+    '  |  ( |==========       ',
+    '  |    |=========        ',
+    '  |   /|==========       ',
+    '  |    (==========       ',
+    '  |  ( |=========        ',
+  ],
+  // Row 8: body
+  [
+    '  |    |=========        ',
+    '  |    |==========       ',
+    '  |   ( =========        ',
+    '  |   /|=========        ',
+    '  |    |==========       ',
+    '  |    |=========        ',
+    '  |   ( =========        ',
+    '  |   /|==========       ',
+  ],
+  // Row 9: lower body
+  [
+    '  |    |=========        ',
+    '  |   /|=========        ',
+    '  |    (=========        ',
+    '  |    |=========        ',
+    '  |   / ========         ',
+    '  |    |=========        ',
+    '  |   /|=========        ',
+    '  |    (=========        ',
+  ],
+  // Row 10: belly + upper legs
+  [
+    '  |   /|     |\\          ',
+    '  |  / |     | \\         ',
+    '  |   ||     ||           ',
+    '  |  /||     |\\|         ',
+    '  |   /|     |\\          ',
+    '  |  / |     | \\         ',
+    '  |   ||     ||           ',
+    '  |  /||     | |          ',
+  ],
+  // Row 11: upper legs
+  [
+    '  |   /|     |  \\        ',
+    '  |  / |     |   \\       ',
+    '  |   ||     |   |        ',
+    '  |   /|     |   \\       ',
+    '  |  / |     |    \\      ',
+    '  |   ||     |    |       ',
+    '  |   /|     |    \\      ',
+    '  |  / |     |   \\       ',
+  ],
+  // Row 12: lower legs
+  [
+    '  |    |     |    |       ',
+    '  |  / |     |    \\      ',
+    '  | /  |     |    |       ',
+    '  |    |     |    |       ',
+    '  |  / |     |    |       ',
+    '  | /  |     |   \\       ',
+    '  |    |     |    \\      ',
+    '  |  / |     |    |       ',
+  ],
+  // Row 13: lion paws
+  [
+    ' (_)  (__)     (__)  (_) ',
+    '  UU   UU       UU   UU  ',
+    ' (U)  (U)       (U)  (U) ',
+    '  uu   uu        uu   uu  ',
+    ' (UU)  UU       UU  (UU) ',
+    '  UU  (UU)     (UU)  UU  ',
+    ' (__)  __) (__  __)      ',
+    '  U    U       U    U    ',
+  ],
+];
+
+export const MANTICORE_FILL_SUBS = { from: '=', to: ['=', '#', '~', 'X', '+', '*', '^', '-'] };
+
+export const MANTICORE_BASE_COLORS = [
+  '#c87828',  // tawny gold
+  '#b06020',  // sienna
+  '#d09030',  // amber
+  '#a05818',  // dark tawny
+  '#c89020',  // harvest gold
+  '#d08030',  // burnt orange
+  '#a06820',  // earthy brown
+  '#e0a030',  // golden
+  '#b07028',  // bronze tawny
+  '#c09020',  // warm gold
+  '#d06018',  // rust gold
+  '#b08030',  // wheat gold
+];
+
+export const MANTICORE_NAME_POOLS = {
+  pre: ['Vel', 'Scor', 'Fang', 'Ven', 'Rex', 'Skar', 'Bane', 'Grim', 'Dread', 'Slay',
+        'Hunt', 'Rend', 'Carn', 'Vorax', 'Taur', 'Solis', 'Arx', 'Mira', 'Stern', 'Pyre',
+        'Blaze', 'Ash', 'Dire', 'Fell', 'Hate', 'Ire', 'Keen', 'Raid', 'Sear', 'Thorn'],
+  suf: ['mane', 'sting', 'claw', 'fang', 'hunter', 'terror', 'roar', 'bane', 'wrath', 'venom',
+        'spine', 'barb', 'thorn', 'plague', 'ruin', 'ravage', 'strike', 'doom', 'tusk', 'paw',
+        'pride', 'fury', 'jaw', 'tail', 'grin', 'fear', 'slay', 'cut', 'kill', 'bite'],
+};
+
+export const MANTICORE_TITLE_POOLS = [
+  'the Terrible', 'the Fearless', 'the Venomous', 'the Relentless', 'the Undying',
+  'the Ancient', 'the Ferocious', 'the Merciless', 'the Ravenous', 'the Boundless',
+  'the Primordial', 'the Dreadful', 'the Savage', 'the Wrathful', 'the Voracious', 'the Immortal',
+  'the Pitiless', 'the Unyielding', 'the Sovereign', 'the Catastrophic', 'the Forsaken',
+  'the Bloodthirsty', 'the Ruthless', 'the Thunderous', 'the Devastating', 'the Cruel',
+  'the Indomitable', 'the Harrowing', 'the Primeval',
+];
+
+const MANTICORE_ANIM_ROAR1 = [
+  '  >   >   >   ', '  >_________> ', ' >/ > * > . \\>', ' |> . > . . | ',
+  '>|. > . > . |>', ' |> . > . > | ', ' >\\. > * > /> ', '  >_________> ',
+  '  >   >   >   ', '              ', '              ', '              ', '              ', '              '];
+const MANTICORE_ANIM_ROAR2 = [
+  '  *   *   *   ', '  *_________* ', ' */ > * > > \\*', ' |> > . > * *|',
+  '*|. * > . > .|*', ' |* . > * . *|', ' *\\. > * . /*', '  *_________* ',
+  '  *   *   *   ', '              ', '              ', '              ', '              ', '              '];
+const MANTICORE_ANIM_BURST = [
+  '>  * > * >    ', '> * > * > * > ', ' * > * > * >  ', '> * > * > * > ',
+  ' * > * > * >  ', '* > * > * > * ', ' > * > * > *  ', '> * > * > * > ',
+  '>  * > * >    ', '              ', '              ', '              ', '              ', '              '];
+
+export function generateManticore(manticoreEgg) {
+  const { foodSequence, rarityRoll, sacrificedCreatures } = manticoreEgg;
+  const sacrificedIds = (sacrificedCreatures || []).map(c => c.id).sort();
+  const hashStr = sacrificedIds.join(',') + ':' + foodSequence.join(',') + ':' + rarityRoll;
+  const hashVal = djb2(hashStr);
+  const rng = mulberry32(hashVal);
+  const rarity = getRarity(rarityRoll);
+
+  const lines = MANTICORE_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+
+  const fillCh = rng.pick(MANTICORE_FILL_SUBS.to);
+  if (fillCh !== MANTICORE_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(MANTICORE_FILL_SUBS.from).join(fillCh);
+
+  if (rarity.name === 'Legendary') lines[0] = '        >-*->*->-         ';
+  const centeredLines = centerLines(lines);
+
+  const pre = MANTICORE_NAME_POOLS.pre[Math.floor(rng.next() * MANTICORE_NAME_POOLS.pre.length)];
+  const suf = MANTICORE_NAME_POOLS.suf[Math.floor(rng.next() * MANTICORE_NAME_POOLS.suf.length)];
+  const title = MANTICORE_TITLE_POOLS[Math.floor(rng.next() * MANTICORE_TITLE_POOLS.length)];
+  const name = cap(pre + suf) + ' ' + title;
+
+  const baseColor = MANTICORE_BASE_COLORS[hashVal % MANTICORE_BASE_COLORS.length];
+  let color = baseColor;
+  if (rarity.name === 'Legendary')     color = lerpColor(baseColor, '#fff0a0', 0.55);
+  else if (rarity.name === 'Rare')     color = lerpColor(baseColor, '#ff6040', 0.42);
+  else if (rarity.name === 'Uncommon') color = lerpColor(baseColor, '#ffb050', 0.28);
+
+  const diet = foodSequence.length
+    ? Object.entries(foodSequence.reduce((a, k) => { a[k] = (a[k] || 0) + 1; return a; }, {}))
+        .map(([k, v]) => v + 'x ' + k).join(', ')
+    : 'none';
+
+  const id = toID(hashVal);
+  const shiny = rng.int(0, 100) === 0;
+
+  return {
+    id, hashVal, hashStr, name, color, rarity, lines: centeredLines,
+    diet, dom: null, sec: null, shiny, eyeRow: 4,
+    isGreatBeast: true, beastType: 'manticore',
+    sacrificedCreatureIds: sacrificedIds,
+    traits: ['Great Beast', 'Manticore'],
+  };
+}
+
+export function regenManticoreLines(m) {
+  const rng = mulberry32(m.hashVal);
+  const lines = MANTICORE_BODY_PARTS.map(rowPool => rng.pick(rowPool));
+  const fillCh = rng.pick(MANTICORE_FILL_SUBS.to);
+  if (fillCh !== MANTICORE_FILL_SUBS.from)
+    for (let i = 0; i < lines.length; i++)
+      lines[i] = lines[i].split(MANTICORE_FILL_SUBS.from).join(fillCh);
+  if (m.rarity?.name === 'Legendary') lines[0] = '        >-*->*->-         ';
+  m.lines = centerLines(lines);
+  m.eyeRow = 4;
+}
+
+export function buildManticoreAnimSeq(manticore) {
+  const pad = Array(4).fill('              ');
+  const s4ext  = [...MANTICORE_EGG_STAGES[4].art, ...pad];
+  const roar1  = [...MANTICORE_ANIM_ROAR1];
+  const roar2  = [...MANTICORE_ANIM_ROAR2];
+  const burst  = [...MANTICORE_ANIM_BURST];
+  return [
+    { lines: s4ext,           color: '#c87828',                      delay: 320 },
+    { lines: s4ext,           color: '#fff8c0',                      delay: 200 },
+    { lines: roar1,           color: '#e89030',                      delay: 180 },
+    { lines: roar2,           color: '#c87828',                      delay: 150 },
+    { lines: burst,           color: '#fff0c0',                      delay: 130 },
+    { lines: burst,           color: '#e89030',                      delay: 100 },
+    { lines: manticore.lines, color: hexDim(manticore.color, 0.22), delay: 220 },
+    { lines: manticore.lines, color: hexDim(manticore.color, 0.50), delay: 200 },
+    { lines: manticore.lines, color: hexDim(manticore.color, 0.80), delay: 260 },
+    { lines: manticore.lines, color: manticore.color,               delay: 0   },
+  ];
+}
 export const BEAST_EGG_STAGES_MAP = {
-  dragon:  DRAGON_EGG_STAGES,
-  kraken:  KRAKEN_EGG_STAGES,
-  griffon: GRIFFON_EGG_STAGES,
+  dragon:    DRAGON_EGG_STAGES,
+  kraken:    KRAKEN_EGG_STAGES,
+  griffon:   GRIFFON_EGG_STAGES,
+  manticore: MANTICORE_EGG_STAGES,
 };
 
 export const BEAST_GENERATORS = {
-  dragon:  { generate: generateDragon,  regenLines: regenDragonLines,  buildAnimSeq: buildDragonAnimSeq  },
-  kraken:  { generate: generateKraken,  regenLines: regenKrakenLines,  buildAnimSeq: buildKrakenAnimSeq  },
-  griffon: { generate: generateGriffon, regenLines: regenGriffonLines, buildAnimSeq: buildGriffonAnimSeq },
+  dragon:    { generate: generateDragon,    regenLines: regenDragonLines,    buildAnimSeq: buildDragonAnimSeq    },
+  kraken:    { generate: generateKraken,    regenLines: regenKrakenLines,    buildAnimSeq: buildKrakenAnimSeq    },
+  griffon:   { generate: generateGriffon,   regenLines: regenGriffonLines,   buildAnimSeq: buildGriffonAnimSeq   },
+  manticore: { generate: generateManticore, regenLines: regenManticoreLines, buildAnimSeq: buildManticoreAnimSeq },
 };
 
 export function generateGreatBeast(egg) {

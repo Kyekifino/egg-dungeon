@@ -214,12 +214,27 @@ export function sfxSacrifice() {
   playTone(45, t + 0.45, 0.45, 'triangle', 0.06, ctx);
 }
 
+export function sfxManticoreHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Low rumbling roar
+  [36, 40, 43].forEach((m, i) => playTone(m, t + i * 0.06, 0.5, 'sawtooth', 0.14, ctx));
+  // Rising screech
+  [55, 58, 62, 65].forEach((m, i) => playTone(m, t + 0.22 + i * 0.08, 0.4, 'triangle', 0.12 - i * 0.02, ctx));
+  // Stinger strike — sharp high note
+  playTone(84, t + 0.60, 0.15, 'square', 0.10, ctx);
+  playTone(88, t + 0.72, 0.25, 'sawtooth', 0.08, ctx);
+  playTone(76, t + 0.82, 0.6, 'triangle', 0.12, ctx);
+}
+
 export function getMuted() { return muted; }
 
 export const SFX_BEAST_HATCH = {
-  dragon:  sfxDragonHatch,
-  kraken:  sfxKrakenHatch,
-  griffon: sfxGriffonHatch,
+  dragon:    sfxDragonHatch,
+  kraken:    sfxKrakenHatch,
+  griffon:   sfxGriffonHatch,
+  manticore: sfxManticoreHatch,
 };
 
 export function setMuted(val) {
