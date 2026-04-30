@@ -1,7 +1,7 @@
 // Orchestrator: game logic, save/load, startup.
 // All rendering, audio, world, and creature logic lives in modules/.
 
-import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
+import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, BIOMES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn, markChestOpened, setOpenedChests, getOpenedChests } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, BEAST_EGG_STAGES_MAP } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
@@ -723,14 +723,17 @@ if (isDev) {
   ]);
 
   const DEV_ITEMS = [
-    { label: 'Egg — Common',    type: 'egg', rarityRoll: 0    },
-    { label: 'Egg — Uncommon',  type: 'egg', rarityRoll: 6000 },
-    { label: 'Egg — Rare',      type: 'egg', rarityRoll: 8500 },
-    { label: 'Egg — Legendary', type: 'egg', rarityRoll: 9700 },
+    { label: 'Egg — Common',         type: 'egg',           rarityRoll: 0    },
+    { label: 'Egg — Uncommon',       type: 'egg',           rarityRoll: 6000 },
+    { label: 'Egg — Rare',           type: 'egg',           rarityRoll: 8500 },
+    { label: 'Egg — Legendary',      type: 'egg',           rarityRoll: 9700 },
     ...beastDevItems,
-    { label: 'Chest',                 type: 'chest'                        },
-    { label: '+10 food  +30 gems',    type: 'resources'                    },
-    { label: 'Force shiny',           type: 'toggleShiny'                  },
+    { label: 'Chest',                type: 'chest'                           },
+    { label: '+10 food  +30 gems',   type: 'resources'                       },
+    { label: '+5 random creatures',  type: 'addCreatures'                    },
+    { label: 'Awaken adjacent beast',type: 'awakenBeast'                     },
+    { label: 'Max feed adjacent egg',type: 'maxFeedEgg'                      },
+    { label: 'Force shiny',          type: 'toggleShiny'                     },
   ];
 
   let devIdx = 0;
@@ -779,6 +782,46 @@ if (isDev) {
     if (item.type === 'toggleShiny') {
       devForceShiny = !devForceShiny;
       addLog(`[DEV] Force shiny: ${devForceShiny ? 'ON' : 'OFF'}.`);
+      render(); return;
+    }
+    if (item.type === 'addCreatures') {
+      const biomeKeys = Object.keys(BIOMES);
+      const rarityBuckets = [rand(0, 6000), rand(6000, 8500), rand(8500, 9700), rand(0, 6000), rand(9700, 10000)];
+      let added = 0;
+      for (let i = 0; i < 5; i++) {
+        const biome = biomeKeys[rand(0, biomeKeys.length)];
+        const foodSeq = Array.from({ length: 10 }, () => FOOD_KEYS[rand(0, FOOD_KEYS.length)]);
+        const egg = { foodSequence: foodSeq, rarityRoll: rarityBuckets[i], inv: emptyInv(), fed: 10, biome };
+        const c = generateCreature(egg);
+        regenLines(c);
+        if (!G.collection.find(x => x.hashVal === c.hashVal)) {
+          G.collection.push({ ...c, date: new Date().toLocaleDateString() });
+          added++;
+        }
+      }
+      addLog(`[DEV] Added ${added} creature${added !== 1 ? 's' : ''} to collection.`);
+      render(); return;
+    }
+    if (item.type === 'awakenBeast') {
+      const beast = getAdjacentBeast();
+      if (!beast) { addLog('[DEV] No adjacent beast.'); render(); return; }
+      if (beast.phase === 'awake') { addLog('[DEV] Beast is already awake.'); render(); return; }
+      beast.gemsReceived = DRAGON_GEM_COST;
+      beast.phase = 'awake';
+      addLog(`[DEV] ${beast.beastType} awakened instantly.`);
+      render(); return;
+    }
+    if (item.type === 'maxFeedEgg') {
+      const egg = getAdjacentEgg();
+      if (!egg) { addLog('[DEV] No adjacent egg.'); render(); return; }
+      if (egg.fed >= FOOD_NEEDED) { addLog('[DEV] Egg already fully fed.'); render(); return; }
+      const remaining = FOOD_NEEDED - egg.fed;
+      const biomeFood = BIOMES[egg.biome]?.food ?? FOOD_KEYS[0];
+      for (let i = 0; i < remaining; i++) egg.foodSequence.push(biomeFood);
+      egg.fed = FOOD_NEEDED;
+      devOpen = false; devRender();
+      addLog('[DEV] Egg fully fed — hatching!');
+      setTimeout(() => egg.isDragonEgg ? startDragonHatch(egg) : startHatch(egg), 500);
       render(); return;
     }
     const pos = devFreePos();
