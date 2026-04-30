@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines, generateKraken, regenKrakenLines, buildKrakenAnimSeq, generateGriffon, regenGriffonLines, buildGriffonAnimSeq, buildGreatBeastAnimSeq } from '../modules/creature.js';
+import { generateCreature, regenLines, buildAnimSeq, EGG_STAGES, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES, MANTICORE_EGG_STAGES, getEggStage, EYE_ROW, generateDragon, regenDragonLines, buildDragonAnimSeq, generateGreatBeast, regenGreatBeastLines, generateKraken, regenKrakenLines, buildKrakenAnimSeq, generateGriffon, regenGriffonLines, buildGriffonAnimSeq, generateManticore, regenManticoreLines, buildManticoreAnimSeq, buildGreatBeastAnimSeq } from '../modules/creature.js';
 import { emptyInv, FOOD_KEYS, RARITIES } from '../modules/utils.js';
 
 function makeEgg(overrides = {}) {
@@ -527,6 +527,116 @@ describe('buildGriffonAnimSeq', () => {
   });
 });
 
+describe('MANTICORE_EGG_STAGES', () => {
+  it('has the same number of stages as EGG_STAGES', () => {
+    assert.equal(MANTICORE_EGG_STAGES.length, EGG_STAGES.length);
+  });
+  it('each stage has art and color', () => {
+    for (const stage of MANTICORE_EGG_STAGES) {
+      assert.ok(stage.color, 'missing color');
+      assert.ok(Array.isArray(stage.art) && stage.art.length > 0, 'missing art');
+    }
+  });
+});
+
+function makeManticoreEgg(overrides = {}) {
+  return {
+    foodSequence: ['grain', 'grain', 'grain', 'grain', 'grain'],
+    rarityRoll: 0,
+    sacrificedCreatures: [],
+    beastType: 'manticore',
+    isDragonEgg: true,
+    noGems: true,
+    biome: 'plains',
+    ...overrides,
+  };
+}
+
+describe('generateManticore', () => {
+  it('returns all required fields', () => {
+    const m = generateManticore(makeManticoreEgg());
+    assert.ok(m.id, 'missing id');
+    assert.ok(m.name, 'missing name');
+    assert.ok(m.lines, 'missing lines');
+    assert.ok(m.color, 'missing color');
+    assert.ok(m.rarity, 'missing rarity');
+    assert.ok(m.traits, 'missing traits');
+    assert.ok(typeof m.hashVal === 'number', 'missing hashVal');
+    assert.equal(m.isGreatBeast, true);
+    assert.equal(m.beastType, 'manticore');
+    assert.equal(m.dom, null);
+    assert.equal(m.eyeRow, 4);
+  });
+
+  it('lines is a non-empty array of strings', () => {
+    const m = generateManticore(makeManticoreEgg());
+    assert.ok(Array.isArray(m.lines) && m.lines.length > 0);
+    assert.ok(m.lines.every(l => typeof l === 'string'));
+  });
+
+  it('traits includes Great Beast', () => {
+    const m = generateManticore(makeManticoreEgg());
+    assert.ok(m.traits.includes('Great Beast'));
+  });
+
+  it('is deterministic for same egg', () => {
+    const egg = makeManticoreEgg();
+    const a = generateManticore(egg);
+    const b = generateManticore(egg);
+    assert.deepEqual(a.lines, b.lines);
+    assert.equal(a.name, b.name);
+    assert.equal(a.color, b.color);
+  });
+
+  it('different sacrificed creatures produce different manticores', () => {
+    const a = generateManticore(makeManticoreEgg({ sacrificedCreatures: [{ id: 'x1' }, { id: 'x2' }] }));
+    const b = generateManticore(makeManticoreEgg({ sacrificedCreatures: [{ id: 'y3' }, { id: 'y4' }] }));
+    assert.notEqual(a.hashVal, b.hashVal);
+  });
+
+  it('Legendary rarity gets color shifted toward yellow-gold', () => {
+    const m = generateManticore(makeManticoreEgg({ rarityRoll: 9800 }));
+    const common = generateManticore(makeManticoreEgg({ rarityRoll: 0 }));
+    assert.equal(m.rarity.name, 'Legendary');
+    assert.notEqual(m.color, common.color);
+  });
+});
+
+describe('regenManticoreLines', () => {
+  it('restores lines from hashVal', () => {
+    const m = generateManticore(makeManticoreEgg());
+    const originalLines = [...m.lines];
+    m.lines = null;
+    regenManticoreLines(m);
+    assert.deepEqual(m.lines, originalLines);
+  });
+
+  it('restores eyeRow on regen', () => {
+    const m = generateManticore(makeManticoreEgg());
+    m.eyeRow = undefined;
+    regenManticoreLines(m);
+    assert.equal(m.eyeRow, 4);
+  });
+});
+
+describe('buildManticoreAnimSeq', () => {
+  it('returns a non-empty array', () => {
+    const m = generateManticore(makeManticoreEgg());
+    assert.ok(Array.isArray(buildManticoreAnimSeq(m)) && buildManticoreAnimSeq(m).length > 0);
+  });
+  it('last frame has delay 0', () => {
+    const m = generateManticore(makeManticoreEgg());
+    assert.equal(buildManticoreAnimSeq(m).at(-1).delay, 0);
+  });
+  it('every frame has lines array and string color', () => {
+    const m = generateManticore(makeManticoreEgg());
+    for (const frame of buildManticoreAnimSeq(m)) {
+      assert.ok(Array.isArray(frame.lines));
+      assert.ok(typeof frame.color === 'string');
+    }
+  });
+});
+
 describe('buildGreatBeastAnimSeq', () => {
   it('returns dragon anim for dragon', () => {
     const d = generateDragon(makeDragonEgg());
@@ -548,6 +658,13 @@ describe('buildGreatBeastAnimSeq', () => {
     assert.notDeepEqual(seq, buildDragonAnimSeq(generateDragon(makeDragonEgg())));
   });
 
+  it('returns manticore anim for manticore', () => {
+    const m = generateManticore(makeManticoreEgg());
+    const seq = buildGreatBeastAnimSeq(m);
+    assert.ok(Array.isArray(seq) && seq.length > 0);
+    assert.notDeepEqual(seq, buildDragonAnimSeq(generateDragon(makeDragonEgg())));
+  });
+
   it('generateGreatBeast returns kraken for beastType kraken', () => {
     const k = generateGreatBeast(makeKrakenEgg());
     assert.equal(k.beastType, 'kraken');
@@ -558,6 +675,12 @@ describe('buildGreatBeastAnimSeq', () => {
     const g = generateGreatBeast(makeGriffonEgg());
     assert.equal(g.beastType, 'griffon');
     assert.equal(g.isGreatBeast, true);
+  });
+
+  it('generateGreatBeast returns manticore for beastType manticore', () => {
+    const m = generateGreatBeast(makeManticoreEgg());
+    assert.equal(m.beastType, 'manticore');
+    assert.equal(m.isGreatBeast, true);
   });
 
   it('regenGreatBeastLines works for kraken', () => {
@@ -574,5 +697,13 @@ describe('buildGreatBeastAnimSeq', () => {
     g.lines = null;
     regenGreatBeastLines(g);
     assert.deepEqual(g.lines, originalLines);
+  });
+
+  it('regenGreatBeastLines works for manticore', () => {
+    const m = generateManticore(makeManticoreEgg());
+    const originalLines = [...m.lines];
+    m.lines = null;
+    regenGreatBeastLines(m);
+    assert.deepEqual(m.lines, originalLines);
   });
 });

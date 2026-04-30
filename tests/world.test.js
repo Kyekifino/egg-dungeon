@@ -1,7 +1,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { resetWorld, getChunk, getTile, setTile, isWalkable, getChunkBiome, getChunkEggSpawn, isRoomTile, getGreatBeastSpawn, chunkX, chunkY, localX, localY, markChestOpened, setOpenedChests, getOpenedChests } from '../modules/world.js';
-import { CW, CH, CORR_X, CORR_Y, BIOME_KEYS, CHEST_CHAR, GEM_CHAR } from '../modules/utils.js';
+import { CW, CH, CORR_X, CORR_Y, BIOME_KEYS, CHEST_CHAR, GEM_CHAR, BEAST_TYPES } from '../modules/utils.js';
 
 beforeEach(() => resetWorld(42));
 
@@ -182,7 +182,7 @@ describe('getGreatBeastSpawn', () => {
     assert.ok(spawn !== null, 'no great beast spawn found in 10000-chunk scan');
     assert.equal(typeof spawn.wx, 'number');
     assert.equal(typeof spawn.wy, 'number');
-    assert.ok(['dragon', 'kraken', 'griffon'].includes(spawn.beastType));
+    assert.ok(BEAST_TYPES.includes(spawn.beastType));
   });
 });
 
