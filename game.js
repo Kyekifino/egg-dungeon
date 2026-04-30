@@ -6,7 +6,7 @@ import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTi
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, BEAST_EGG_STAGES_MAP } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
 import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, SFX_BEAST_HATCH, renderControls } from './modules/audio.js';
-import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_WORLD_ART, getWorldCoordsFromViewportClick } from './modules/render.js';
+import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_WORLD_ART } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
 
