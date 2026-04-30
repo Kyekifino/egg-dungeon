@@ -62,11 +62,72 @@ export const HUNGER_STEPS = 75;
 export const GEM_CHAR = '$';
 export const GEM_COLOR = '#80dfff';
 export const CHEST_CHAR = '■';
-export const DRAGON_CHAR = 'Ω';
-export const KRAKEN_CHAR = 'Ψ';
-export const GRIFFON_CHAR = 'Λ';
 export const DRAGON_GEM_COST = 25;
 export const DRAGON_CREATURE_COST = 5;
+
+export const BEAST_REGISTRY = {
+  dragon: {
+    char: 'Ω',
+    colorBright: '#ff6020', colorDim: '#601808',
+    biome: 'badlands', spawnRate: 20,
+    awakenColor: '#ff8040',
+    title: 'Ancient Dragon',
+    overlayTitle: 'Ω  ANCIENT DRAGON',
+    dormantFlavor: 'The dragon lies dormant, scales flickering with dying embers...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The dragon stirs, ancient eyes regarding you with hunger.',
+    awakenFlavColor: '#ff8040',
+    eggLabel: 'Dragon Egg',
+    dissolveClr1: '#ff6020', dissolveClr2: '#993010',
+    flashClr1: '#ff8040',   flashClr2: '#cc2010',
+    eggClr: '#8b2500',
+    dissolveLog: 'The dragon dissolves into embers! A Dragon Egg remains...',
+    dissolveArtKey: 'embers',
+  },
+  kraken: {
+    char: 'Ψ',
+    colorBright: '#40c0ff', colorDim: '#0a3050',
+    biome: 'wetlands', spawnRate: 20,
+    awakenColor: '#40c0ff',
+    title: 'Ancient Kraken',
+    overlayTitle: 'Ψ  ANCIENT KRAKEN',
+    dormantFlavor: 'The kraken lies dormant, tentacles drifting in the cold dark...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The kraken stirs, vast eyes regarding you from the depths.',
+    awakenFlavColor: '#40c0ff',
+    eggLabel: 'Kraken Egg',
+    dissolveClr1: '#40c0ff', dissolveClr2: '#104060',
+    flashClr1: '#40e0ff',   flashClr2: '#1080b0',
+    eggClr: '#0a2a40',
+    dissolveLog: 'The kraken sinks into the deep! A Kraken Egg bobs to the surface...',
+    dissolveArtKey: 'splash',
+  },
+  griffon: {
+    char: 'Λ',
+    colorBright: '#d4b020', colorDim: '#503808',
+    biome: 'forest', spawnRate: 20,
+    awakenColor: '#f0c820',
+    title: 'Ancient Griffon',
+    overlayTitle: 'Λ  ANCIENT GRIFFON',
+    dormantFlavor: 'The griffon slumbers, great wings folded, eyes half-closed...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The griffon raises its proud head, keen eyes fixing upon you.',
+    awakenFlavColor: '#f0c820',
+    eggLabel: 'Griffon Egg',
+    dissolveClr1: '#e0c040', dissolveClr2: '#705010',
+    flashClr1: '#f0d020',   flashClr2: '#c09018',
+    eggClr: '#1a3010',
+    dissolveLog: 'The griffon fades into golden light! A Griffon Egg drifts down...',
+    dissolveArtKey: 'feathers',
+  },
+};
+
+export const BEAST_TYPES = Object.keys(BEAST_REGISTRY);
+
+// Named char constants derived from registry (kept for import compatibility)
+export const DRAGON_CHAR  = BEAST_REGISTRY.dragon.char;
+export const KRAKEN_CHAR  = BEAST_REGISTRY.kraken.char;
+export const GRIFFON_CHAR = BEAST_REGISTRY.griffon.char;
 
 // Chunk dimensions & corridor positions (guaranteed connectivity)
 export const CW = 26;
@@ -96,15 +157,15 @@ export const BIOMES = {
 };
 export const BIOME_KEYS = Object.keys(BIOMES);
 
-export const GREAT_BEAST_BIOMES = {
-  badlands: { beastType: 'dragon',  spawnRate: 20 },
-  wetlands: { beastType: 'kraken',  spawnRate: 20 },
-  forest:   { beastType: 'griffon', spawnRate: 20 },
-};
+export const GREAT_BEAST_BIOMES = Object.fromEntries(
+  Object.entries(BEAST_REGISTRY).map(([type, def]) => [def.biome, { beastType: type, spawnRate: def.spawnRate }])
+);
 
 export const CLR = {
-  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020','Ω':'#ff6020','Ψ':'#40c0ff','Λ':'#d4b020' },
-  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08','Ω':'#601808','Ψ':'#0a3050','Λ':'#503808' },
+  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020',
+    ...Object.fromEntries(Object.values(BEAST_REGISTRY).map(b => [b.char, b.colorBright])) },
+  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08',
+    ...Object.fromEntries(Object.values(BEAST_REGISTRY).map(b => [b.char, b.colorDim])) },
 };
 
 export const RARITIES = [
