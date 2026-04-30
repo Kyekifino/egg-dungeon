@@ -1,12 +1,12 @@
 // Orchestrator: game logic, save/load, startup.
 // All rendering, audio, world, and creature logic lives in modules/.
 
-import { VERSION, PATCH_NOTES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
+import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn, markChestOpened, setOpenedChests, getOpenedChests } from './modules/world.js';
-import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, DRAGON_EGG_STAGES, KRAKEN_EGG_STAGES, GRIFFON_EGG_STAGES } from './modules/creature.js';
+import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, BEAST_EGG_STAGES_MAP } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
-import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxDragonHatch, sfxKrakenHatch, sfxGriffonHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, renderControls } from './modules/audio.js';
-import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_WORLD_ART } from './modules/render.js';
+import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, SFX_BEAST_HATCH, renderControls } from './modules/audio.js';
+import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_WORLD_ART, getWorldCoordsFromViewportClick } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
 
@@ -32,6 +32,8 @@ const FEATHERS_ART = [
   '  ^ ^    ^ ^  ', '   ^ ^  ^     ', ' ^  ^   ^ ^ ^ ', '  ^  ^    ^   ',
   '    ^  ^  ^   ', '              ',
 ];
+
+const DISSOLVE_ARTS = { embers: EMBERS_ART, splash: SPLASH_ART, feathers: FEATHERS_ART };
 
 function addLog(msg) {
   G.log.push(msg);
@@ -179,7 +181,7 @@ function tryMove(dx, dy) {
 function tryFeed() {
   if (G.phase === 'animating') return;
 
-  // Dragon overlay open: offer a gem to the beast
+  // Beast overlay open: offer a gem to the beast
   if (G.dragonInteract) { tryFeedBeastGem(); return; }
 
   const egg = getAdjacentEgg();
@@ -268,7 +270,12 @@ function runAnimFrame() {
     setTimeout(() => {
       if (!animCancelled) {
         G.phase = 'playing';
-        G.creature?.isGreatBeast ? (G.creature.beastType === 'kraken' ? sfxKrakenHatch() : G.creature.beastType === 'griffon' ? sfxGriffonHatch() : sfxDragonHatch()) : sfxHatch();
+        if (G.creature?.isGreatBeast) {
+          const sfxFn = SFX_BEAST_HATCH[G.creature.beastType] ?? SFX_BEAST_HATCH.dragon;
+          sfxFn();
+        } else {
+          sfxHatch();
+        }
         render();
       }
     }, 400);
@@ -383,7 +390,7 @@ async function loadGame() {
   } catch (e) { if (e.name !== 'AbortError') { addLog('Load failed.'); console.error(e); } }
 }
 
-// ── Dragon / Great Beast interaction ─────────────────────────────
+// ── Beast interaction ─────────────────────────────────────────────
 
 function tryE() {
   if (G.phase === 'animating') return;
@@ -485,24 +492,21 @@ function completeBeast(beast) {
   animCancelled = false;
   stopIdleAnims();
 
-  const beastDefs = {
-    kraken:  { dissolveArt: SPLASH_ART,   dissolveClr1: '#40c0ff', dissolveClr2: '#104060', flashClr1: '#40e0ff', flashClr2: '#1080b0', eggStageArt: KRAKEN_EGG_STAGES[0].art,  eggClr: '#0a2a40', defaultBiome: 'wetlands', dissolveLog: 'The kraken sinks into the deep! A Kraken Egg bobs to the surface...', awakeArt: BEAST_WORLD_ART.kraken.awake  },
-    griffon: { dissolveArt: FEATHERS_ART, dissolveClr1: '#e0c040', dissolveClr2: '#705010', flashClr1: '#f0d020', flashClr2: '#c09018', eggStageArt: GRIFFON_EGG_STAGES[0].art, eggClr: '#1a3010', defaultBiome: 'forest',   dissolveLog: 'The griffon fades into golden light! A Griffon Egg drifts down...', awakeArt: BEAST_WORLD_ART.griffon.awake },
-    dragon:  { dissolveArt: EMBERS_ART,   dissolveClr1: '#ff6020', dissolveClr2: '#993010', flashClr1: '#ff8040', flashClr2: '#cc2010', eggStageArt: DRAGON_EGG_STAGES[0].art,  eggClr: '#8b2500', defaultBiome: 'badlands', dissolveLog: 'The dragon dissolves into embers! A Dragon Egg remains...',           awakeArt: BEAST_WORLD_ART.dragon.awake  },
-  };
-  const def = beastDefs[beast.beastType] ?? beastDefs.dragon;
-  const { dissolveArt, dissolveClr1, dissolveClr2, flashClr1, flashClr2, eggStageArt, eggClr, dissolveLog } = def;
-  const eggBiome = beast.biome ?? def.defaultBiome;
+  const regDef     = BEAST_REGISTRY[beast.beastType] ?? BEAST_REGISTRY.dragon;
+  const dissolveArt = DISSOLVE_ARTS[regDef.dissolveArtKey] ?? EMBERS_ART;
+  const awakeArt    = (BEAST_WORLD_ART[beast.beastType] ?? BEAST_WORLD_ART.dragon).awake;
+  const eggStageArt = (BEAST_EGG_STAGES_MAP[beast.beastType] ?? BEAST_EGG_STAGES_MAP.dragon)[0].art;
+  const eggBiome    = beast.biome ?? regDef.biome;
 
-  const beastArt = ['              ', '              ', ...def.awakeArt, '              ', '              '];
+  const beastArt = ['              ', '              ', ...awakeArt, '              ', '              '];
   const layFrames = [
-    { lines: beastArt,     color: flashClr1,    delay: 180 },
-    { lines: beastArt,     color: '#ffffff',    delay: 120 },
-    { lines: beastArt,     color: flashClr2,    delay: 150 },
-    { lines: beastArt,     color: dissolveClr1, delay: 110 },
-    { lines: dissolveArt,  color: dissolveClr1, delay: 140 },
-    { lines: dissolveArt,  color: dissolveClr2, delay: 110 },
-    { lines: eggStageArt,  color: eggClr,       delay: 0   },
+    { lines: beastArt,     color: regDef.flashClr1,    delay: 180 },
+    { lines: beastArt,     color: '#ffffff',            delay: 120 },
+    { lines: beastArt,     color: regDef.flashClr2,    delay: 150 },
+    { lines: beastArt,     color: regDef.dissolveClr1, delay: 110 },
+    { lines: dissolveArt,  color: regDef.dissolveClr1, delay: 140 },
+    { lines: dissolveArt,  color: regDef.dissolveClr2, delay: 110 },
+    { lines: eggStageArt,  color: regDef.eggClr,       delay: 0   },
   ];
 
   runLayFrame(layFrames, 0, () => {
@@ -519,7 +523,7 @@ function completeBeast(beast) {
     G.dragonInteract = null;
     G.sacrificeMode  = false;
     G.showCollection = false;
-    addLog(dissolveLog);
+    addLog(regDef.dissolveLog);
     G.phase = 'playing';
     autoSave();
     render();
@@ -664,14 +668,17 @@ Input.init({
   lockpick: tryLockpick,
   closeChest,
   isChestActive: () => chestMinigame !== null,
-  isDragonActive:   () => !!(G?.dragonInteract && !G.sacrificeMode),
-  isDragonSacrifice: () => !!G?.sacrificeMode,
+  isBeastOverlayActive:   () => !!(G?.dragonInteract && !G.sacrificeMode),
+  isBeastSacrificeMode:   () => !!G?.sacrificeMode,
   enterSacrificeMode,
   exitSacrificeMode,
   sacrificeCreature,
-  closeDragonOverlay: closeBeastOverlay,
+  closeBeastOverlay,
   render,
   stopColAnims,
+  onViewportClick: (wx, wy) => {
+    if (isDev) console.log('[mouse] viewport click world', wx, wy);
+  },
 });
 
 const isDev = window.location.pathname.includes('/dev/');
@@ -696,23 +703,22 @@ if (isDev) {
     '#dev-spawn-hint{color:#444;font-size:.8em;margin-top:.9rem;border-top:1px solid #2a2a2a;padding-top:.55rem}';
   document.head.appendChild(devStyle);
 
+  // Build dev spawn items from BEAST_REGISTRY — zero changes needed for beast #4+
+  const beastDevItems = BEAST_TYPES.flatMap(type => [
+    { label: `${type.charAt(0).toUpperCase() + type.slice(1)} Egg`,            type: 'beastEgg',   beastType: type },
+    { label: `${type.charAt(0).toUpperCase() + type.slice(1)} Beast (asleep)`, type: 'beastBeast', beastType: type, awake: false },
+    { label: `${type.charAt(0).toUpperCase() + type.slice(1)} Beast (awake)`,  type: 'beastBeast', beastType: type, awake: true  },
+  ]);
+
   const DEV_ITEMS = [
-    { label: 'Egg \u2014 Common',          type: 'egg',         rarityRoll: 0    },
-    { label: 'Egg \u2014 Uncommon',        type: 'egg',         rarityRoll: 6000 },
-    { label: 'Egg \u2014 Rare',            type: 'egg',         rarityRoll: 8500 },
-    { label: 'Egg \u2014 Legendary',       type: 'egg',         rarityRoll: 9700 },
-    { label: 'Dragon Egg',                 type: 'dragonEgg'                     },
-    { label: 'Dragon Beast (asleep)',      type: 'dragonBeast', awake: false     },
-    { label: 'Dragon Beast (awake)',       type: 'dragonBeast', awake: true      },
-    { label: 'Kraken Egg',                 type: 'krakenEgg'                     },
-    { label: 'Kraken Beast (asleep)',      type: 'krakenBeast', awake: false     },
-    { label: 'Kraken Beast (awake)',       type: 'krakenBeast', awake: true      },
-    { label: 'Griffon Egg',               type: 'griffonEgg'                    },
-    { label: 'Griffon Beast (asleep)',    type: 'griffonBeast', awake: false    },
-    { label: 'Griffon Beast (awake)',     type: 'griffonBeast', awake: true     },
-    { label: 'Chest',                      type: 'chest'                         },
-    { label: '+10 food  +30 gems',         type: 'resources'                     },
-    { label: 'Force shiny',                type: 'toggleShiny'                   },
+    { label: 'Egg — Common',    type: 'egg', rarityRoll: 0    },
+    { label: 'Egg — Uncommon',  type: 'egg', rarityRoll: 6000 },
+    { label: 'Egg — Rare',      type: 'egg', rarityRoll: 8500 },
+    { label: 'Egg — Legendary', type: 'egg', rarityRoll: 9700 },
+    ...beastDevItems,
+    { label: 'Chest',                 type: 'chest'                        },
+    { label: '+10 food  +30 gems',    type: 'resources'                    },
+    { label: 'Force shiny',           type: 'toggleShiny'                  },
   ];
 
   let devIdx = 0;
@@ -740,7 +746,7 @@ if (isDev) {
         return `<div class="dev-item${i === devIdx ? ' dev-item-sel' : ''}">${escHtml(label)}</div>`;
       })
       .join('');
-  }
+  };
 
   const devFreePos = () => {
     for (const [dx, dy] of [[0,-1],[0,1],[1,0],[-1,0],[1,-1],[-1,-1],[1,1],[-1,1]]) {
@@ -749,13 +755,18 @@ if (isDev) {
       if (isWalkable(nx, ny) && !G.worldEggs?.has(key) && !G.worldBeasts?.has(key)) return [nx, ny];
     }
     return null;
-  }
+  };
 
   const devSpawn = item => {
     if (item.type === 'resources') {
       FOOD_KEYS.forEach(k => { G.inventory[k] += 10; });
       G.inventory.gem += 30;
-      addLog('[DEV] Added 10\u00d7 each food and 30 gems.');
+      addLog('[DEV] Added 10× each food and 30 gems.');
+      render(); return;
+    }
+    if (item.type === 'toggleShiny') {
+      devForceShiny = !devForceShiny;
+      addLog(`[DEV] Force shiny: ${devForceShiny ? 'ON' : 'OFF'}.`);
       render(); return;
     }
     const pos = devFreePos();
@@ -767,68 +778,26 @@ if (isDev) {
         x: nx, y: ny, foodSequence: [], rarityRoll: item.rarityRoll,
         inv: emptyInv(), fed: 0, biome: getChunkBiome(chunkX(nx), chunkY(ny)),
       });
-    } else if (item.type === 'dragonEgg') {
-      G.worldEggs.set(key, {
-        x: nx, y: ny, foodSequence: [], rarityRoll: rand(0, 10000),
-        inv: emptyInv(), fed: 0, biome: 'badlands',
-        isDragonEgg: true, noGems: true, beastType: 'dragon',
-        sacrificedCreatures: [
-          { id: 'dev001', name: 'Dev Alpha',   rarity: { name: 'Common'    } },
-          { id: 'dev002', name: 'Dev Beta',    rarity: { name: 'Uncommon'  } },
-          { id: 'dev003', name: 'Dev Gamma',   rarity: { name: 'Rare'      } },
-          { id: 'dev004', name: 'Dev Delta',   rarity: { name: 'Common'    } },
-          { id: 'dev005', name: 'Dev Epsilon', rarity: { name: 'Legendary' } },
-        ],
-      });
     } else if (item.type === 'chest') {
       setTile(nx, ny, CHEST_CHAR);
-    } else if (item.type === 'toggleShiny') {
-      devForceShiny = !devForceShiny;
-      addLog(`[DEV] Force shiny: ${devForceShiny ? 'ON' : 'OFF'}.`);
-      render(); return;
-    } else if (item.type === 'krakenEgg') {
+    } else if (item.type === 'beastEgg') {
+      const regDef = BEAST_REGISTRY[item.beastType] ?? BEAST_REGISTRY.dragon;
       G.worldEggs.set(key, {
         x: nx, y: ny, foodSequence: [], rarityRoll: rand(0, 10000),
-        inv: emptyInv(), fed: 0, biome: 'wetlands',
-        isDragonEgg: true, noGems: true, beastType: 'kraken',
+        inv: emptyInv(), fed: 0, biome: regDef.biome,
+        isDragonEgg: true, noGems: true, beastType: item.beastType,
         sacrificedCreatures: [
-          { id: 'dev011', name: 'Dev Alpha',   rarity: { name: 'Common'    } },
-          { id: 'dev012', name: 'Dev Beta',    rarity: { name: 'Uncommon'  } },
-          { id: 'dev013', name: 'Dev Gamma',   rarity: { name: 'Rare'      } },
-          { id: 'dev014', name: 'Dev Delta',   rarity: { name: 'Common'    } },
-          { id: 'dev015', name: 'Dev Epsilon', rarity: { name: 'Legendary' } },
+          { id: `dev${item.beastType.slice(0,2)}1`, name: 'Dev Alpha',   rarity: { name: 'Common'    } },
+          { id: `dev${item.beastType.slice(0,2)}2`, name: 'Dev Beta',    rarity: { name: 'Uncommon'  } },
+          { id: `dev${item.beastType.slice(0,2)}3`, name: 'Dev Gamma',   rarity: { name: 'Rare'      } },
+          { id: `dev${item.beastType.slice(0,2)}4`, name: 'Dev Delta',   rarity: { name: 'Common'    } },
+          { id: `dev${item.beastType.slice(0,2)}5`, name: 'Dev Epsilon', rarity: { name: 'Legendary' } },
         ],
       });
-    } else if (item.type === 'dragonBeast') {
+    } else if (item.type === 'beastBeast') {
+      const regDef = BEAST_REGISTRY[item.beastType] ?? BEAST_REGISTRY.dragon;
       G.worldBeasts.set(key, {
-        x: nx, y: ny, beastType: 'dragon', biome: 'badlands',
-        phase: item.awake ? 'awake' : 'sleeping',
-        gemsReceived: item.awake ? DRAGON_GEM_COST : 0,
-        sacrificedCreatures: [],
-      });
-    } else if (item.type === 'krakenBeast') {
-      G.worldBeasts.set(key, {
-        x: nx, y: ny, beastType: 'kraken', biome: 'wetlands',
-        phase: item.awake ? 'awake' : 'sleeping',
-        gemsReceived: item.awake ? DRAGON_GEM_COST : 0,
-        sacrificedCreatures: [],
-      });
-    } else if (item.type === 'griffonEgg') {
-      G.worldEggs.set(key, {
-        x: nx, y: ny, foodSequence: [], rarityRoll: rand(0, 10000),
-        inv: emptyInv(), fed: 0, biome: 'forest',
-        isDragonEgg: true, noGems: true, beastType: 'griffon',
-        sacrificedCreatures: [
-          { id: 'dev021', name: 'Dev Alpha',   rarity: { name: 'Common'    } },
-          { id: 'dev022', name: 'Dev Beta',    rarity: { name: 'Uncommon'  } },
-          { id: 'dev023', name: 'Dev Gamma',   rarity: { name: 'Rare'      } },
-          { id: 'dev024', name: 'Dev Delta',   rarity: { name: 'Common'    } },
-          { id: 'dev025', name: 'Dev Epsilon', rarity: { name: 'Legendary' } },
-        ],
-      });
-    } else if (item.type === 'griffonBeast') {
-      G.worldBeasts.set(key, {
-        x: nx, y: ny, beastType: 'griffon', biome: 'forest',
+        x: nx, y: ny, beastType: item.beastType, biome: regDef.biome,
         phase: item.awake ? 'awake' : 'sleeping',
         gemsReceived: item.awake ? DRAGON_GEM_COST : 0,
         sacrificedCreatures: [],
@@ -836,7 +805,7 @@ if (isDev) {
     }
     addLog(`[DEV] Spawned ${item.label}.`);
     render();
-  }
+  };
 
   devEl.addEventListener('click', e => {
     const el = e.target.closest('.dev-item');
