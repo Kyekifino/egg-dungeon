@@ -2,6 +2,7 @@
 // Uses callback injection to avoid circular deps with game.js.
 
 import { FOOD_KEY_MAP } from './utils.js';
+import { getWorldCoordsFromViewportClick } from './render.js';
 
 const MOVE_KEYS = {
   ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0],
@@ -13,9 +14,10 @@ export function init({
   saveGame, loadGame, toggleMute, openFeedback, getG, setSelectedFood,
   tryMove, tryFeed, tryE,
   lockpick, closeChest, isChestActive,
-  isDragonActive, isDragonSacrifice,
-  enterSacrificeMode, exitSacrificeMode, sacrificeCreature, closeDragonOverlay,
+  isBeastOverlayActive, isBeastSacrificeMode,
+  enterSacrificeMode, exitSacrificeMode, sacrificeCreature, closeBeastOverlay,
   render, stopColAnims,
+  onViewportClick,
 }) {
   document.addEventListener('keydown', e => {
     if (!document.getElementById('feedback-overlay').hidden) return;
@@ -33,17 +35,17 @@ export function init({
     const G = getG();
     if (!G) return;
 
-    // Dragon overlay open (not in sacrifice mode)
-    if (isDragonActive()) {
+    // Beast overlay open (not in sacrifice mode)
+    if (isBeastOverlayActive()) {
       if (FOOD_KEY_MAP[e.key]) { setSelectedFood(FOOD_KEY_MAP[e.key]); render(); return; }
       if (e.key === 'f' || e.key === 'F') { tryFeed(); return; }
       if (e.key === 'c' || e.key === 'C') { enterSacrificeMode(); return; }
-      if (e.key === 'Escape') { closeDragonOverlay(); return; }
+      if (e.key === 'Escape') { closeBeastOverlay(); return; }
       return;
     }
 
     // Sacrifice mode: browsing collection to pick a creature to offer
-    if (isDragonSacrifice()) {
+    if (isBeastSacrificeMode()) {
       const n = G.collection.length;
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
         e.preventDefault(); if (n > 0) { G.colSelectedIdx = Math.max(0, G.colSelectedIdx - 1); render(); } return;
@@ -101,4 +103,13 @@ export function init({
     }
     render();
   });
+
+  if (onViewportClick) {
+    document.getElementById('viewport').addEventListener('click', e => {
+      const G = getG();
+      if (!G || G.phase === 'animating') return;
+      const coords = getWorldCoordsFromViewportClick(e.clientX, e.clientY);
+      if (coords) onViewportClick(coords.wx, coords.wy, e.button);
+    });
+  }
 }

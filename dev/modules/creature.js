@@ -1106,31 +1106,28 @@ export function buildGriffonAnimSeq(griffon) {
   ];
 }
 
-// Dispatcher — extend with new beastType cases as new Great Beasts are added.
+export const BEAST_EGG_STAGES_MAP = {
+  dragon:  DRAGON_EGG_STAGES,
+  kraken:  KRAKEN_EGG_STAGES,
+  griffon: GRIFFON_EGG_STAGES,
+};
+
+export const BEAST_GENERATORS = {
+  dragon:  { generate: generateDragon,  regenLines: regenDragonLines,  buildAnimSeq: buildDragonAnimSeq  },
+  kraken:  { generate: generateKraken,  regenLines: regenKrakenLines,  buildAnimSeq: buildKrakenAnimSeq  },
+  griffon: { generate: generateGriffon, regenLines: regenGriffonLines, buildAnimSeq: buildGriffonAnimSeq },
+};
+
 export function generateGreatBeast(egg) {
-  switch (egg.beastType) {
-    case 'kraken':  return generateKraken(egg);
-    case 'griffon': return generateGriffon(egg);
-    case 'dragon':  return generateDragon(egg);
-    default:        return generateDragon(egg);
-  }
+  return (BEAST_GENERATORS[egg.beastType] ?? BEAST_GENERATORS.dragon).generate(egg);
 }
 
 export function regenGreatBeastLines(b) {
-  switch (b.beastType) {
-    case 'kraken':  regenKrakenLines(b);  break;
-    case 'griffon': regenGriffonLines(b); break;
-    case 'dragon':  regenDragonLines(b);  break;
-    default:        regenDragonLines(b);
-  }
+  (BEAST_GENERATORS[b.beastType] ?? BEAST_GENERATORS.dragon).regenLines(b);
 }
 
 export function buildGreatBeastAnimSeq(beast) {
-  switch (beast.beastType) {
-    case 'kraken':  return buildKrakenAnimSeq(beast);
-    case 'griffon': return buildGriffonAnimSeq(beast);
-    default:        return buildDragonAnimSeq(beast);
-  }
+  return (BEAST_GENERATORS[beast.beastType] ?? BEAST_GENERATORS.dragon).buildAnimSeq(beast);
 }
 
 // All creature properties deterministically derived from hash.

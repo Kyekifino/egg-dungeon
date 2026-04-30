@@ -328,8 +328,8 @@ body {
 .shiny-anim { animation: shiny-cycle 3s linear infinite; }
 .shiny-tag { color: #ffd700; font-weight: bold; animation: shiny-cycle 3s linear infinite; letter-spacing: 0.03em; }
 
-/* ── Dragon / Great Beast overlay ────────────────────────── */
-#dragon-overlay {
+/* ── Great Beast overlay ──────────────────────────────────── */
+#beast-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.85);
@@ -338,8 +338,8 @@ body {
   justify-content: center;
   z-index: 100;
 }
-#dragon-overlay[hidden] { display: none; }
-#dragon-box {
+#beast-overlay[hidden] { display: none; }
+#beast-box {
   background: #050505;
   border: 1px solid #3a1808;
   padding: 22px 28px;

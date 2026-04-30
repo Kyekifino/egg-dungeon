@@ -216,6 +216,12 @@ export function sfxSacrifice() {
 
 export function getMuted() { return muted; }
 
+export const SFX_BEAST_HATCH = {
+  dragon:  sfxDragonHatch,
+  kraken:  sfxKrakenHatch,
+  griffon: sfxGriffonHatch,
+};
+
 export function setMuted(val) {
   muted = !!val;
   if (masterGain) masterGain.gain.value = muted ? 0 : 1;
