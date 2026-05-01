@@ -314,6 +314,33 @@ const span = (ch, color) => `<span style="color:${color}">${escHtml(ch)}</span>`
 let _lastCamX = 0;
 let _lastCamY = 0;
 
+// Measured character cell dimensions — lazily computed from actual DOM spans.
+// CSS-dimension math (rect.width/VW) fails when the font doesn't exactly fill
+// the element box, which varies by browser/OS/zoom level.
+let _cellW = 0;
+let _cellH = 0;
+let _textOffsetX = 0;
+let _textOffsetY = 0;
+
+function measureViewportCells() {
+  const el = document.getElementById('viewport');
+  if (!el) return;
+  const s = el.querySelector('span');
+  if (!s) return;
+  const elRect = el.getBoundingClientRect();
+  const r = s.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0) {
+    _cellW = r.width;
+    _cellH = r.height;
+    _textOffsetX = r.left - elRect.left;
+    _textOffsetY = r.top  - elRect.top;
+  }
+}
+
+// Invalidate cell measurement on resize so zooming stays accurate
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function')
+  window.addEventListener('resize', () => { _cellW = 0; });
+
 function renderViewport() {
   const { px, py, revealed, worldEggs, worldBeasts } = G;
   const camX = px - Math.floor(VW / 2), camY = py - Math.floor(VH / 2);
@@ -351,11 +378,11 @@ function renderViewport() {
 export function getWorldCoordsFromViewportClick(clientX, clientY) {
   const el = document.getElementById('viewport');
   if (!el) return null;
+  if (!_cellW) measureViewportCells();
+  if (!_cellW) return null;
   const rect = el.getBoundingClientRect();
-  const cellW = rect.width  / VW;
-  const cellH = rect.height / VH;
-  const vx = Math.floor((clientX - rect.left) / cellW);
-  const vy = Math.floor((clientY - rect.top)  / cellH);
+  const vx = Math.floor((clientX - rect.left - _textOffsetX) / _cellW);
+  const vy = Math.floor((clientY - rect.top  - _textOffsetY) / _cellH);
   if (vx < 0 || vx >= VW || vy < 0 || vy >= VH) return null;
   return { wx: _lastCamX + vx, wy: _lastCamY + vy };
 }
