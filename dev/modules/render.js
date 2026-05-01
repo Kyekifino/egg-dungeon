@@ -369,11 +369,11 @@ function renderInventory() {
     const sel = selectedFood === key;
     const clr = count > 0 ? color : '#555';
     const bg  = sel ? 'background:#151515;' : '';
-    html += `<div style="color:${clr};${bg}">${sel ? '►' : ' '}${idx + 1} ${ch} ${key.padEnd(8)} x${count}</div>`;
+    html += `<div data-food="${key}" style="color:${clr};${bg}">${sel ? '►' : ' '}${idx + 1} ${ch} ${key.padEnd(8)} x${count}</div>`;
   });
   const gc = G.inventory.gem || 0;
   const gs = selectedFood === 'gem';
-  html += `<div style="color:${gc > 0 ? GEM_COLOR : '#555'};${gs ? 'background:#151515;' : ''}">${gs ? '►' : ' '}6 ${GEM_CHAR} gem      x${gc}</div>`;
+  html += `<div data-food="gem" style="color:${gc > 0 ? GEM_COLOR : '#555'};${gs ? 'background:#151515;' : ''}">${gs ? '►' : ' '}6 ${GEM_CHAR} gem      x${gc}</div>`;
   document.getElementById('inv-list').innerHTML = html;
 }
 

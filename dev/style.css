@@ -46,6 +46,7 @@ body {
   flex-shrink: 0;
   background: #050505;
   border: 1px solid #1a1a1a;
+  cursor: pointer;
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
@@ -61,7 +62,7 @@ body {
   padding-bottom: 3px;
 }
 
-#inv-list div { font-size: 0.85rem; padding: 2px 0; white-space: pre; }
+#inv-list div { font-size: 0.85rem; padding: 2px 0; white-space: pre; cursor: pointer; }
 
 #world-panel { padding: 5px 8px; }
 #world-biome { font-size: 0.8rem; }
