@@ -10,7 +10,14 @@
   <div id="app">
     <div id="header">
       <span id="title">EGG DUNGEON</span>
-      <span id="controls">WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; R:&nbsp;lay&nbsp;egg &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load</span>
+      <div id="toolbar">
+        <span class="tbtn" data-toolbar="collection" title="Collection (C)">≡</span>
+        <span id="tbtn-mute" class="tbtn" data-toolbar="mute" title="Mute (M)">♪</span>
+        <span class="tbtn" data-toolbar="save" title="Save (Ctrl+S)">↓</span>
+        <span class="tbtn" data-toolbar="load" title="Load (Ctrl+O)">↑</span>
+        <span class="tbtn" data-toolbar="feedback" title="Feedback (?)">?</span>
+      </div>
+      <span id="controls"></span>
     </div>
 
     <div id="mid-area">
@@ -129,7 +136,7 @@
     <div id="chest-box">
       <div id="chest-title">⚿  LOCKPICKING</div>
       <div id="chest-bar"></div>
-      <div id="chest-hint"><b>E</b> to pick &nbsp;·&nbsp; <b>ESC</b> to abandon</div>
+      <div id="chest-hint"><span data-action="lockpick"><b>E</b> to pick</span> &nbsp;·&nbsp; <span data-action="close-chest"><b>ESC</b> to abandon</span></div>
       <div id="chest-result"></div>
     </div>
   </div>
