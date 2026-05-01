@@ -1,11 +1,103 @@
 // All DOM rendering, idle animation state, and animation timers.
 // Reads G and selectedFood as live bindings from state.js.
 
-import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, getRarity, escHtml, rand } from './utils.js';
+import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, BEAST_REGISTRY, getRarity, escHtml, rand, DRAGON_GEM_COST, DRAGON_CREATURE_COST, CHEST_CHAR } from './utils.js';
 import { getTile, getChunkBiome, chunkX, chunkY } from './world.js';
-import { EGG_STAGES, getEggStage, EYE_ROW } from './creature.js';
+import { EGG_STAGES, BEAST_EGG_STAGES_MAP, getEggStage, EYE_ROW } from './creature.js';
 import { G, selectedFood } from './state.js';
 import { startBiomeLoop } from './audio.js';
+
+// ── World-beast static art ────────────────────────────────────────
+const BEAST_ART_SLEEPING = [
+  '   z  z  z   ',
+  '    ~Ω~     ',
+  '   /~^~\\    ',
+  '  ( z z  )  ',
+  '  ~~===~~   ',
+  ' /~~~~~~~\\  ',
+];
+export const BEAST_ART_AWAKE = [
+  '  !  !!  !   ',
+  '    ~Ω~     ',
+  '   /o^o\\    ',
+  '  (  *  )   ',
+  '  ~~===~~   ',
+  ' /~~~~~~~\\  ',
+];
+const KRAKEN_BEAST_ART_SLEEPING = [
+  '   z  z  z   ',
+  '    ~Ψ~     ',
+  '   (~~~)     ',
+  '  ( z~z )    ',
+  '   ~~~~~     ',
+  '  (~~~~~)    ',
+];
+export const KRAKEN_BEAST_ART_AWAKE = [
+  '  ~  ~~  ~   ',
+  '    ~Ψ~     ',
+  '   (o~o)     ',
+  '  (  *  )    ',
+  '   ~~~~~     ',
+  '  (~~~~~)    ',
+];
+const GRIFFON_BEAST_ART_SLEEPING = [
+  '   z  z  z   ',
+  '    ~Λ~      ',
+  '   /^v^\\     ',
+  '  ( z z  )   ',
+  '  ==^^^==    ',
+  ' /^^^^^^^\\   ',
+];
+export const GRIFFON_BEAST_ART_AWAKE = [
+  '  !  !!  !   ',
+  '    ~Λ~      ',
+  '   /o^o\\     ',
+  '  (  *  )    ',
+  '  ==^^^==    ',
+  ' /^^^^^^^\\   ',
+];
+const MANTICORE_BEAST_ART_SLEEPING = [
+  ' z  z  z  z  ',
+  '    ~Ξ~      ',
+  '  (z_z)  z   ',
+  '  )   |=~~   ',
+  '  =========  ',
+  ' /~~~~~~~~~\\ ',
+];
+export const MANTICORE_BEAST_ART_AWAKE = [
+  '  ! !! ! *>  ',
+  '    ~Ξ~      ',
+  '  (o_>) *    ',
+  '  )   |==~   ',
+  '  =========  ',
+  ' /~~~~~~~~~\\ ',
+];
+
+const DEMON_BEAST_ART_SLEEPING = [
+  '   z  z  z   ',
+  '    ~Δ~      ',
+  '  (z   z)    ',
+  '  ( --- )    ',
+  '  |!!!!!|    ',
+  ' /~~~~~~~\\   ',
+];
+export const DEMON_BEAST_ART_AWAKE = [
+  '  !  !! @>   ',
+  '    ~Δ~      ',
+  '  (o   o)    ',
+  '  ( >-< )    ',
+  '  |!!!!!|    ',
+  ' /~~~~~~~\\   ',
+];
+
+// Map beastType → { sleeping, awake } art — extend for each new beast
+export const BEAST_WORLD_ART = {
+  dragon:    { sleeping: BEAST_ART_SLEEPING,           awake: BEAST_ART_AWAKE           },
+  kraken:    { sleeping: KRAKEN_BEAST_ART_SLEEPING,    awake: KRAKEN_BEAST_ART_AWAKE    },
+  griffon:   { sleeping: GRIFFON_BEAST_ART_SLEEPING,   awake: GRIFFON_BEAST_ART_AWAKE   },
+  manticore: { sleeping: MANTICORE_BEAST_ART_SLEEPING, awake: MANTICORE_BEAST_ART_AWAKE },
+  demon:     { sleeping: DEMON_BEAST_ART_SLEEPING,     awake: DEMON_BEAST_ART_AWAKE     },
+};
 
 // ── Idle animation state ──────────────────────────────────────────
 let idleGen             = 0;
@@ -42,14 +134,36 @@ export function getColSelected() {
 }
 
 const cLine = (c, l) => c.shiny
-  ? `<span class="shiny-anim">${escHtml(l)}</span>`
+  ? `<span class="shiny-anim" style="animation-delay:${(-(performance.now()/1000%3)).toFixed(3)}s">${escHtml(l)}</span>`
   : `<span style="color:${c.color}">${escHtml(l)}</span>`;
+
+const shinyTag = () => {
+  const delay = -(performance.now() / 1000 % 3);
+  return `<span class="shiny-tag" style="animation-delay:${delay.toFixed(3)}s">&#10022; SHINY</span>`;
+};
 
 export function getAdjacentEgg() {
   if (!G?.worldEggs) return null;
   for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
     const egg = G.worldEggs.get(`${G.px + dx},${G.py + dy}`);
     if (egg) return egg;
+  }
+  return null;
+}
+
+export function getAdjacentBeast() {
+  if (!G?.worldBeasts) return null;
+  for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+    const beast = G.worldBeasts.get(`${G.px + dx},${G.py + dy}`);
+    if (beast) return beast;
+  }
+  return null;
+}
+
+function getAdjacentChest() {
+  if (!G) return null;
+  for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+    if (getTile(G.px + dx, G.py + dy) === CHEST_CHAR) return true;
   }
   return null;
 }
@@ -64,11 +178,17 @@ export function shiftArt(lines, dx) {
 
 // ── Idle animation triggers ───────────────────────────────────────
 
+function getEggStageSet(egg) {
+  if (!egg.isDragonEgg) return EGG_STAGES;
+  return BEAST_EGG_STAGES_MAP[egg.beastType] ?? BEAST_EGG_STAGES_MAP.dragon;
+}
+
 function triggerEggShake() {
   eggShakeTimer = null;
   const egg = getAdjacentEgg();
   if (G?.phase !== 'playing' || !egg) return;
-  const stage = EGG_STAGES[getEggStage(egg.fed)];
+  const stageSet = getEggStageSet(egg);
+  const stage = stageSet[getEggStage(egg.fed)];
   const gen   = ++idleGen;
   const offsets = [1, 0, -1, 0, 1, 0];
   let fi = 0;
@@ -85,9 +205,9 @@ function triggerEggShake() {
 
 function triggerCreatureBlink() {
   creatureBlinkTimer = null;
-  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg()) return;
+  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast() || getAdjacentChest()) return;
   const c  = G.creature;
-  const ri = EYE_ROW[c.dom] ?? 2;
+  const ri = c.eyeRow ?? EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
   const closed = orig.replace(/o/g, '-');
   if (closed === orig) {
@@ -113,7 +233,7 @@ function triggerCreatureBlink() {
 
 function triggerCreatureJiggle() {
   creatureJiggleTimer = null;
-  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg()) return;
+  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast() || getAdjacentChest()) return;
   const c   = G.creature;
   const gen = ++idleGen;
   const offsets = [1, 0, -1, 0];
@@ -127,12 +247,22 @@ function triggerCreatureJiggle() {
   creatureJiggleTimer = setTimeout(triggerCreatureJiggle, 6000 + rand(0, 8000));
 }
 
+function getColBeastSelected() {
+  const { greatBeasts, gbSelectedIdx } = G;
+  if (!greatBeasts?.length) return null;
+  const order = { Legendary: 0, Rare: 1, Uncommon: 2, Common: 3 };
+  const sorted = [...greatBeasts].sort(
+    (a, b) => (order[a.rarity.name] ?? 9) - (order[b.rarity.name] ?? 9) || a.name.localeCompare(b.name)
+  );
+  return sorted[Math.max(0, Math.min(gbSelectedIdx ?? 0, sorted.length - 1))];
+}
+
 function triggerColBlink() {
   colBlinkTimer = null;
   if (!G?.showCollection) return;
-  const c = getColSelected();
+  const c = (G.collectionTab === 'greatBeasts' && !G.sacrificeMode) ? getColBeastSelected() : getColSelected();
   if (!c) return;
-  const ri     = EYE_ROW[c.dom] ?? 2;
+  const ri     = c.eyeRow ?? EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
   const closed = orig.replace(/o/g, '-');
   if (closed === orig) {
@@ -159,7 +289,7 @@ function triggerColBlink() {
 function triggerColJiggle() {
   colJiggleTimer = null;
   if (!G?.showCollection) return;
-  const c = getColSelected();
+  const c = (G.collectionTab === 'greatBeasts' && !G.sacrificeMode) ? getColBeastSelected() : getColSelected();
   if (!c) return;
   const gen     = ++colIdleGen;
   const offsets = [1, 0, -1, 0];
@@ -188,9 +318,41 @@ export function startCreatureAnims() {
 
 const span = (ch, color) => `<span style="color:${color}">${escHtml(ch)}</span>`;
 
+// Camera position from last renderViewport call — used by mouse coordinate resolution
+let _lastCamX = 0;
+let _lastCamY = 0;
+
+// Measured character cell dimensions — lazily computed from actual DOM spans.
+// CSS-dimension math (rect.width/VW) fails when the font doesn't exactly fill
+// the element box, which varies by browser/OS/zoom level.
+let _cellW = 0;
+let _cellH = 0;
+let _textOffsetX = 0;
+let _textOffsetY = 0;
+
+function measureViewportCells() {
+  const el = document.getElementById('viewport');
+  if (!el) return;
+  const s = el.querySelector('span');
+  if (!s) return;
+  const elRect = el.getBoundingClientRect();
+  const r = s.getBoundingClientRect();
+  if (r.width > 0 && r.height > 0) {
+    _cellW = r.width;
+    _cellH = r.height;
+    _textOffsetX = r.left - elRect.left;
+    _textOffsetY = r.top  - elRect.top;
+  }
+}
+
+// Invalidate cell measurement on resize so zooming stays accurate
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function')
+  window.addEventListener('resize', () => { _cellW = 0; });
+
 function renderViewport() {
-  const { px, py, revealed, worldEggs } = G;
+  const { px, py, revealed, worldEggs, worldBeasts } = G;
   const camX = px - Math.floor(VW / 2), camY = py - Math.floor(VH / 2);
+  _lastCamX = camX; _lastCamY = camY;
   let html = '';
   for (let vy = 0; vy < VH; vy++) {
     const gy = camY + vy;
@@ -198,6 +360,11 @@ function renderViewport() {
       const gx = camX + vx;
       if (gx === px && gy === py)                              { html += span('@', CLR.bright['@']); continue; }
       if (worldEggs?.has(`${gx},${gy}`))                       { html += span('Θ', CLR.bright['Θ']); continue; }
+      if (worldBeasts?.has(`${gx},${gy}`)) {
+        const _b = worldBeasts.get(`${gx},${gy}`);
+        const _bc = (BEAST_REGISTRY[_b.beastType] ?? BEAST_REGISTRY.dragon).char;
+        html += span(_bc, CLR.bright[_bc]); continue;
+      }
       const inLight = Math.hypot(gx - px, gy - py) <= LIGHT_R;
       const seen = revealed.has(`${gx},${gy}`);
       if (!seen && !inLight)                 { html += span(' ', '#000'); continue; }
@@ -214,6 +381,20 @@ function renderViewport() {
   return html;
 }
 
+// Resolve a viewport click to world coordinates using the last-known camera position.
+// Returns { wx, wy } or null if outside the viewport.
+export function getWorldCoordsFromViewportClick(clientX, clientY) {
+  const el = document.getElementById('viewport');
+  if (!el) return null;
+  if (!_cellW) measureViewportCells();
+  if (!_cellW) return null;
+  const rect = el.getBoundingClientRect();
+  const vx = Math.floor((clientX - rect.left - _textOffsetX) / _cellW);
+  const vy = Math.floor((clientY - rect.top  - _textOffsetY) / _cellH);
+  if (vx < 0 || vx >= VW || vy < 0 || vy >= VH) return null;
+  return { wx: _lastCamX + vx, wy: _lastCamY + vy };
+}
+
 function renderInventory() {
   let html = '';
   FOOD_KEYS.forEach((key, idx) => {
@@ -223,11 +404,11 @@ function renderInventory() {
     const sel = selectedFood === key;
     const clr = count > 0 ? color : '#555';
     const bg  = sel ? 'background:#151515;' : '';
-    html += `<div style="color:${clr};${bg}">${sel ? '►' : ' '}${idx + 1} ${ch} ${key.padEnd(8)} x${count}</div>`;
+    html += `<div data-food="${key}" style="color:${clr};${bg}">${sel ? '►' : ' '}${idx + 1} ${ch} ${key.padEnd(8)} x${count}</div>`;
   });
   const gc = G.inventory.gem || 0;
   const gs = selectedFood === 'gem';
-  html += `<div style="color:${gc > 0 ? GEM_COLOR : '#555'};${gs ? 'background:#151515;' : ''}">${gs ? '►' : ' '}6 ${GEM_CHAR} gem      x${gc}</div>`;
+  html += `<div data-food="gem" style="color:${gc > 0 ? GEM_COLOR : '#555'};${gs ? 'background:#151515;' : ''}">${gs ? '►' : ' '}6 ${GEM_CHAR} gem      x${gc}</div>`;
   document.getElementById('inv-list').innerHTML = html;
 }
 
@@ -247,10 +428,48 @@ function renderWorldPanel() {
 
 function renderBottomPlaying() {
   idleGen++;
-  const adjEgg = getAdjacentEgg();
+  const adjEgg   = getAdjacentEgg();
+  const adjBeast = getAdjacentBeast();
+
+  if (adjBeast && !adjEgg) {
+    const bDef       = BEAST_REGISTRY[adjBeast.beastType] ?? BEAST_REGISTRY.dragon;
+    const beastChar  = bDef.char;
+    const asleep     = adjBeast.phase === 'sleeping';
+    const art        = (BEAST_WORLD_ART[adjBeast.beastType] ?? BEAST_WORLD_ART.dragon)[asleep ? 'sleeping' : 'awake'];
+    const color      = asleep ? CLR.dim[beastChar] : CLR.bright[beastChar];
+    document.getElementById('egg-display').innerHTML =
+      art.map(l => `<span style="color:${color}">${escHtml(l)}</span>`).join('\n');
+    const gemFilled = Math.round(adjBeast.gemsReceived / DRAGON_GEM_COST * 10);
+    const gemBar    = '█'.repeat(gemFilled) + '░'.repeat(10 - gemFilled);
+    const offered   = adjBeast.sacrificedCreatures?.length ?? 0;
+    document.getElementById('egg-info').innerHTML = `
+      <div style="color:${CLR.bright[beastChar]};font-size:.9rem">${escHtml(beastChar)} ${escHtml(bDef.title)}</div>
+      <div style="font-size:.75rem;color:#888;margin-bottom:4px">${asleep ? 'Slumbering' : `<span style="color:${bDef.awakenColor}">Awoken</span>`}</div>
+      <div style="font-size:.75rem;color:#666">${adjBeast.gemsReceived}/${DRAGON_GEM_COST} gems &nbsp;<span style="color:${GEM_COLOR}">${gemBar}</span></div>
+      ${asleep ? '' : `<div style="font-size:.72rem;color:#666;margin-top:2px">${offered}/${DRAGON_CREATURE_COST} creatures offered</div>`}
+      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:6px">Press E to interact</div>`;
+    return;
+  }
+
+  if (getAdjacentChest()) {
+    document.getElementById('egg-display').innerHTML = [
+      '           ',
+      ' .-------. ',
+      ' |       | ',
+      ` |  [${CHEST_CHAR}]  | `,
+      ' |_______| ',
+      '           ',
+    ].map(l => `<span style="color:#c8a020">${escHtml(l)}</span>`).join('\n');
+    document.getElementById('egg-info').innerHTML = `
+      <div style="color:#c8a020;font-size:.85rem">${escHtml(CHEST_CHAR)} Locked Chest</div>
+      <div style="font-size:.72rem;color:#666;margin-top:4px">A chest lies nearby.</div>
+      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:8px">Press E to pick the lock</div>`;
+    return;
+  }
 
   if (adjEgg) {
-    const stage = EGG_STAGES[getEggStage(adjEgg.fed)];
+    const stageSet = getEggStageSet(adjEgg);
+    const stage = stageSet[getEggStage(adjEgg.fed)];
     document.getElementById('egg-display').innerHTML =
       stage.art.map(l => `<span style="color:${stage.color}">${escHtml(l)}</span>`).join('\n');
 
@@ -263,29 +482,45 @@ function renderBottomPlaying() {
     const selClr  = isGem ? GEM_COLOR : (selCh ? FOOD_INFO[selCh].color : '#888');
     const selLabel = isGem ? `${GEM_CHAR} gem` : `${selCh} ${selectedFood}`;
     const selAmt  = isGem ? G.inventory.gem : G.inventory[selectedFood];
-    const feedMsg = isGem ? 'Press F to boost rarity!' : 'Press F to feed!';
-    const eggBiome = adjEgg.biome ? BIOMES[adjEgg.biome] : null;
-    const biomeLabel = eggBiome
-      ? `<span style="color:${eggBiome.accent};font-size:.72rem">◈ ${eggBiome.name} egg</span>` : '';
+    const isGreatBeastEgg = !!adjEgg.isDragonEgg;
+    const beastEggDef   = BEAST_REGISTRY[adjEgg.beastType] ?? BEAST_REGISTRY.dragon;
+    const beastEggLabel = beastEggDef.eggLabel;
+    const beastEggChar  = beastEggDef.char;
+    const beastEggColor = CLR.bright[beastEggChar];
+    const feedMsg = isGem
+      ? (isGreatBeastEgg ? `<span style="color:#e05050">${beastEggLabel}s cannot be enhanced with gems.</span>` : 'Press F to boost rarity!')
+      : 'Press F to feed!';
     const currRarity = getRarity(adjEgg.rarityRoll);
+    const eggBiome = adjEgg.biome ? BIOMES[adjEgg.biome] : null;
+    const biomeLabel = isGreatBeastEgg
+      ? `<span style="color:${beastEggColor};font-size:.72rem">${escHtml(beastEggChar)} ${beastEggLabel} &nbsp;<span style="color:#888;font-size:.68rem">(rarity locked)</span></span>`
+      : (eggBiome ? `<span style="color:${eggBiome.accent};font-size:.72rem">&#9672; ${eggBiome.name} egg</span>` : '');
+    const rarityBadge = isGreatBeastEgg
+      ? `<span style="color:${currRarity.color}">${currRarity.badge} locked</span>`
+      : `<span style="color:${currRarity.color}">${currRarity.badge}</span>`;
 
     document.getElementById('egg-info').innerHTML = `
       <div id="egg-bar"><span style="color:${barClr}">${bar}</span></div>
-      <div id="egg-fed-count">${adjEgg.fed} / ${FOOD_NEEDED} fed &nbsp;<span style="color:${currRarity.color}">${currRarity.badge}</span></div>
+      <div id="egg-fed-count">${adjEgg.fed} / ${FOOD_NEEDED} fed &nbsp;${rarityBadge}</div>
       <div style="margin-top:3px;font-size:.78rem;color:#6a6a6a">
         Selected: <span style="color:${selClr}">${selLabel}</span> &nbsp;(x${selAmt})
       </div>
       <div style="margin-top:2px">${biomeLabel}</div>
-      <div id="feed-hint">${feedMsg}</div>`;
+      <div id="feed-hint" data-action="feed">${feedMsg}</div>`;
     startEggShakeTimer(1500);
 
   } else if (G.creature) {
     document.getElementById('egg-display').innerHTML =
       G.creature.lines.map(l => cLine(G.creature, l)).join('\n');
     const r = G.creature.rarity;
+    const _gbDef   = BEAST_REGISTRY[G.creature.beastType] ?? BEAST_REGISTRY.dragon;
+    const _gbColor = CLR.bright[_gbDef.char];
+    const beastBadge = G.creature.isGreatBeast
+      ? `<div style="color:${_gbColor};font-size:.72rem">${escHtml(_gbDef.char)} Great Beast &middot; ${escHtml(G.creature.beastType ?? 'dragon')}</div>` : '';
     document.getElementById('egg-info').innerHTML = `
       <div id="creature-name-display" style="color:${G.creature.color}">&ldquo;${escHtml(G.creature.name)}&rdquo;</div>
-      <div id="creature-rarity-display" style="color:${r.color}">${r.badge} ${r.name}</div>
+      <div id="creature-rarity-display" style="color:${r.color}">${r.badge} ${r.name}${G.creature.shiny ? shinyTag() : ''}</div>
+      ${beastBadge}
       <div id="creature-traits-display">${G.creature.traits.join(' &middot; ')}</div>
       <div id="creature-diet-display">${escHtml(G.creature.diet)}</div>
       <div id="creature-id-display">ID: ${G.creature.id}</div>
@@ -300,31 +535,30 @@ function renderBottomPlaying() {
   }
 }
 
-export function renderAnimFrame(frame) {
+export function renderAnimFrame(frame, label = 'HATCHING...') {
   document.getElementById('egg-display').innerHTML =
     frame.lines.map(l => `<span style="color:${frame.color}">${escHtml(l)}</span>`).join('\n');
   document.getElementById('egg-info').innerHTML =
     `<div id="egg-bar"><span style="color:#fff">${'█'.repeat(10)}</span></div>
      <div id="egg-fed-count">${FOOD_NEEDED} / ${FOOD_NEEDED} fed</div>
-     <div id="anim-label" style="margin-top:8px">HATCHING...</div>`;
+     <div id="anim-label" style="margin-top:8px">${label}</div>`;
 }
 
 
-function renderCollection() {
+function renderCreaturesTab(sacrificeMode) {
   const { collection } = G;
-  document.getElementById('col-count').textContent = `${collection.length} hatched`;
-
-  const order  = { Legendary: 0, Rare: 1, Uncommon: 2, Common: 3 };
+  const order = { Legendary: 0, Rare: 1, Uncommon: 2, Common: 3 };
   const sorted = [...collection].sort(
     (a, b) => (order[a.rarity.name] ?? 9) - (order[b.rarity.name] ?? 9) || a.name.localeCompare(b.name)
   );
 
-  if (collection.length === 0) {
+  if (!collection.length) {
+    const msg = sacrificeMode ? 'No creatures available to sacrifice.' : 'No creatures hatched yet.';
     document.getElementById('col-list').innerHTML =
-      '<div style="color:#5a5a5a;padding:12px 0;text-align:center">No creatures hatched yet.</div>';
+      `<div style="color:#5a5a5a;padding:12px 0;text-align:center">${msg}</div>`;
     document.getElementById('col-art').innerHTML = '';
     document.getElementById('col-detail-info').innerHTML =
-      '<div style="color:#5a5a5a;font-size:0.8rem">Hatch an egg to fill your collection.</div>';
+      `<div style="color:#5a5a5a;font-size:0.8rem">${sacrificeMode ? 'Hatch some eggs first.' : 'Hatch an egg to fill your collection.'}</div>`;
     return;
   }
 
@@ -332,9 +566,9 @@ function renderCollection() {
   const sel = sorted[G.colSelectedIdx];
 
   document.getElementById('col-list').innerHTML = sorted.map((c, i) => `
-    <div class="col-entry${i === G.colSelectedIdx ? ' col-selected' : ''}" data-idx="${i}">
+    <div class="col-entry${i === G.colSelectedIdx ? ' col-selected' + (sacrificeMode ? ' col-sacrifice-selected' : '') : ''}" data-idx="${i}">
       <div class="col-name">
-        <span style="color:${c.rarity.color}">${c.rarity.badge}</span>
+        <span style="color:${c.rarity.color}">${c.rarity.badge}</span>${c.shiny ? shinyTag() : ''}
         &nbsp;<span style="color:${c.color}">&ldquo;${escHtml(c.name)}&rdquo;</span>
       </div>
       <div class="col-id">${c.date || ''}</div>
@@ -349,15 +583,149 @@ function renderCollection() {
   if (!colBlinkTimer)  colBlinkTimer  = setTimeout(triggerColBlink,  2500 + rand(0, 2000));
   if (!colJiggleTimer) colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
 
+  const sacrificeHint = sacrificeMode
+    ? `<div style="color:#e05050;font-size:0.7rem;margin-top:4px">&#9888; This creature will be permanently removed</div>`
+    : '';
   document.getElementById('col-detail-info').innerHTML = `
     <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
-    <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}</div>
+    <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}${sel.shiny ? shinyTag() : ''}</div>
     <div style="color:#7a7a7a;font-size:0.72rem">${sel.traits.join(' &middot; ')}</div>
+    <div style="color:#606060;font-size:0.68rem">${escHtml(sel.diet)}</div>
+    <div style="color:#555;font-size:0.65rem">ID: ${sel.id}</div>
+    ${sacrificeHint}`;
+}
+
+function renderGreatBeastsTab() {
+  const greatBeasts = G.greatBeasts ?? [];
+  const order = { Legendary: 0, Rare: 1, Uncommon: 2, Common: 3 };
+  const sorted = [...greatBeasts].sort(
+    (a, b) => (order[a.rarity.name] ?? 9) - (order[b.rarity.name] ?? 9) || a.name.localeCompare(b.name)
+  );
+
+  if (!greatBeasts.length) {
+    document.getElementById('col-list').innerHTML =
+      '<div style="color:#5a5a5a;padding:12px 0;text-align:center">No Great Beasts found yet.</div>';
+    document.getElementById('col-art').innerHTML = '';
+    document.getElementById('col-detail-info').innerHTML =
+      '<div style="color:#5a5a5a;font-size:0.8rem">Seek out Great Beasts in the wilds.</div>';
+    return;
+  }
+
+  G.gbSelectedIdx = Math.max(0, Math.min(G.gbSelectedIdx ?? 0, sorted.length - 1));
+  const sel = sorted[G.gbSelectedIdx];
+
+  document.getElementById('col-list').innerHTML = sorted.map((b, i) => `
+    <div class="col-entry${i === G.gbSelectedIdx ? ' col-selected' : ''}" data-idx="${i}">
+      <div class="col-name">
+        <span style="color:${b.rarity.color}">${b.rarity.badge}</span>${b.shiny ? shinyTag() : ''}
+        &nbsp;<span style="color:${b.color}">&ldquo;${escHtml(b.name)}&rdquo;</span>
+      </div>
+      <div class="col-id">${b.date || ''}</div>
+    </div>`).join('');
+
+  const selEl = document.querySelector('#col-list .col-selected');
+  if (selEl) selEl.scrollIntoView({ block: 'nearest' });
+
+  colIdleGen++;
+  document.getElementById('col-art').innerHTML =
+    sel.lines.map(l => cLine(sel, l)).join('\n');
+  if (!colBlinkTimer)  colBlinkTimer  = setTimeout(triggerColBlink,  2500 + rand(0, 2000));
+  if (!colJiggleTimer) colJiggleTimer = setTimeout(triggerColJiggle, 6000 + rand(0, 8000));
+
+  const selBDef = BEAST_REGISTRY[sel.beastType] ?? BEAST_REGISTRY.dragon;
+  document.getElementById('col-detail-info').innerHTML = `
+    <div style="color:${sel.color};font-size:0.85rem">&ldquo;${escHtml(sel.name)}&rdquo;</div>
+    <div style="color:${sel.rarity.color};font-size:0.75rem">${sel.rarity.badge} ${sel.rarity.name}${sel.shiny ? shinyTag() : ''}</div>
+    <div style="color:${CLR.bright[selBDef.char]};font-size:0.72rem">${escHtml(selBDef.char)} Great Beast &middot; ${escHtml(sel.beastType ?? 'dragon')}</div>
     <div style="color:#606060;font-size:0.68rem">${escHtml(sel.diet)}</div>
     <div style="color:#555;font-size:0.65rem">ID: ${sel.id}</div>`;
 }
 
+function renderCollection() {
+  const tab = G.collectionTab ?? 'creatures';
+  const sacrificeMode = !!G.sacrificeMode;
+
+  document.getElementById('col-tab-creatures').className =
+    'col-tab' + (tab === 'creatures' ? ' col-tab-active' : '');
+  document.getElementById('col-tab-beasts').className =
+    'col-tab' + (tab === 'greatBeasts' && !sacrificeMode ? ' col-tab-active' : '');
+  document.getElementById('col-tab-beasts').hidden = sacrificeMode;
+
+  const sacWarn = document.getElementById('col-sacrifice-warning');
+  const colLeg  = document.getElementById('col-legend');
+
+  if (sacrificeMode) {
+    document.getElementById('col-count').textContent = `${G.collection.length} available`;
+    document.getElementById('col-close').innerHTML =
+      '<span style="color:#e05050"><span data-action="sacrifice-creature" style="white-space:nowrap">E:&nbsp;sacrifice</span> &nbsp;&middot;&nbsp; <span data-action="exit-sacrifice" style="white-space:nowrap">ESC:&nbsp;cancel</span></span>';
+    sacWarn.hidden = false;
+    colLeg.hidden  = true;
+  } else {
+    const arr   = tab === 'creatures' ? G.collection : (G.greatBeasts ?? []);
+    const label = tab === 'creatures' ? 'hatched' : 'found';
+    document.getElementById('col-count').textContent = `${arr.length} ${label}`;
+    document.getElementById('col-close').innerHTML =
+      '<span data-action="close-collection" style="white-space:nowrap">C:&nbsp;close</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">WS:&nbsp;navigate</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">AD:&nbsp;switch&nbsp;tab</span>';
+    sacWarn.hidden = true;
+    colLeg.hidden  = false;
+  }
+
+  if (sacrificeMode || tab === 'creatures') {
+    renderCreaturesTab(sacrificeMode);
+  } else {
+    renderGreatBeastsTab();
+  }
+}
+
+export function renderBeastOverlay() {
+  const show = !!(G?.dragonInteract && !G.sacrificeMode);
+  const el = document.getElementById('beast-overlay');
+  el.hidden = !show;
+  if (!show || !G?.worldBeasts) return;
+
+  const beast = G.worldBeasts.get(G.dragonInteract);
+  if (!beast) { el.hidden = true; return; }
+
+  const { phase, gemsReceived: gems, sacrificedCreatures: offered, beastType } = beast;
+  const bDef = BEAST_REGISTRY[beastType] ?? BEAST_REGISTRY.dragon;
+  const gemFilled = Math.round(gems / DRAGON_GEM_COST * 20);
+  const gemBar    = '█'.repeat(gemFilled) + '░'.repeat(20 - gemFilled);
+
+  document.getElementById('beast-title').textContent = bDef.overlayTitle;
+
+  document.getElementById('beast-phase').innerHTML = phase === 'sleeping'
+    ? `<span style="color:${bDef.dormantFlavColor}">${bDef.dormantFlavor}</span>`
+    : `<span style="color:${bDef.awakenFlavColor}">${bDef.awakenFlavor}</span>`;
+
+  document.getElementById('beast-gem-progress').innerHTML =
+    `<span style="color:${phase === 'awake' ? '#50c080' : GEM_COLOR}">${gemBar}</span>` +
+    `  <span style="color:#888;font-size:.75rem">${gems}/${DRAGON_GEM_COST} gems</span>`;
+
+  if (phase === 'awake') {
+    const slots = Array.from({ length: DRAGON_CREATURE_COST }, (_, i) => {
+      const c = offered[i];
+      return c
+        ? `<span style="color:${c.rarity.color};font-size:.72rem">[${escHtml(c.name.split(' ')[0])}]</span>`
+        : `<span style="color:#333;font-size:.72rem">[&nbsp;&nbsp;&nbsp;?&nbsp;&nbsp;&nbsp;]</span>`;
+    }).join(' ');
+    document.getElementById('beast-creatures').innerHTML =
+      `<div style="display:flex;gap:4px;flex-wrap:wrap">${slots}</div>` +
+      `<div style="color:#888;font-size:.72rem;margin-top:4px">${offered.length}/${DRAGON_CREATURE_COST} creatures offered</div>`;
+  } else {
+    document.getElementById('beast-creatures').innerHTML = '';
+  }
+
+  const noCreatures = !G.collection?.length;
+  const hint = phase === 'sleeping'
+    ? '<span data-action="gem" style="white-space:nowrap">F:&nbsp;offer gem</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>'
+    : (noCreatures
+        ? '<span style="white-space:nowrap">No creatures to offer &mdash; hatch some eggs first!</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>'
+        : '<span data-action="sacrifice" style="white-space:nowrap">C:&nbsp;offer a creature</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>');
+  document.getElementById('beast-hint').innerHTML = hint;
+}
+
 export function render() {
+  renderBeastOverlay();
   if (G.phase === 'animating') return;
 
   const showCol = G.showCollection;

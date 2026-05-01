@@ -163,7 +163,94 @@ export function sfxHatch() {
   playTone(67, t + 0.25, 0.32, 'triangle', 0.08, ctx);
 }
 
+export function sfxDragonHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  [33, 36, 40].forEach((m, i) => playTone(m, t + i * 0.08, 0.6, 'sawtooth', 0.12, ctx));
+  [45, 52, 57, 64].forEach((m, i) => playTone(m, t + 0.30 + i * 0.10, 0.5, 'triangle', 0.14 - i * 0.02, ctx));
+  playTone(64, t + 0.80, 0.7, 'triangle', 0.15, ctx);
+  playTone(67, t + 0.90, 0.6, 'triangle', 0.12, ctx);
+  playTone(72, t + 1.00, 0.8, 'triangle', 0.10, ctx);
+}
+
+export function sfxKrakenHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  [28, 31, 33].forEach((m, i) => playTone(m, t + i * 0.09, 0.7, 'sawtooth', 0.13, ctx));
+  [40, 45, 48, 52].forEach((m, i) => playTone(m, t + 0.32 + i * 0.11, 0.55, 'sine', 0.14 - i * 0.02, ctx));
+  playTone(52, t + 0.85, 0.9, 'sine',     0.14, ctx);
+  playTone(57, t + 0.95, 0.8, 'triangle', 0.10, ctx);
+  playTone(45, t + 1.05, 1.0, 'sine',     0.08, ctx);
+}
+
+export function sfxGriffonHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  [57, 60, 64].forEach((m, i) => playTone(m, t + i * 0.07, 0.4, 'sawtooth', 0.10, ctx));
+  [72, 76, 79, 84].forEach((m, i) => playTone(m, t + 0.28 + i * 0.09, 0.4, 'triangle', 0.13 - i * 0.02, ctx));
+  playTone(79, t + 0.72, 0.6, 'triangle', 0.14, ctx);
+  playTone(84, t + 0.82, 0.5, 'triangle', 0.11, ctx);
+  playTone(88, t + 0.92, 0.7, 'triangle', 0.09, ctx);
+}
+
+export function sfxBeastAwaken() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  [33, 36, 38].forEach((m, i) => playTone(m, t + i * 0.10, 0.8, 'sawtooth', 0.15, ctx));
+  [45, 50, 55, 59, 64].forEach((m, i) => playTone(m, t + 0.35 + i * 0.13, 0.5, 'triangle', 0.13 - i * 0.01, ctx));
+  playTone(38, t + 1.1, 1.5, 'triangle', 0.12, ctx);
+  playTone(45, t + 1.1, 1.5, 'sine',     0.08, ctx);
+}
+
+export function sfxSacrifice() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  [69, 65, 62, 57, 53].forEach((m, i) => playTone(m, t + i * 0.08, 0.18, 'sine', 0.09, ctx));
+  playTone(45, t + 0.45, 0.45, 'triangle', 0.06, ctx);
+}
+
+export function sfxManticoreHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Low rumbling roar
+  [36, 40, 43].forEach((m, i) => playTone(m, t + i * 0.06, 0.5, 'sawtooth', 0.14, ctx));
+  // Rising screech
+  [55, 58, 62, 65].forEach((m, i) => playTone(m, t + 0.22 + i * 0.08, 0.4, 'triangle', 0.12 - i * 0.02, ctx));
+  // Stinger strike — sharp high note
+  playTone(84, t + 0.60, 0.15, 'square', 0.10, ctx);
+  playTone(88, t + 0.72, 0.25, 'sawtooth', 0.08, ctx);
+  playTone(76, t + 0.82, 0.6, 'triangle', 0.12, ctx);
+}
+
+export function sfxDemonHatch() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Deep ominous boom
+  [24, 28, 31].forEach((m, i) => playTone(m, t + i * 0.08, 0.7, 'sawtooth', 0.16, ctx));
+  // Rising dark chord
+  [43, 46, 50, 55].forEach((m, i) => playTone(m, t + 0.30 + i * 0.10, 0.5, 'triangle', 0.14 - i * 0.02, ctx));
+  // Piercing shriek
+  playTone(79, t + 0.75, 0.3, 'square',   0.10, ctx);
+  playTone(84, t + 0.85, 0.4, 'sawtooth', 0.09, ctx);
+  playTone(67, t + 0.95, 0.8, 'triangle', 0.13, ctx);
+}
+
 export function getMuted() { return muted; }
+
+export const SFX_BEAST_HATCH = {
+  dragon:    sfxDragonHatch,
+  kraken:    sfxKrakenHatch,
+  griffon:   sfxGriffonHatch,
+  manticore: sfxManticoreHatch,
+  demon:     sfxDemonHatch,
+};
 
 export function setMuted(val) {
   muted = !!val;
@@ -188,7 +275,8 @@ export function toggleMute() {
 }
 
 export function renderControls() {
-  const base = 'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; E:&nbsp;interact &nbsp;·&nbsp; C:&nbsp;collection &nbsp;·&nbsp; M:&nbsp;mute &nbsp;·&nbsp; Ctrl+S/O:&nbsp;save/load &nbsp;·&nbsp; ?:&nbsp;feedback';
-  const mTag = muted ? ' &nbsp;<span style="color:#e05050">[MUTED]</span>' : '';
-  document.getElementById('controls').innerHTML = base + mTag;
+  document.getElementById('controls').innerHTML =
+    'WASD:&nbsp;move &nbsp;·&nbsp; 1-6:&nbsp;select &nbsp;·&nbsp; F:&nbsp;feed &nbsp;·&nbsp; E:&nbsp;interact';
+  const muteBtn = document.getElementById('tbtn-mute');
+  if (muteBtn) { if (muted) muteBtn.classList.add('muted'); else muteBtn.classList.remove('muted'); }
 }
