@@ -1,7 +1,7 @@
 // Pure constants and utility functions shared across all modules.
 // No side effects, no DOM access, no mutable state.
 
-export const VERSION = '1.23';
+export const VERSION = '1.24';
 
 export const PATCH_NOTES = {
   '1.13': [
@@ -48,6 +48,15 @@ export const PATCH_NOTES = {
     'Badlands and underground music reworked',
     'Fixed: feedback form Submit button returned after resubmitting',
   ],
+  '1.24': [
+    'Great Beasts: five ancient creatures now roam the world — Dragon, Kraken, Griffon, Manticore, and Demon',
+    'Approach a Great Beast and offer 25 gems to wake it, then sacrifice 5 creatures to summon its egg',
+    'Great Beast eggs hatch into legendary companions with unique silhouettes, animations, and sound',
+    'Mouse controls: compass arrows (↑←→↓) for movement, click inventory to select food',
+    'Toolbar added at the top right: quick buttons for Collection, Mute, Save, Load, and Feedback',
+    'All key interactions clickable — feed hints, interact prompts, beast overlay actions, and collection controls',
+    'Missing a chest lockpick now destroys the chest — one attempt only',
+  ],
 };
 
 // Viewport dimensions
@@ -62,6 +71,110 @@ export const HUNGER_STEPS = 75;
 export const GEM_CHAR = '$';
 export const GEM_COLOR = '#80dfff';
 export const CHEST_CHAR = '■';
+export const DRAGON_GEM_COST = 25;
+export const DRAGON_CREATURE_COST = 5;
+
+export const BEAST_REGISTRY = {
+  dragon: {
+    char: 'Ω',
+    colorBright: '#ff6020', colorDim: '#601808',
+    biome: 'badlands', spawnRate: 20,
+    awakenColor: '#ff8040',
+    title: 'Ancient Dragon',
+    overlayTitle: 'Ω  ANCIENT DRAGON',
+    dormantFlavor: 'The dragon lies dormant, scales flickering with dying embers...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The dragon stirs, ancient eyes regarding you with hunger.',
+    awakenFlavColor: '#ff8040',
+    eggLabel: 'Dragon Egg',
+    dissolveClr1: '#ff6020', dissolveClr2: '#993010',
+    flashClr1: '#ff8040',   flashClr2: '#cc2010',
+    eggClr: '#8b2500',
+    dissolveLog: 'The dragon dissolves into embers! A Dragon Egg remains...',
+    dissolveArtKey: 'embers',
+  },
+  kraken: {
+    char: 'Ψ',
+    colorBright: '#40c0ff', colorDim: '#0a3050',
+    biome: 'wetlands', spawnRate: 20,
+    awakenColor: '#40c0ff',
+    title: 'Ancient Kraken',
+    overlayTitle: 'Ψ  ANCIENT KRAKEN',
+    dormantFlavor: 'The kraken lies dormant, tentacles drifting in the cold dark...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The kraken stirs, vast eyes regarding you from the depths.',
+    awakenFlavColor: '#40c0ff',
+    eggLabel: 'Kraken Egg',
+    dissolveClr1: '#40c0ff', dissolveClr2: '#104060',
+    flashClr1: '#40e0ff',   flashClr2: '#1080b0',
+    eggClr: '#0a2a40',
+    dissolveLog: 'The kraken sinks into the deep! A Kraken Egg bobs to the surface...',
+    dissolveArtKey: 'splash',
+  },
+  griffon: {
+    char: 'Λ',
+    colorBright: '#d4b020', colorDim: '#503808',
+    biome: 'forest', spawnRate: 20,
+    awakenColor: '#f0c820',
+    title: 'Ancient Griffon',
+    overlayTitle: 'Λ  ANCIENT GRIFFON',
+    dormantFlavor: 'The griffon slumbers, great wings folded, eyes half-closed...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The griffon raises its proud head, keen eyes fixing upon you.',
+    awakenFlavColor: '#f0c820',
+    eggLabel: 'Griffon Egg',
+    dissolveClr1: '#e0c040', dissolveClr2: '#705010',
+    flashClr1: '#f0d020',   flashClr2: '#c09018',
+    eggClr: '#1a3010',
+    dissolveLog: 'The griffon fades into golden light! A Griffon Egg drifts down...',
+    dissolveArtKey: 'feathers',
+  },
+  manticore: {
+    char: 'Ξ',
+    colorBright: '#c87828', colorDim: '#4a2c0a',
+    biome: 'plains', spawnRate: 20,
+    awakenColor: '#e89030',
+    title: 'Ancient Manticore',
+    overlayTitle: 'Ξ  ANCIENT MANTICORE',
+    dormantFlavor: 'The manticore lies coiled, tail arched overhead, eyes half-closed...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The manticore raises its terrible head, stinger gleaming with venom.',
+    awakenFlavColor: '#e89030',
+    eggLabel: 'Manticore Egg',
+    dissolveClr1: '#c87828', dissolveClr2: '#4a2c0a',
+    flashClr1: '#e89030',   flashClr2: '#a05010',
+    eggClr: '#5a3010',
+    dissolveLog: 'The manticore dissolves into golden dust! A Manticore Egg settles in the sand...',
+    dissolveArtKey: 'dust',
+  },
+  demon: {
+    char: 'Δ',
+    colorBright: '#9030d0', colorDim: '#280850',
+    biome: 'underground', spawnRate: 20,
+    awakenColor: '#c040e0',
+    title: 'Ancient Demon',
+    overlayTitle: 'Δ  ANCIENT DEMON',
+    dormantFlavor: 'The demon lies dormant, wings folded, emanating cold dread from the dark...',
+    dormantFlavColor: '#888',
+    awakenFlavor: 'The demon unfurls its great wings, violet eyes blazing with malice.',
+    awakenFlavColor: '#c040e0',
+    eggLabel: 'Demon Egg',
+    dissolveClr1: '#9030d0', dissolveClr2: '#280850',
+    flashClr1: '#c040e0',   flashClr2: '#6020a0',
+    eggClr: '#180438',
+    dissolveLog: 'The demon dissolves into shadow! A Demon Egg pulses in the darkness...',
+    dissolveArtKey: 'shadow',
+  },
+};
+
+export const BEAST_TYPES = Object.keys(BEAST_REGISTRY);
+
+// Named char constants derived from registry (kept for import compatibility)
+export const DRAGON_CHAR    = BEAST_REGISTRY.dragon.char;
+export const KRAKEN_CHAR    = BEAST_REGISTRY.kraken.char;
+export const GRIFFON_CHAR   = BEAST_REGISTRY.griffon.char;
+export const MANTICORE_CHAR = BEAST_REGISTRY.manticore.char;
+export const DEMON_CHAR     = BEAST_REGISTRY.demon.char;
 
 // Chunk dimensions & corridor positions (guaranteed connectivity)
 export const CW = 26;
@@ -91,9 +204,15 @@ export const BIOMES = {
 };
 export const BIOME_KEYS = Object.keys(BIOMES);
 
+export const GREAT_BEAST_BIOMES = Object.fromEntries(
+  Object.entries(BEAST_REGISTRY).map(([type, def]) => [def.biome, { beastType: type, spawnRate: def.spawnRate }])
+);
+
 export const CLR = {
-  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020' },
-  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08' },
+  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020',
+    ...Object.fromEntries(Object.values(BEAST_REGISTRY).map(b => [b.char, b.colorBright])) },
+  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08',
+    ...Object.fromEntries(Object.values(BEAST_REGISTRY).map(b => [b.char, b.colorDim])) },
 };
 
 export const RARITIES = [

@@ -1,15 +1,21 @@
 // Infinite chunked world: generation, tile access, biome lookup.
 // Owns WORLD_SEED and the chunk cache.
 
-import { BIOMES, BIOME_KEYS, FOOD_INFO, FOOD_CHARS, GEM_CHAR, CHEST_CHAR, CW, CH, CORR_X, CORR_Y, djb2, mulberry32 } from './utils.js';
+import { BIOMES, BIOME_KEYS, FOOD_INFO, FOOD_CHARS, GEM_CHAR, CHEST_CHAR, CW, CH, CORR_X, CORR_Y, djb2, mulberry32, GREAT_BEAST_BIOMES } from './utils.js';
 
 export let WORLD_SEED = 0;
 export const chunks = new Map();
+const openedChests = new Set();
 
 export function resetWorld(seed) {
   WORLD_SEED = seed;
   chunks.clear();
+  openedChests.clear();
 }
+
+export function markChestOpened(wx, wy) { openedChests.add(`${wx},${wy}`); }
+export function setOpenedChests(set) { openedChests.clear(); for (const v of set) openedChests.add(v); }
+export function getOpenedChests() { return openedChests; }
 
 function chunkSeed(cx, cy) {
   let h = WORLD_SEED >>> 0;
@@ -70,8 +76,19 @@ export function generateChunk(cx, cy) {
 
 export function getChunk(cx, cy) {
   const key = `${cx},${cy}`;
-  if (!chunks.has(key)) chunks.set(key, generateChunk(cx, cy));
-  return chunks.get(key);
+  if (chunks.has(key)) {
+    const chunk = chunks.get(key);
+    chunks.delete(key);
+    chunks.set(key, chunk);
+    return chunk;
+  }
+  const chunk = generateChunk(cx, cy);
+  for (let ly = 0; ly < CH; ly++)
+    for (let lx = 0; lx < CW; lx++)
+      if (chunk.grid[ly][lx] === CHEST_CHAR && openedChests.has(`${cx * CW + lx},${cy * CH + ly}`))
+        chunk.grid[ly][lx] = '.';
+  chunks.set(key, chunk);
+  return chunk;
 }
 
 // Coordinate helpers
@@ -108,4 +125,26 @@ export function getChunkEggSpawn(cx, cy) {
 // Room = 3+ cardinal neighbours walkable (corridors have ≤2)
 export function isRoomTile(wx, wy) {
   return [[0, -1], [0, 1], [-1, 0], [1, 0]].filter(([dx, dy]) => isWalkable(wx + dx, wy + dy)).length >= 3;
+}
+
+// Returns {wx, wy, beastType} for a great beast spawn in this chunk, or null.
+// Each biome in GREAT_BEAST_BIOMES has one beast per spawnRate badlands chunks.
+export function getGreatBeastSpawn(cx, cy) {
+  const biomeKey = getChunkBiome(cx, cy);
+  const cfg = GREAT_BEAST_BIOMES[biomeKey];
+  if (!cfg) return null;
+
+  const h = djb2(`gb${WORLD_SEED},${cx},${cy}`);
+  if (h % cfg.spawnRate !== 0) return null;
+
+  const chunk = getChunk(cx, cy);
+  const rng = mulberry32(h ^ 0x6b4e2f1a);
+  const candidates = [];
+  for (let ly = 0; ly < CH; ly++)
+    for (let lx = 0; lx < CW; lx++)
+      if (chunk.grid[ly][lx] === '.' && lx !== CORR_X && ly !== CORR_Y)
+        candidates.push([cx * CW + lx, cy * CH + ly]);
+  if (!candidates.length) return null;
+  const [wx, wy] = candidates[rng.int(0, candidates.length)];
+  return { wx, wy, beastType: cfg.beastType };
 }
