@@ -48,6 +48,15 @@ export const PATCH_NOTES = {
     'Badlands and underground music reworked',
     'Fixed: feedback form Submit button returned after resubmitting',
   ],
+  '1.24': [
+    'Great Beasts: five ancient creatures now roam the world — Dragon, Kraken, Griffon, Manticore, and Demon',
+    'Approach a Great Beast and offer 25 gems to wake it, then sacrifice 5 creatures to summon its egg',
+    'Great Beast eggs hatch into legendary companions with unique silhouettes, animations, and sound',
+    'Mouse controls: compass arrows (↑←→↓) for movement, click inventory to select food',
+    'Toolbar added at the top right: quick buttons for Collection, Mute, Save, Load, and Feedback',
+    'All key interactions clickable — feed hints, interact prompts, beast overlay actions, and collection controls',
+    'Missing a chest lockpick now destroys the chest — one attempt only',
+  ],
 };
 
 // Viewport dimensions
