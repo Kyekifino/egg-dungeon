@@ -1,7 +1,7 @@
 // All DOM rendering, idle animation state, and animation timers.
 // Reads G and selectedFood as live bindings from state.js.
 
-import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, BEAST_REGISTRY, getRarity, escHtml, rand, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './utils.js';
+import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, BEAST_REGISTRY, getRarity, escHtml, rand, DRAGON_GEM_COST, DRAGON_CREATURE_COST, CHEST_CHAR } from './utils.js';
 import { getTile, getChunkBiome, chunkX, chunkY } from './world.js';
 import { EGG_STAGES, BEAST_EGG_STAGES_MAP, getEggStage, EYE_ROW } from './creature.js';
 import { G, selectedFood } from './state.js';
@@ -156,6 +156,14 @@ export function getAdjacentBeast() {
   for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
     const beast = G.worldBeasts.get(`${G.px + dx},${G.py + dy}`);
     if (beast) return beast;
+  }
+  return null;
+}
+
+function getAdjacentChest() {
+  if (!G) return null;
+  for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+    if (getTile(G.px + dx, G.py + dy) === CHEST_CHAR) return true;
   }
   return null;
 }
@@ -443,6 +451,22 @@ function renderBottomPlaying() {
     return;
   }
 
+  if (getAdjacentChest()) {
+    document.getElementById('egg-display').innerHTML = [
+      '           ',
+      ' .-------. ',
+      ' |       | ',
+      ` |  [${CHEST_CHAR}]  | `,
+      ' |_______| ',
+      '           ',
+    ].map(l => `<span style="color:#c8a020">${escHtml(l)}</span>`).join('\n');
+    document.getElementById('egg-info').innerHTML = `
+      <div style="color:#c8a020;font-size:.85rem">${escHtml(CHEST_CHAR)} Locked Chest</div>
+      <div style="font-size:.72rem;color:#666;margin-top:4px">A chest lies nearby.</div>
+      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:8px">Press E to pick the lock</div>`;
+    return;
+  }
+
   if (adjEgg) {
     const stageSet = getEggStageSet(adjEgg);
     const stage = stageSet[getEggStage(adjEgg.fed)];
@@ -633,7 +657,7 @@ function renderCollection() {
   if (sacrificeMode) {
     document.getElementById('col-count').textContent = `${G.collection.length} available`;
     document.getElementById('col-close').innerHTML =
-      '<span style="color:#e05050"><span style="white-space:nowrap">E:&nbsp;sacrifice</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;cancel</span></span>';
+      '<span style="color:#e05050"><span data-action="sacrifice-creature" style="white-space:nowrap">E:&nbsp;sacrifice</span> &nbsp;&middot;&nbsp; <span data-action="exit-sacrifice" style="white-space:nowrap">ESC:&nbsp;cancel</span></span>';
     sacWarn.hidden = false;
     colLeg.hidden  = true;
   } else {
@@ -641,7 +665,7 @@ function renderCollection() {
     const label = tab === 'creatures' ? 'hatched' : 'found';
     document.getElementById('col-count').textContent = `${arr.length} ${label}`;
     document.getElementById('col-close').innerHTML =
-      '<span style="white-space:nowrap">C:&nbsp;close</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">WS:&nbsp;navigate</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">AD:&nbsp;switch&nbsp;tab</span>';
+      '<span data-action="close-collection" style="white-space:nowrap">C:&nbsp;close</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">WS:&nbsp;navigate</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">AD:&nbsp;switch&nbsp;tab</span>';
     sacWarn.hidden = true;
     colLeg.hidden  = false;
   }

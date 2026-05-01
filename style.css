@@ -11,6 +11,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  user-select: none;
 }
 
 /* ── App shell ────────────────────────────────────────────── */
@@ -20,9 +21,20 @@ body {
 #header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   width: 660px;
 }
+
+#toolbar { display: flex; align-items: center; gap: 4px; }
+.tbtn {
+  color: #505050;
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 1px 7px;
+  border: 1px solid #252525;
+}
+.tbtn:hover { color: #c8c4a8; border-color: #505050; }
+#tbtn-mute.muted { color: #e05050; border-color: #3a1010; }
 #title {
   color: #f0e060;
   font-size: 1.1rem;
@@ -47,7 +59,6 @@ body {
   background: #050505;
   border: 1px solid #1a1a1a;
   cursor: pointer;
-  user-select: none;
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
@@ -280,6 +291,7 @@ body {
   padding: 5px 7px;
   outline: none;
   resize: vertical;
+  user-select: text;
 }
 #fb-fields input:focus,
 #fb-fields select:focus,

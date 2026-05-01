@@ -691,12 +691,7 @@ Input.init({
   onViewportClick: (wx, wy) => {
     if (G.showCollection || G.dragonInteract) return;
     const dx = wx - G.px, dy = wy - G.py;
-    if (dx === 0 && dy === 0) { tryE(); return; }
-    if (Math.abs(dx) + Math.abs(dy) === 1) {
-      const wKey = `${wx},${wy}`;
-      if (G.worldBeasts?.has(wKey)) { tryE(); return; }
-      if (G.worldEggs?.has(wKey))   { tryFeed(); return; }
-    }
+    if (dx === 0 && dy === 0) return;
     const adx = Math.abs(dx), ady = Math.abs(dy);
     tryMove(adx >= ady ? Math.sign(dx) : 0, adx >= ady ? 0 : Math.sign(dy));
   },

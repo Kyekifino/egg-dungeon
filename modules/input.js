@@ -128,6 +128,52 @@ export function init({
     else if (btn.dataset.action === 'close-overlay') closeBeastOverlay();
   });
 
+  document.getElementById('chest-overlay').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'lockpick')   lockpick();
+    else if (btn.dataset.action === 'close-chest') closeChest();
+  });
+
+  document.getElementById('collection-overlay').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const G = getG();
+    if (!G) return;
+    if (btn.dataset.action === 'sacrifice-creature') sacrificeCreature();
+    else if (btn.dataset.action === 'exit-sacrifice') exitSacrificeMode();
+    else if (btn.dataset.action === 'close-collection') { G.showCollection = false; stopColAnims(); render(); }
+  });
+
+  document.getElementById('col-tab-creatures').addEventListener('click', () => {
+    const G = getG();
+    if (!G || G.sacrificeMode) return;
+    G.collectionTab = 'creatures'; stopColAnims(); render();
+  });
+
+  document.getElementById('col-tab-beasts').addEventListener('click', () => {
+    const G = getG();
+    if (!G || G.sacrificeMode) return;
+    G.collectionTab = 'greatBeasts'; stopColAnims(); render();
+  });
+
+  document.getElementById('toolbar').addEventListener('click', e => {
+    const btn = e.target.closest('[data-toolbar]');
+    if (!btn) return;
+    const action = btn.dataset.toolbar;
+    if (action === 'mute')         toggleMute();
+    else if (action === 'save')    saveGame();
+    else if (action === 'load')    loadGame();
+    else if (action === 'feedback') openFeedback();
+    else if (action === 'collection') {
+      const G = getG();
+      if (!G) return;
+      G.showCollection = !G.showCollection;
+      if (!G.showCollection) stopColAnims();
+      render();
+    }
+  });
+
   if (onViewportClick) {
     const vp = document.getElementById('viewport');
     vp.addEventListener('mousedown', e => e.preventDefault());
