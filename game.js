@@ -587,7 +587,7 @@ function renderChestBar() {
 }
 
 function tryLockpick() {
-  if (!chestMinigame) return;
+  if (!chestMinigame || chestMinigame.failed) return;
   const { pos, sweetStart, sweetEnd, cx, cy } = chestMinigame;
   const resultEl = document.getElementById('chest-result');
   if (pos >= sweetStart && pos <= sweetEnd) {
@@ -610,8 +610,20 @@ function tryLockpick() {
       render();
     }, 750);
   } else {
+    clearInterval(chestMinigame.intervalId);
+    chestMinigame.intervalId = null;
+    chestMinigame.failed = true;
+    document.getElementById('chest-bar').textContent = '[' + '·'.repeat(CHEST_BAR) + ']';
     resultEl.className = 'chest-miss';
-    resultEl.textContent = '✗ Missed — try again!';
+    resultEl.textContent = '✗ The lock snaps!';
+    setTimeout(() => {
+      closeChest();
+      setTile(cx, cy, '.');
+      markChestOpened(cx, cy);
+      addLog('You missed — the lock snapped. The chest crumbled.');
+      autoSave();
+      render();
+    }, 750);
   }
 }
 
@@ -688,13 +700,6 @@ Input.init({
   closeBeastOverlay,
   render,
   stopColAnims,
-  onViewportClick: (wx, wy) => {
-    if (G.showCollection || G.dragonInteract) return;
-    const dx = wx - G.px, dy = wy - G.py;
-    if (dx === 0 && dy === 0) return;
-    const adx = Math.abs(dx), ady = Math.abs(dy);
-    tryMove(adx >= ady ? Math.sign(dx) : 0, adx >= ady ? 0 : Math.sign(dy));
-  },
 });
 
 const isDev = window.location.pathname.includes('/dev/');

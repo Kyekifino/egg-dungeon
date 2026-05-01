@@ -157,6 +157,16 @@ export function init({
     G.collectionTab = 'greatBeasts'; stopColAnims(); render();
   });
 
+  document.getElementById('compass').addEventListener('click', e => {
+    const btn = e.target.closest('[data-dir]');
+    if (!btn) return;
+    const G = getG();
+    if (!G || G.phase === 'animating' || G.showCollection || G.dragonInteract) return;
+    const dirs = { up: [0,-1], down: [0,1], left: [-1,0], right: [1,0] };
+    const mv = dirs[btn.dataset.dir];
+    if (mv) tryMove(mv[0], mv[1]);
+  });
+
   document.getElementById('toolbar').addEventListener('click', e => {
     const btn = e.target.closest('[data-toolbar]');
     if (!btn) return;

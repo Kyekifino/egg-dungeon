@@ -21,10 +21,11 @@ body {
 #header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   width: 660px;
 }
 
+#header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 #toolbar { display: flex; align-items: center; gap: 4px; }
 .tbtn {
   color: #505050;
@@ -48,7 +49,31 @@ body {
 #mid-area { position: relative; width: 660px; height: 396px; }
 
 /* ── Game area ────────────────────────────────────────────── */
-#game-area { display: flex; gap: 10px; width: 660px; height: 396px; }
+#game-area { display: flex; gap: 10px; width: 660px; height: 396px; position: relative; }
+
+/* ── Compass ──────────────────────────────────────────────── */
+#compass {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 22px);
+  gap: 2px;
+  background: rgba(5,5,5,0.85);
+  border: 1px solid #1a1a1a;
+  padding: 4px;
+  z-index: 5;
+}
+.dir-btn {
+  cursor: pointer;
+  color: #404040;
+  text-align: center;
+  padding: 3px 0;
+  border: 1px solid #1e1e1e;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+.dir-btn:hover { color: #c8c4a8; border-color: #505050; }
 
 /* ── Viewport ─────────────────────────────────────────────── */
 #viewport {
@@ -58,7 +83,7 @@ body {
   flex-shrink: 0;
   background: #050505;
   border: 1px solid #1a1a1a;
-  cursor: pointer;
+  cursor: default;
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */

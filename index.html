@@ -10,20 +10,27 @@
   <div id="app">
     <div id="header">
       <span id="title">EGG DUNGEON</span>
-      <div id="toolbar">
-        <span class="tbtn" data-toolbar="collection" title="Collection (C)">≡</span>
-        <span id="tbtn-mute" class="tbtn" data-toolbar="mute" title="Mute (M)">♪</span>
-        <span class="tbtn" data-toolbar="save" title="Save (Ctrl+S)">↓</span>
-        <span class="tbtn" data-toolbar="load" title="Load (Ctrl+O)">↑</span>
-        <span class="tbtn" data-toolbar="feedback" title="Feedback (?)">?</span>
+      <div id="header-right">
+        <div id="toolbar">
+          <span class="tbtn" data-toolbar="collection" title="Collection (C)">≡</span>
+          <span id="tbtn-mute" class="tbtn" data-toolbar="mute" title="Mute (M)">♪</span>
+          <span class="tbtn" data-toolbar="save" title="Save (Ctrl+S)">↓</span>
+          <span class="tbtn" data-toolbar="load" title="Load (Ctrl+O)">↑</span>
+          <span class="tbtn" data-toolbar="feedback" title="Feedback (?)">?</span>
+        </div>
+        <span id="controls"></span>
       </div>
-      <span id="controls"></span>
     </div>
 
     <div id="mid-area">
       <!-- Normal game view -->
       <div id="game-area">
         <pre id="viewport"></pre>
+        <div id="compass">
+          <span></span><span class="dir-btn" data-dir="up">↑</span><span></span>
+          <span class="dir-btn" data-dir="left">←</span><span></span><span class="dir-btn" data-dir="right">→</span>
+          <span></span><span class="dir-btn" data-dir="down">↓</span><span></span>
+        </div>
         <div id="sidebar">
           <div class="panel" id="world-panel">
             <div id="world-biome"></div>
