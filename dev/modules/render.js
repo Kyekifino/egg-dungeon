@@ -205,7 +205,7 @@ function triggerEggShake() {
 
 function triggerCreatureBlink() {
   creatureBlinkTimer = null;
-  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast()) return;
+  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast() || getAdjacentChest()) return;
   const c  = G.creature;
   const ri = c.eyeRow ?? EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
@@ -233,7 +233,7 @@ function triggerCreatureBlink() {
 
 function triggerCreatureJiggle() {
   creatureJiggleTimer = null;
-  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast()) return;
+  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast() || getAdjacentChest()) return;
   const c   = G.creature;
   const gen = ++idleGen;
   const offsets = [1, 0, -1, 0];
