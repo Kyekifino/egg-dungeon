@@ -112,7 +112,9 @@ export function init({
   });
 
   if (onViewportClick) {
-    document.getElementById('viewport').addEventListener('click', e => {
+    const vp = document.getElementById('viewport');
+    vp.addEventListener('mousedown', e => e.preventDefault());
+    vp.addEventListener('click', e => {
       const G = getG();
       if (!G || G.phase === 'animating') return;
       const coords = getWorldCoordsFromViewportClick(e.clientX, e.clientY);
