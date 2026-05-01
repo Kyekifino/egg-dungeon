@@ -111,6 +111,23 @@ export function init({
     render();
   });
 
+  document.getElementById('bottom-panel').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const G = getG();
+    if (!G || G.phase === 'animating') return;
+    if (btn.dataset.action === 'feed')     tryFeed();
+    else if (btn.dataset.action === 'interact') tryE();
+  });
+
+  document.getElementById('beast-overlay').addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'gem')            tryFeed();
+    else if (btn.dataset.action === 'sacrifice') enterSacrificeMode();
+    else if (btn.dataset.action === 'close-overlay') closeBeastOverlay();
+  });
+
   if (onViewportClick) {
     const vp = document.getElementById('viewport');
     vp.addEventListener('mousedown', e => e.preventDefault());

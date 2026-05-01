@@ -65,6 +65,8 @@ body {
 
 #inv-list div { font-size: 0.85rem; padding: 2px 0; white-space: pre; cursor: pointer; }
 
+[data-action] { cursor: pointer; }
+
 #world-panel { padding: 5px 8px; }
 #world-biome { font-size: 0.8rem; }
 #world-egg   { font-size: 0.75rem; color: #7a7a7a; margin-top: 2px; }

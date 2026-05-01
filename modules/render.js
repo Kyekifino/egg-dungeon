@@ -439,7 +439,7 @@ function renderBottomPlaying() {
       <div style="font-size:.75rem;color:#888;margin-bottom:4px">${asleep ? 'Slumbering' : `<span style="color:${bDef.awakenColor}">Awoken</span>`}</div>
       <div style="font-size:.75rem;color:#666">${adjBeast.gemsReceived}/${DRAGON_GEM_COST} gems &nbsp;<span style="color:${GEM_COLOR}">${gemBar}</span></div>
       ${asleep ? '' : `<div style="font-size:.72rem;color:#666;margin-top:2px">${offered}/${DRAGON_CREATURE_COST} creatures offered</div>`}
-      <div style="font-size:.72rem;color:#555;margin-top:6px">Press E to interact</div>`;
+      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:6px">Press E to interact</div>`;
     return;
   }
 
@@ -482,7 +482,7 @@ function renderBottomPlaying() {
         Selected: <span style="color:${selClr}">${selLabel}</span> &nbsp;(x${selAmt})
       </div>
       <div style="margin-top:2px">${biomeLabel}</div>
-      <div id="feed-hint">${feedMsg}</div>`;
+      <div id="feed-hint" data-action="feed">${feedMsg}</div>`;
     startEggShakeTimer(1500);
 
   } else if (G.creature) {
@@ -693,10 +693,10 @@ export function renderBeastOverlay() {
 
   const noCreatures = !G.collection?.length;
   const hint = phase === 'sleeping'
-    ? '<span style="white-space:nowrap">F:&nbsp;offer gem</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;leave</span>'
+    ? '<span data-action="gem" style="white-space:nowrap">F:&nbsp;offer gem</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>'
     : (noCreatures
-        ? '<span style="white-space:nowrap">No creatures to offer &mdash; hatch some eggs first!</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;leave</span>'
-        : '<span style="white-space:nowrap">C:&nbsp;offer a creature</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">ESC:&nbsp;leave</span>');
+        ? '<span style="white-space:nowrap">No creatures to offer &mdash; hatch some eggs first!</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>'
+        : '<span data-action="sacrifice" style="white-space:nowrap">C:&nbsp;offer a creature</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>');
   document.getElementById('beast-hint').innerHTML = hint;
 }
 
