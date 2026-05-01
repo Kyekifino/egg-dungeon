@@ -104,6 +104,13 @@ export function init({
     render();
   });
 
+  document.getElementById('inv-list').addEventListener('click', e => {
+    const item = e.target.closest('[data-food]');
+    if (!item) return;
+    setSelectedFood(item.dataset.food);
+    render();
+  });
+
   if (onViewportClick) {
     document.getElementById('viewport').addEventListener('click', e => {
       const G = getG();
