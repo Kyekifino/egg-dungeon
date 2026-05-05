@@ -87,7 +87,7 @@ body {
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
-#sidebar { width: 200px; display: flex; flex-direction: column; gap: 8px; }
+#sidebar { width: 200px; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
 
 .panel { border: 1px solid #1a1a1a; padding: 6px 8px; }
 .panel-title {

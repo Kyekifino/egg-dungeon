@@ -67,7 +67,6 @@ export const VH = 22;
 export const LIGHT_R = 6;
 export const FOOD_NEEDED = 10;
 export const MAX_LOG = 8;
-export const HUNGER_STEPS = 75;
 export const GEM_CHAR = '$';
 export const GEM_COLOR = '#80dfff';
 export const CHEST_CHAR = '■';
