@@ -1,7 +1,7 @@
 // Orchestrator: game logic, save/load, startup.
 // All rendering, audio, world, and creature logic lives in modules/.
 
-import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, BIOMES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
+import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, BIOMES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn, markChestOpened, setOpenedChests, getOpenedChests } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, BEAST_EGG_STAGES_MAP } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
@@ -174,15 +174,6 @@ function tryMove(dx, dy) {
       setTile(nx, ny, '.');
       addLog(`Picked up ${info.name}!`);
       sfxPickup();
-    }
-  }
-
-  if (G.steps % HUNGER_STEPS === 0) {
-    const available = FOOD_KEYS.filter(k => G.inventory[k] > 0);
-    if (available.length > 0) {
-      const k = available[Math.floor(Math.random() * available.length)];
-      G.inventory[k]--;
-      addLog(`Hungry! You ate some ${k}.`);
     }
   }
 
