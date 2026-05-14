@@ -1,7 +1,7 @@
 // All DOM rendering, idle animation state, and animation timers.
 // Reads G and selectedFood as live bindings from state.js.
 
-import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, BEAST_REGISTRY, getRarity, escHtml, rand, DRAGON_GEM_COST, DRAGON_CREATURE_COST, CHEST_CHAR } from './utils.js';
+import { VW, VH, LIGHT_R, FOOD_NEEDED, FOOD_KEYS, FOOD_CHARS, FOOD_INFO, GEM_CHAR, GEM_COLOR, BIOMES, CLR, BEAST_REGISTRY, BEAST_TYPES, getRarity, escHtml, rand, DRAGON_GEM_COST, DRAGON_CREATURE_COST, CHEST_CHAR, ANGEL_CHAR, ANGEL_COLOR, PLAYER_GOLD_COLOR } from './utils.js';
 import { getTile, getChunkBiome, chunkX, chunkY } from './world.js';
 import { EGG_STAGES, BEAST_EGG_STAGES_MAP, getEggStage, EYE_ROW } from './creature.js';
 import { G, selectedFood } from './state.js';
@@ -99,6 +99,31 @@ export const BEAST_WORLD_ART = {
   demon:     { sleeping: DEMON_BEAST_ART_SLEEPING,     awake: DEMON_BEAST_ART_AWAKE     },
 };
 
+// ── Angel art ─────────────────────────────────────────────────────────
+// Bottom-panel art shown when the player is adjacent to the Angel.
+const ANGEL_WORLD_ART = [
+  '  o . o . o  ',
+  '\\o/=======\\o/',
+  '=o=|o.*.o|=o=',
+  '=o=|.o.o.|=o=',
+  '/o\\=======/o\\',
+  '  o . o . o  ',
+];
+
+// Collection view art (exported so game.js can attach it to G.angel.lines).
+export const ANGEL_COLLECTION_ART = [
+  '    o . o . o .    ',
+  '  /\\ o/=======\\o /\\',
+  ' o  \\|o .   . o|/  o',
+  '/o===|o . (Φ) . o|===o\\',
+  '|o===|  .  * .  |===o|',
+  '\\o===|o . (Φ) . o|===o/',
+  ' o  /|o .   . o|\\  o',
+  '  \\/ o\\=======/o \\/',
+  '    o . o . o .    ',
+  '                   ',
+];
+
 // ── Idle animation state ──────────────────────────────────────────
 let idleGen             = 0;
 let eggShakeTimer       = null;
@@ -156,6 +181,15 @@ export function getAdjacentBeast() {
   for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
     const beast = G.worldBeasts.get(`${G.px + dx},${G.py + dy}`);
     if (beast) return beast;
+  }
+  return null;
+}
+
+export function getAdjacentAngel() {
+  if (!G?.worldAngels) return null;
+  for (const [dx, dy] of [[0,1],[0,-1],[1,0],[-1,0]]) {
+    const angel = G.worldAngels.get(`${G.px + dx},${G.py + dy}`);
+    if (angel) return angel;
   }
   return null;
 }
@@ -260,6 +294,7 @@ function getColBeastSelected() {
 function triggerColBlink() {
   colBlinkTimer = null;
   if (!G?.showCollection) return;
+  if (G.collectionTab === 'divine') return;
   const c = (G.collectionTab === 'greatBeasts' && !G.sacrificeMode) ? getColBeastSelected() : getColSelected();
   if (!c) return;
   const ri     = c.eyeRow ?? EYE_ROW[c.dom] ?? 2;
@@ -289,6 +324,7 @@ function triggerColBlink() {
 function triggerColJiggle() {
   colJiggleTimer = null;
   if (!G?.showCollection) return;
+  if (G.collectionTab === 'divine') return;
   const c = (G.collectionTab === 'greatBeasts' && !G.sacrificeMode) ? getColBeastSelected() : getColSelected();
   if (!c) return;
   const gen     = ++colIdleGen;
@@ -350,7 +386,7 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
   window.addEventListener('resize', () => { _cellW = 0; });
 
 function renderViewport() {
-  const { px, py, revealed, worldEggs, worldBeasts } = G;
+  const { px, py, revealed, worldEggs, worldBeasts, worldAngels } = G;
   const camX = px - Math.floor(VW / 2), camY = py - Math.floor(VH / 2);
   _lastCamX = camX; _lastCamY = camY;
   let html = '';
@@ -358,8 +394,9 @@ function renderViewport() {
     const gy = camY + vy;
     for (let vx = 0; vx < VW; vx++) {
       const gx = camX + vx;
-      if (gx === px && gy === py)                              { html += span('@', CLR.bright['@']); continue; }
+      if (gx === px && gy === py)                              { html += span('@', G.completed ? PLAYER_GOLD_COLOR : CLR.bright['@']); continue; }
       if (worldEggs?.has(`${gx},${gy}`))                       { html += span('Θ', CLR.bright['Θ']); continue; }
+      if (worldAngels?.has(`${gx},${gy}`))                     { html += span(ANGEL_CHAR, CLR.bright[ANGEL_CHAR]); continue; }
       if (worldBeasts?.has(`${gx},${gy}`)) {
         const _b = worldBeasts.get(`${gx},${gy}`);
         const _bc = (BEAST_REGISTRY[_b.beastType] ?? BEAST_REGISTRY.dragon).char;
@@ -430,6 +467,19 @@ function renderBottomPlaying() {
   idleGen++;
   const adjEgg   = getAdjacentEgg();
   const adjBeast = getAdjacentBeast();
+  const adjAngel = getAdjacentAngel();
+
+  if (adjAngel) {
+    const aColor = ANGEL_COLOR;
+    document.getElementById('egg-display').innerHTML =
+      ANGEL_WORLD_ART.map(l => `<span style="color:${aColor}">${escHtml(l)}</span>`).join('\n');
+    const awaiting = adjAngel.phase !== 'completed';
+    document.getElementById('egg-info').innerHTML = `
+      <div style="color:${aColor};font-size:.9rem">${escHtml(ANGEL_CHAR)}  The Angel</div>
+      <div style="font-size:.75rem;color:#888;margin-bottom:4px">${awaiting ? 'Awaits an offering.' : 'Regards you serenely.'}</div>
+      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:6px">Press E to approach</div>`;
+    return;
+  }
 
   if (adjBeast && !adjEgg) {
     const bDef       = BEAST_REGISTRY[adjBeast.beastType] ?? BEAST_REGISTRY.dragon;
@@ -641,15 +691,50 @@ function renderGreatBeastsTab() {
     <div style="color:#555;font-size:0.65rem">ID: ${sel.id}</div>`;
 }
 
+function renderDivineTab() {
+  const angel = G.angel;
+  if (!angel) return;
+
+  document.getElementById('col-list').innerHTML = `
+    <div class="col-entry col-selected" style="text-align:center;padding:8px 0">
+      <div class="col-name">
+        <span style="color:${ANGEL_COLOR}">${escHtml(ANGEL_CHAR)}</span>
+        &nbsp;<span style="color:${ANGEL_COLOR}">${escHtml(angel.name)}</span>
+      </div>
+      <div class="col-id">${escHtml(angel.date || '')}</div>
+    </div>`;
+
+  colIdleGen++;
+  document.getElementById('col-art').innerHTML =
+    (angel.lines ?? ANGEL_COLLECTION_ART).map(l =>
+      `<span style="color:${ANGEL_COLOR}">${escHtml(l)}</span>`
+    ).join('\n');
+
+  document.getElementById('col-detail-info').innerHTML = `
+    <div style="color:${ANGEL_COLOR};font-size:0.85rem">The Angel</div>
+    <div style="color:#c8c4a8;font-size:0.75rem">Divine</div>
+    <div style="color:#7a7a7a;font-size:0.72rem">A being of pure radiance</div>
+    <div style="color:#555;font-size:0.65rem">Obtained ${escHtml(angel.date || '')}</div>`;
+}
+
 function renderCollection() {
   const tab = G.collectionTab ?? 'creatures';
   const sacrificeMode = !!G.sacrificeMode;
+  const showDivine    = !!G.angel;
 
   document.getElementById('col-tab-creatures').className =
     'col-tab' + (tab === 'creatures' ? ' col-tab-active' : '');
   document.getElementById('col-tab-beasts').className =
     'col-tab' + (tab === 'greatBeasts' && !sacrificeMode ? ' col-tab-active' : '');
   document.getElementById('col-tab-beasts').hidden = sacrificeMode;
+
+  const divineTab    = document.getElementById('col-tab-divine');
+  const divineTabSep = document.getElementById('col-tab-sep-divine');
+  if (divineTab) {
+    divineTab.hidden    = !showDivine || sacrificeMode;
+    divineTab.className = 'col-tab' + (tab === 'divine' && !sacrificeMode ? ' col-tab-active' : '');
+  }
+  if (divineTabSep) divineTabSep.hidden = !showDivine || sacrificeMode;
 
   const sacWarn = document.getElementById('col-sacrifice-warning');
   const colLeg  = document.getElementById('col-legend');
@@ -661,16 +746,20 @@ function renderCollection() {
     sacWarn.hidden = false;
     colLeg.hidden  = true;
   } else {
-    const arr   = tab === 'creatures' ? G.collection : (G.greatBeasts ?? []);
-    const label = tab === 'creatures' ? 'hatched' : 'found';
+    const arr   = tab === 'divine' ? (G.angel ? [G.angel] : [])
+                : tab === 'creatures' ? G.collection
+                : (G.greatBeasts ?? []);
+    const label = tab === 'divine' ? 'obtained' : tab === 'creatures' ? 'hatched' : 'found';
     document.getElementById('col-count').textContent = `${arr.length} ${label}`;
     document.getElementById('col-close').innerHTML =
       '<span data-action="close-collection" style="white-space:nowrap">C:&nbsp;close</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">WS:&nbsp;navigate</span> &nbsp;&middot;&nbsp; <span style="white-space:nowrap">AD:&nbsp;switch&nbsp;tab</span>';
     sacWarn.hidden = true;
-    colLeg.hidden  = false;
+    colLeg.hidden  = tab === 'divine';
   }
 
-  if (sacrificeMode || tab === 'creatures') {
+  if (tab === 'divine' && !sacrificeMode) {
+    renderDivineTab();
+  } else if (sacrificeMode || tab === 'creatures') {
     renderCreaturesTab(sacrificeMode);
   } else {
     renderGreatBeastsTab();
@@ -724,8 +813,53 @@ export function renderBeastOverlay() {
   document.getElementById('beast-hint').innerHTML = hint;
 }
 
+export function renderAngelOverlay() {
+  const show = !!(G?.angelInteract);
+  const el = document.getElementById('angel-overlay');
+  if (!el) return;
+  el.hidden = !show;
+  if (!show || !G?.worldAngels) return;
+
+  const angel = G.worldAngels.get(G.angelInteract);
+  if (!angel) { el.hidden = true; return; }
+
+  document.getElementById('angel-art').innerHTML =
+    ANGEL_WORLD_ART.map(l => `<span style="color:${ANGEL_COLOR}">${escHtml(l)}</span>`).join('\n');
+
+  if (angel.phase === 'completed') {
+    document.getElementById('angel-phase').innerHTML =
+      `<span style="color:${ANGEL_COLOR}">The Angel regards you serenely.</span>`;
+    document.getElementById('angel-beasts').innerHTML = '';
+    document.getElementById('angel-hint').innerHTML =
+      '<span data-action="close-angel" style="white-space:nowrap">ESC:&nbsp;leave</span>';
+    return;
+  }
+
+  document.getElementById('angel-phase').innerHTML =
+    '<span style="color:#888">The Angel waits at the heart of the Labrynth, vast and still.</span>';
+
+  const heldTypes = new Set((G.greatBeasts ?? []).map(b => b.beastType));
+  const slots = BEAST_TYPES.map(type => {
+    const bDef = BEAST_REGISTRY[type];
+    const has  = heldTypes.has(type);
+    return has
+      ? `<span style="color:${bDef.colorBright};font-size:.72rem">[${escHtml(bDef.char)}]</span>`
+      : `<span style="color:#333;font-size:.72rem">[?]</span>`;
+  }).join(' ');
+
+  document.getElementById('angel-beasts').innerHTML =
+    `<div style="display:flex;gap:6px;flex-wrap:wrap">${slots}</div>` +
+    `<div style="color:#666;font-size:.72rem;margin-top:4px">Offer one of each Great Beast</div>`;
+
+  const canOffer = BEAST_TYPES.every(t => heldTypes.has(t));
+  document.getElementById('angel-hint').innerHTML = canOffer
+    ? '<span data-action="offer-angel" style="white-space:nowrap">F:&nbsp;offer all</span> &nbsp;&middot;&nbsp; <span data-action="close-angel" style="white-space:nowrap">ESC:&nbsp;leave</span>'
+    : '<span style="color:#555">Seek all five Great Beasts.</span> &nbsp;&middot;&nbsp; <span data-action="close-angel" style="white-space:nowrap">ESC:&nbsp;leave</span>';
+}
+
 export function render() {
   renderBeastOverlay();
+  renderAngelOverlay();
   if (G.phase === 'animating') return;
 
   const showCol = G.showCollection;
