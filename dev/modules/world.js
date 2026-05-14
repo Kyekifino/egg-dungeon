@@ -3,6 +3,10 @@
 
 import { BIOMES, BIOME_KEYS, FOOD_INFO, FOOD_CHARS, GEM_CHAR, CHEST_CHAR, CW, CH, CORR_X, CORR_Y, djb2, mulberry32, GREAT_BEAST_BIOMES } from './utils.js';
 
+// ── Labrynth zone cache ───────────────────────────────────────────────
+// Zone-level maze grids are generated once and sliced per chunk request.
+const labrynthZones = new Map();
+
 export let WORLD_SEED = 0;
 export const chunks = new Map();
 const openedChests = new Set();
@@ -11,6 +15,7 @@ export function resetWorld(seed) {
   WORLD_SEED = seed;
   chunks.clear();
   openedChests.clear();
+  labrynthZones.clear();
 }
 
 export function markChestOpened(wx, wy) { openedChests.add(`${wx},${wy}`); }
@@ -25,17 +30,127 @@ function chunkSeed(cx, cy) {
   return h;
 }
 
-// Biome zones span 3×3 chunks so borders don't flicker every chunk
+// Biome zones span 3×3 chunks so borders don't flicker every chunk.
+// Labrynth appears in ~1/30 zones (rare end-game area).
 export function getChunkBiome(chunkX, chunkY) {
   const zx = Math.floor(chunkX / 3), zy = Math.floor(chunkY / 3);
   const h = djb2(`b${WORLD_SEED},${zx},${zy}`);
+  if (h % 30 === 0) return 'labrynth';
   return BIOME_KEYS[h % BIOME_KEYS.length];
 }
 
+// ── Labrynth zone maze generation ────────────────────────────────────
+
+function generateLabrynthZone(zx, zy) {
+  const seed = djb2(`lab${WORLD_SEED},${zx},${zy}`);
+  const rng  = mulberry32(seed);
+  const W = 3 * CW;   // 78 tiles wide
+  const H = 3 * CH;   // 48 tiles tall
+
+  const grid = Array.from({ length: H }, () => Array(W).fill('#'));
+
+  // DFS maze: cells spaced STEP apart, 2-tile-wide corridors
+  const STEP = 5;
+  const gW = Math.floor((W - 2) / STEP);   // ~15 cells across
+  const gH = Math.floor((H - 2) / STEP);   // ~9 cells down
+
+  // Cell center coords (top-left of 2×2 open cell)
+  const cx = i => 1 + i * STEP + 1;
+  const cy = j => 1 + j * STEP + 1;
+
+  function open(x, y) {
+    if (x >= 0 && x < W && y >= 0 && y < H) grid[y][x] = '.';
+  }
+
+  function openCell(i, j) {
+    open(cx(i), cy(j)); open(cx(i) + 1, cy(j));
+    open(cx(i), cy(j) + 1); open(cx(i) + 1, cy(j) + 1);
+  }
+
+  function carvePassage(i1, j1, i2, j2) {
+    const x1 = cx(i1), y1 = cy(j1), x2 = cx(i2), y2 = cy(j2);
+    if (i1 === i2) {
+      for (let y = Math.min(y1, y2); y <= Math.max(y1, y2) + 1; y++) {
+        open(x1, y); open(x1 + 1, y);
+      }
+    } else {
+      for (let x = Math.min(x1, x2); x <= Math.max(x1, x2) + 1; x++) {
+        open(x, y1); open(x, y1 + 1);
+      }
+    }
+  }
+
+  const visited = Array.from({ length: gH }, () => Array(gW).fill(false));
+
+  function dfs(i, j) {
+    visited[j][i] = true;
+    openCell(i, j);
+    const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (let k = dirs.length - 1; k > 0; k--) {
+      const m = rng.int(0, k + 1);
+      [dirs[k], dirs[m]] = [dirs[m], dirs[k]];
+    }
+    for (const [di, dj] of dirs) {
+      const ni = i + di, nj = j + dj;
+      if (ni < 0 || ni >= gW || nj < 0 || nj >= gH || visited[nj][ni]) continue;
+      carvePassage(i, j, ni, nj);
+      dfs(ni, nj);
+    }
+  }
+
+  const startI = Math.floor(gW / 2), startJ = Math.floor(gH / 2);
+  dfs(startI, startJ);
+
+  // Enforce CORR corridors on every chunk boundary so cross-biome
+  // entry/exit always hits a walkable tile (same guarantee as normal chunks).
+  for (let ci = 0; ci < 3; ci++) {
+    const colX = ci * CW + CORR_X;
+    const rowY = ci * CH + CORR_Y;
+    for (let y = 0; y < H; y++) grid[y][colX] = '.';
+    for (let x = 0; x < W; x++) grid[rowY][x] = '.';
+  }
+
+  const angelLocalX = cx(startI);
+  const angelLocalY = cy(startJ);
+
+  return { grid, angelLocalX, angelLocalY };
+}
+
+function getLabrynthZone(zx, zy) {
+  const key = `${zx},${zy}`;
+  if (!labrynthZones.has(key)) labrynthZones.set(key, generateLabrynthZone(zx, zy));
+  return labrynthZones.get(key);
+}
+
+// Returns world coords of the Angel for the labrynth zone containing chunk
+// (cx, cy), or null if this chunk isn't the zone centre chunk.
+export function getLabrynthAngelPos(cx, cy) {
+  if (getChunkBiome(cx, cy) !== 'labrynth') return null;
+  const zx = Math.floor(cx / 3), zy = Math.floor(cy / 3);
+  if (cx !== zx * 3 + 1 || cy !== zy * 3 + 1) return null;   // only centre chunk
+  const zone = getLabrynthZone(zx, zy);
+  return {
+    wx: zx * 3 * CW + zone.angelLocalX,
+    wy: zy * 3 * CH + zone.angelLocalY,
+  };
+}
+
 export function generateChunk(cx, cy) {
+  const biomeKey = getChunkBiome(cx, cy);
+
+  // Labrynth: slice from zone-level DFS maze; no items or rooms
+  if (biomeKey === 'labrynth') {
+    const zx = Math.floor(cx / 3), zy = Math.floor(cy / 3);
+    const zone = getLabrynthZone(zx, zy);
+    const offX = (cx - zx * 3) * CW, offY = (cy - zy * 3) * CH;
+    const grid = Array.from({ length: CH }, (_, y) =>
+      Array.from({ length: CW }, (_, x) => zone.grid[offY + y][offX + x])
+    );
+    return { grid };
+  }
+
   const grid = Array.from({ length: CH }, () => Array(CW).fill('#'));
   const rng = mulberry32(chunkSeed(cx, cy));
-  const biomeKey = getChunkBiome(cx, cy);
   const biomeFood = BIOMES[biomeKey].food;
   const biomeFoodCh = FOOD_CHARS.find(c => FOOD_INFO[c].key === biomeFood);
 
@@ -109,6 +224,7 @@ export function isWalkable(wx, wy) { const t = getTile(wx, wy); return t !== '#'
 
 // Returns deterministic wild-egg spawn info for a chunk, or null (~15% of chunks).
 export function getChunkEggSpawn(cx, cy) {
+  if (getChunkBiome(cx, cy) === 'labrynth') return null;
   const rng = mulberry32(chunkSeed(cx, cy) ^ 0x3a7f9d2c);
   if (rng.next() > 0.15) return null;
   const chunk = getChunk(cx, cy);
