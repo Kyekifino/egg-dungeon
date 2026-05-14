@@ -50,6 +50,7 @@ body {
 
 /* ── Game area ────────────────────────────────────────────── */
 #game-area { display: flex; gap: 10px; width: 660px; height: 396px; position: relative; }
+#game-area[hidden] { display: none; }
 
 /* ── Compass ──────────────────────────────────────────────── */
 #compass {
