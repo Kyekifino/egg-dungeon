@@ -214,6 +214,19 @@ export function sfxSacrifice() {
   playTone(45, t + 0.45, 0.45, 'triangle', 0.06, ctx);
 }
 
+export function sfxAngelOffer() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Rising celestial chord — five offerings ascending
+  [48, 52, 55, 60, 64].forEach((m, i) => playTone(m, t + i * 0.12, 0.8 - i * 0.06, 'sine', 0.10 - i * 0.005, ctx));
+  // Bright sustained shimmer
+  [72, 76, 79].forEach((m, i) => playTone(m, t + 0.7 + i * 0.10, 1.2, 'triangle', 0.08, ctx));
+  // Final transcendent tone
+  playTone(84, t + 1.1, 2.0, 'sine', 0.07, ctx);
+  playTone(88, t + 1.3, 1.8, 'sine', 0.05, ctx);
+}
+
 export function sfxManticoreHatch() {
   const ctx = ensureAudio();
   if (!ctx) return;
