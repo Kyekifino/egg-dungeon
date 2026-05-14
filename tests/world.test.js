@@ -1,7 +1,9 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { resetWorld, getChunk, getTile, setTile, isWalkable, getChunkBiome, getChunkEggSpawn, isRoomTile, getGreatBeastSpawn, chunkX, chunkY, localX, localY, markChestOpened, setOpenedChests, getOpenedChests } from '../modules/world.js';
+import { resetWorld, getChunk, getTile, setTile, isWalkable, getChunkBiome, getChunkEggSpawn, isRoomTile, getGreatBeastSpawn, getLabrynthAngelPos, chunkX, chunkY, localX, localY, markChestOpened, setOpenedChests, getOpenedChests } from '../modules/world.js';
 import { CW, CH, CORR_X, CORR_Y, BIOME_KEYS, CHEST_CHAR, GEM_CHAR, BEAST_TYPES } from '../modules/utils.js';
+
+const ALL_BIOME_KEYS = [...BIOME_KEYS, 'labrynth'];
 
 beforeEach(() => resetWorld(42));
 
@@ -44,15 +46,66 @@ describe('chunk generation', () => {
 });
 
 describe('biome', () => {
-  it('returns a known biome key', () => {
+  it('returns a known biome key (including labrynth)', () => {
     const b = getChunkBiome(0, 0);
-    assert.ok(BIOME_KEYS.includes(b));
+    assert.ok(ALL_BIOME_KEYS.includes(b));
   });
 
   it('adjacent zone chunks can share a biome (3×3 zones)', () => {
-    // Chunks 0,0 and 1,0 may or may not share — both valid biome keys
-    assert.ok(BIOME_KEYS.includes(getChunkBiome(0, 0)));
-    assert.ok(BIOME_KEYS.includes(getChunkBiome(1, 0)));
+    assert.ok(ALL_BIOME_KEYS.includes(getChunkBiome(0, 0)));
+    assert.ok(ALL_BIOME_KEYS.includes(getChunkBiome(1, 0)));
+  });
+
+  it('labrynth chunk has correct dimensions and only . and # tiles', () => {
+    let found = false;
+    for (let cx = 0; cx < 60 && !found; cx++)
+      for (let cy = 0; cy < 60 && !found; cy++)
+        if (getChunkBiome(cx, cy) === 'labrynth') {
+          const { grid } = getChunk(cx, cy);
+          assert.equal(grid.length, CH);
+          assert.ok(grid.every(row => row.length === CW));
+          for (const row of grid)
+            for (const ch of row)
+              assert.ok(ch === '.' || ch === '#', `unexpected labrynth tile: ${ch}`);
+          found = true;
+        }
+    assert.ok(found, 'no labrynth chunk found in 3600-chunk scan');
+  });
+
+  it('labrynth chunk still has walkable CORR tiles', () => {
+    let found = false;
+    for (let cx = 0; cx < 60 && !found; cx++)
+      for (let cy = 0; cy < 60 && !found; cy++)
+        if (getChunkBiome(cx, cy) === 'labrynth') {
+          const { grid } = getChunk(cx, cy);
+          assert.notEqual(grid[CORR_Y][CORR_X], '#', 'CORR intersection blocked in labrynth');
+          found = true;
+        }
+    assert.ok(found, 'no labrynth chunk found in 3600-chunk scan');
+  });
+});
+
+describe('getLabrynthAngelPos', () => {
+  it('returns null for non-labrynth chunks', () => {
+    for (let cx = 0; cx < 10; cx++)
+      for (let cy = 0; cy < 10; cy++)
+        if (getChunkBiome(cx, cy) !== 'labrynth')
+          assert.equal(getLabrynthAngelPos(cx, cy), null);
+  });
+
+  it('returns a position for the centre chunk of a labrynth zone', () => {
+    let pos = null;
+    outer: for (let zx = 0; zx < 20; zx++)
+      for (let zy = 0; zy < 20; zy++) {
+        const cx = zx * 3 + 1, cy = zy * 3 + 1;
+        if (getChunkBiome(cx, cy) === 'labrynth') {
+          pos = getLabrynthAngelPos(cx, cy);
+          break outer;
+        }
+      }
+    assert.ok(pos !== null, 'no labrynth centre chunk found in scan');
+    assert.equal(typeof pos.wx, 'number');
+    assert.equal(typeof pos.wy, 'number');
   });
 });
 
