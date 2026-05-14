@@ -35,7 +35,7 @@ function chunkSeed(cx, cy) {
 export function getChunkBiome(chunkX, chunkY) {
   const zx = Math.floor(chunkX / 3), zy = Math.floor(chunkY / 3);
   const h = djb2(`b${WORLD_SEED},${zx},${zy}`);
-  if (h % 30 === 0) return 'labrynth';
+  if (h % 100 === 0) return 'labrynth';
   return BIOME_KEYS[h % BIOME_KEYS.length];
 }
 
