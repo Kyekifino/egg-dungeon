@@ -402,6 +402,86 @@ body {
   padding-top: 8px;
 }
 
+/* ── Angel interaction overlay ───────────────────────────── */
+#angel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+#angel-overlay[hidden] { display: none; }
+#angel-box {
+  background: #06060a;
+  border: 1px solid #403830;
+  padding: 22px 28px;
+  width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#angel-title {
+  color: #f0e8b0;
+  letter-spacing: 0.2em;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #1e1a10;
+  padding-bottom: 8px;
+}
+#angel-art {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.88rem;
+  line-height: 1.3;
+  text-align: center;
+}
+#angel-phase { font-size: 0.8rem; line-height: 1.5; }
+#angel-beasts { font-size: 0.82rem; }
+#angel-hint {
+  font-size: 0.72rem;
+  color: #5a5a5a;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 8px;
+}
+
+/* ── Completion overlay ───────────────────────────────────── */
+#completion-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.90);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+#completion-overlay[hidden] { display: none; }
+#completion-box {
+  background: #06060a;
+  border: 1px solid #504828;
+  padding: 28px 36px;
+  width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: center;
+}
+#completion-title {
+  color: #ffd700;
+  letter-spacing: 0.3em;
+  font-size: 1rem;
+  text-shadow: 0 0 14px #ffd70066;
+  animation: pulse 2s ease-in-out infinite;
+}
+#completion-body { display: flex; flex-direction: column; gap: 4px; }
+.completion-line { font-size: 0.85rem; color: #f0e8b0; }
+#completion-dismiss {
+  font-size: 0.7rem;
+  color: #5a5a5a;
+  border-top: 1px solid #1a1a1a;
+  padding-top: 10px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
 /* ── Chest / lockpicking overlay ─────────────────────────── */
 #chest-overlay {
   position: fixed;
