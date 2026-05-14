@@ -1,7 +1,7 @@
 // Orchestrator: game logic, save/load, startup.
 // All rendering, audio, world, and creature logic lives in modules/.
 
-import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, BIOMES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST, ANGEL_COLOR } from './modules/utils.js';
+import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, BIOMES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, CW, CH, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST, ANGEL_COLOR } from './modules/utils.js';
 import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn, getLabrynthAngelPos, markChestOpened, setOpenedChests, getOpenedChests } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, BEAST_EGG_STAGES_MAP } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
@@ -832,6 +832,7 @@ if (isDev) {
     { label: 'Awaken adjacent beast',type: 'awakenBeast'                     },
     { label: 'Max feed adjacent egg',type: 'maxFeedEgg'                      },
     { label: 'Force shiny',          type: 'toggleShiny'                     },
+    { label: 'Go to Labrynth',       type: 'goToLabrynth'                    },
   ];
 
   let devIdx = 0;
@@ -880,6 +881,30 @@ if (isDev) {
     if (item.type === 'toggleShiny') {
       devForceShiny = !devForceShiny;
       addLog(`[DEV] Force shiny: ${devForceShiny ? 'ON' : 'OFF'}.`);
+      render(); return;
+    }
+    if (item.type === 'goToLabrynth') {
+      const pzx = Math.floor(chunkX(G.px) / 3);
+      const pzy = Math.floor(chunkY(G.py) / 3);
+      let found = null;
+      outer: for (let r = 0; r <= 25 && !found; r++) {
+        for (let dzx = -r; dzx <= r && !found; dzx++) {
+          for (let dzy = -r; dzy <= r; dzy++) {
+            if (Math.abs(dzx) !== r && Math.abs(dzy) !== r) continue;
+            if (getChunkBiome((pzx + dzx) * 3, (pzy + dzy) * 3) === 'labrynth') {
+              found = { zx: pzx + dzx, zy: pzy + dzy };
+              break outer;
+            }
+          }
+        }
+      }
+      if (!found) { addLog('[DEV] No Labrynth found within 25 zones.'); render(); return; }
+      // Place player one tile above the top-left CORR entrance of the zone
+      G.px = found.zx * 3 * CW + CORR_X;
+      G.py = found.zy * 3 * CH - 1;
+      devOpen = false; devRender();
+      updateFOV();
+      addLog(`[DEV] Teleported outside Labrynth at zone (${found.zx},${found.zy}).`);
       render(); return;
     }
     if (item.type === 'addCreatures') {
