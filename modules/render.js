@@ -110,6 +110,57 @@ const ANGEL_WORLD_ART = [
   '  o . o . o  ',
 ];
 
+// Animation frames for the angel bottom-panel display.
+const ANGEL_WORLD_ART_BLINK = [
+  '  - . - . -  ',
+  '\\o/=======\\o/',
+  '=o=|-.*.-|=o=',
+  '=o=|.-.-.|=o=',
+  '/o\\=======/o\\',
+  '  - . - . -  ',
+];
+const ANGEL_WORLD_ART_PULSE = [
+  '  o . o . o  ',
+  '\\o/=======\\o/',
+  '=o=|o.@.o|=o=',
+  '=o=|.o.o.|=o=',
+  '/o\\=======/o\\',
+  '  o . o . o  ',
+];
+
+function triggerAngelIdle() {
+  angelIdleTimer = null;
+  if (!G || G.phase !== 'playing' || !getAdjacentAngel()) return;
+  const gen = ++angelIdleGen;
+  const el  = document.getElementById('egg-display');
+  if (!el) return;
+
+  const renderArt = (art, color) => {
+    el.innerHTML = art.map(l => `<span style="color:${color}">${escHtml(l)}</span>`).join('\n');
+  };
+
+  // Blink: eyes close for 200 ms
+  renderArt(ANGEL_WORLD_ART_BLINK, ANGEL_COLOR);
+  setTimeout(() => {
+    if (angelIdleGen !== gen) return;
+    renderArt(ANGEL_WORLD_ART, ANGEL_COLOR);
+    // After a pause, pulse the centre glyph
+    setTimeout(() => {
+      if (angelIdleGen !== gen) return;
+      renderArt(ANGEL_WORLD_ART_PULSE, '#fff8e0');
+      setTimeout(() => {
+        if (angelIdleGen !== gen) return;
+        renderArt(ANGEL_WORLD_ART, ANGEL_COLOR);
+        angelIdleTimer = setTimeout(triggerAngelIdle, 3000 + rand(0, 3000));
+      }, 350);
+    }, 1000 + rand(0, 800));
+  }, 200);
+}
+
+function startAngelAnim() {
+  if (!angelIdleTimer) angelIdleTimer = setTimeout(triggerAngelIdle, 2000 + rand(0, 1500));
+}
+
 // Collection view art (exported so game.js can attach it to G.angel.lines).
 export const ANGEL_COLLECTION_ART = [
   '    o . o . o .    ',
@@ -129,16 +180,20 @@ let idleGen             = 0;
 let eggShakeTimer       = null;
 let creatureBlinkTimer  = null;
 let creatureJiggleTimer = null;
+let angelIdleTimer      = null;
+let angelIdleGen        = 0;
 let colIdleGen          = 0;
 let colBlinkTimer       = null;
 let colJiggleTimer      = null;
 
 export function stopIdleAnims() {
   idleGen++;
+  angelIdleGen++;
   clearTimeout(eggShakeTimer);
   clearTimeout(creatureBlinkTimer);
   clearTimeout(creatureJiggleTimer);
-  eggShakeTimer = creatureBlinkTimer = creatureJiggleTimer = null;
+  clearTimeout(angelIdleTimer);
+  eggShakeTimer = creatureBlinkTimer = creatureJiggleTimer = angelIdleTimer = null;
 }
 
 export function stopColAnims() {
@@ -239,7 +294,7 @@ function triggerEggShake() {
 
 function triggerCreatureBlink() {
   creatureBlinkTimer = null;
-  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast() || getAdjacentChest()) return;
+  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast() || getAdjacentChest() || getAdjacentAngel()) return;
   const c  = G.creature;
   const ri = c.eyeRow ?? EYE_ROW[c.dom] ?? 2;
   const orig   = c.lines[ri];
@@ -267,7 +322,7 @@ function triggerCreatureBlink() {
 
 function triggerCreatureJiggle() {
   creatureJiggleTimer = null;
-  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast() || getAdjacentChest()) return;
+  if (!G?.creature || G.phase === 'animating' || getAdjacentEgg() || getAdjacentBeast() || getAdjacentChest() || getAdjacentAngel()) return;
   const c   = G.creature;
   const gen = ++idleGen;
   const offsets = [1, 0, -1, 0];
@@ -478,6 +533,7 @@ function renderBottomPlaying() {
       <div style="color:${aColor};font-size:.9rem">${escHtml(ANGEL_CHAR)}  The Angel</div>
       <div style="font-size:.75rem;color:#888;margin-bottom:4px">${awaiting ? 'Awaits an offering.' : 'Regards you serenely.'}</div>
       <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:6px">Press E to approach</div>`;
+    startAngelAnim();
     return;
   }
 
