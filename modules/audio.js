@@ -42,6 +42,12 @@ const BIOME_MUSIC = {
     [60,0.5],[62,0.5],[64,0.5],[67,0.5],
     [69,1  ],[67,1  ],
   ]},
+  labrynth:    { bpm: 36, wave:'sine',     vol:0.08, notes:[
+    [48,3  ],[46,2  ],[45,3  ],
+    [43,2  ],[41,2  ],[40,3  ],
+    [41,2  ],[43,3  ],[38,2  ],
+    [36,8  ],
+  ]},
 };
 
 export function ensureAudio() {
@@ -212,6 +218,19 @@ export function sfxSacrifice() {
   const t = ctx.currentTime;
   [69, 65, 62, 57, 53].forEach((m, i) => playTone(m, t + i * 0.08, 0.18, 'sine', 0.09, ctx));
   playTone(45, t + 0.45, 0.45, 'triangle', 0.06, ctx);
+}
+
+export function sfxAngelOffer() {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  // Rising celestial chord — five offerings ascending
+  [48, 52, 55, 60, 64].forEach((m, i) => playTone(m, t + i * 0.12, 0.8 - i * 0.06, 'sine', 0.10 - i * 0.005, ctx));
+  // Bright sustained shimmer
+  [72, 76, 79].forEach((m, i) => playTone(m, t + 0.7 + i * 0.10, 1.2, 'triangle', 0.08, ctx));
+  // Final transcendent tone
+  playTone(84, t + 1.1, 2.0, 'sine', 0.07, ctx);
+  playTone(88, t + 1.3, 1.8, 'sine', 0.05, ctx);
 }
 
 export function sfxManticoreHatch() {

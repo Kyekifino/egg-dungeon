@@ -16,6 +16,7 @@ export function init({
   lockpick, closeChest, isChestActive,
   isBeastOverlayActive, isBeastSacrificeMode,
   enterSacrificeMode, exitSacrificeMode, sacrificeCreature, closeBeastOverlay,
+  isAngelOverlayActive, closeAngelOverlay, offerToAngel,
   render, stopColAnims,
   onViewportClick,
 }) {
@@ -34,6 +35,13 @@ export function init({
 
     const G = getG();
     if (!G) return;
+
+    // Angel overlay open
+    if (isAngelOverlayActive()) {
+      if (e.key === 'f' || e.key === 'F') { offerToAngel(); return; }
+      if (e.key === 'Escape') { closeAngelOverlay(); return; }
+      return;
+    }
 
     // Beast overlay open (not in sacrifice mode)
     if (isBeastOverlayActive()) {
@@ -66,7 +74,7 @@ export function init({
     }
     if (G.showCollection) {
       const tab    = G.collectionTab ?? 'creatures';
-      const arr    = tab === 'creatures' ? G.collection : (G.greatBeasts ?? []);
+      const arr    = tab === 'divine' ? [] : tab === 'creatures' ? G.collection : (G.greatBeasts ?? []);
       const n      = arr.length;
       const idxKey = tab === 'creatures' ? 'colSelectedIdx' : 'gbSelectedIdx';
       if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
@@ -75,11 +83,13 @@ export function init({
       if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
         e.preventDefault(); if (n > 0) { G[idxKey] = Math.min(n - 1, G[idxKey] + 1); render(); } return;
       }
+      const tabs = ['creatures', 'greatBeasts', ...(G.angel ? ['divine'] : [])];
+      const curIdx = tabs.indexOf(tab);
       if (e.key === 'ArrowLeft' || e.key === '[' || e.key === 'a' || e.key === 'A') {
-        e.preventDefault(); G.collectionTab = 'creatures'; stopColAnims(); render(); return;
+        e.preventDefault(); G.collectionTab = tabs[Math.max(0, curIdx - 1)]; stopColAnims(); render(); return;
       }
       if (e.key === 'ArrowRight' || e.key === ']' || e.key === 'd' || e.key === 'D') {
-        e.preventDefault(); G.collectionTab = 'greatBeasts'; stopColAnims(); render(); return;
+        e.preventDefault(); G.collectionTab = tabs[Math.min(tabs.length - 1, curIdx + 1)]; stopColAnims(); render(); return;
       }
       return;
     }
@@ -156,6 +166,22 @@ export function init({
     if (!G || G.sacrificeMode) return;
     G.collectionTab = 'greatBeasts'; stopColAnims(); render();
   });
+
+  document.getElementById('col-tab-divine').addEventListener('click', () => {
+    const G = getG();
+    if (!G || G.sacrificeMode || !G.angel) return;
+    G.collectionTab = 'divine'; stopColAnims(); render();
+  });
+
+  const angelEl = document.getElementById('angel-overlay');
+  if (angelEl) {
+    angelEl.addEventListener('click', e => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      if (btn.dataset.action === 'offer-angel') offerToAngel();
+      else if (btn.dataset.action === 'close-angel') closeAngelOverlay();
+    });
+  }
 
   document.getElementById('compass').addEventListener('click', e => {
     const btn = e.target.closest('[data-dir]');
