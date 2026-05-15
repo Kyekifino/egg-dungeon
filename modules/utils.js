@@ -57,6 +57,14 @@ export const PATCH_NOTES = {
     'All key interactions clickable — feed hints, interact prompts, beast overlay actions, and collection controls',
     'Missing a chest lockpick now destroys the chest — one attempt only',
   ],
+  '1.25': [
+    'The Labrynth: a rare hidden biome containing a maze of hallways and no worldly distractions',
+    'At the heart of the Labrynth stands a biblically accurate Angel — vast, ringed, and covered in eyes',
+    'Offer one of each Great Beast to the Angel to obtain it and complete Egg Dungeon',
+    'Completing the game turns your avatar gold — persists across saves',
+    'Angel unlocks a Divine tab in your collection',
+    'Fixed: compass arrows no longer visible over the collection screen',
+  ],
 };
 
 // Viewport dimensions
