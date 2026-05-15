@@ -39,7 +39,7 @@
             <div class="panel-title">INVENTORY</div>
             <div id="inv-list"></div>
           </div>
-          <div class="panel">
+          <div class="panel" id="log-panel">
             <div class="panel-title">LOG</div>
             <div id="log"></div>
           </div>
@@ -54,6 +54,8 @@
             <span id="col-tab-creatures" class="col-tab col-tab-active">Creatures</span>
             <span class="col-tab-sep"> | </span>
             <span id="col-tab-beasts" class="col-tab">Great Beasts</span>
+            <span id="col-tab-sep-divine" class="col-tab-sep" hidden> | </span>
+            <span id="col-tab-divine" class="col-tab" hidden>Divine</span>
           </span>
           <span id="col-count"></span>
           <span id="col-close">C:&nbsp;close &nbsp;·&nbsp; WS:&nbsp;navigate &nbsp;·&nbsp; AD:&nbsp;switch&nbsp;tab</span>
@@ -135,6 +137,30 @@
       <div id="beast-gem-progress"></div>
       <div id="beast-creatures"></div>
       <div id="beast-hint"></div>
+    </div>
+  </div>
+
+  <!-- Angel interaction modal -->
+  <div id="angel-overlay" hidden>
+    <div id="angel-box">
+      <div id="angel-title">Φ  THE ANGEL</div>
+      <pre id="angel-art"></pre>
+      <div id="angel-phase"></div>
+      <div id="angel-beasts"></div>
+      <div id="angel-hint"></div>
+    </div>
+  </div>
+
+  <!-- Completion modal -->
+  <div id="completion-overlay" hidden>
+    <div id="completion-box">
+      <div id="completion-title">✦  COMPLETED  ✦</div>
+      <div id="completion-body">
+        <div class="completion-line">You have obtained the Angel.</div>
+        <div class="completion-line" style="margin-top:10px;color:#c8c4a8">Thank you for playing Egg Dungeon.</div>
+        <div class="completion-line" style="margin-top:6px;color:#7a7a7a;font-size:0.8rem">You may continue to explore — the dungeon has no end.</div>
+      </div>
+      <div id="completion-dismiss">[ press any key or click to continue ]</div>
     </div>
   </div>
 

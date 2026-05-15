@@ -1,7 +1,7 @@
 // Pure constants and utility functions shared across all modules.
 // No side effects, no DOM access, no mutable state.
 
-export const VERSION = '1.24';
+export const VERSION = '1.25';
 
 export const PATCH_NOTES = {
   '1.13': [
@@ -57,6 +57,14 @@ export const PATCH_NOTES = {
     'All key interactions clickable — feed hints, interact prompts, beast overlay actions, and collection controls',
     'Missing a chest lockpick now destroys the chest — one attempt only',
   ],
+  '1.25': [
+    'The Labrynth: a rare hidden biome containing a maze of hallways and no worldly distractions',
+    'At the heart of the Labrynth stands a biblically accurate Angel — vast, ringed, and covered in eyes',
+    'Offer one of each Great Beast to the Angel to obtain it and complete Egg Dungeon',
+    'Completing the game turns your avatar gold — persists across saves',
+    'Angel unlocks a Divine tab in your collection',
+    'Fixed: compass arrows no longer visible over the collection screen',
+  ],
 };
 
 // Viewport dimensions
@@ -67,12 +75,14 @@ export const VH = 22;
 export const LIGHT_R = 6;
 export const FOOD_NEEDED = 10;
 export const MAX_LOG = 8;
-export const HUNGER_STEPS = 75;
 export const GEM_CHAR = '$';
 export const GEM_COLOR = '#80dfff';
 export const CHEST_CHAR = '■';
 export const DRAGON_GEM_COST = 25;
 export const DRAGON_CREATURE_COST = 5;
+export const ANGEL_CHAR = 'Φ';
+export const ANGEL_COLOR = '#f0e8b0';
+export const PLAYER_GOLD_COLOR = '#ffd700';
 
 export const BEAST_REGISTRY = {
   dragon: {
@@ -201,17 +211,19 @@ export const BIOMES = {
   forest:      { name:'Forest',      food:'berries',  wallBright:'#2a5a2a', wallDim:'#0e1e0e', floorBright:'#0e1a0e', floorDim:'#060c06', accent:'#d060d0' },
   underground: { name:'Underground', food:'mushroom', wallBright:'#4a2a6a', wallDim:'#1a0e28', floorBright:'#1e0e2e', floorDim:'#0c0712', accent:'#50c080' },
   plains:      { name:'Plains',      food:'grain',    wallBright:'#6a5a2a', wallDim:'#281e0e', floorBright:'#221a08', floorDim:'#0c0b04', accent:'#d0a040' },
+  labrynth:    { name:'Labrynth',    food:null,       wallBright:'#8888a0', wallDim:'#28283a', floorBright:'#141420', floorDim:'#0a0a12', accent:'#e8e0c0' },
 };
-export const BIOME_KEYS = Object.keys(BIOMES);
+// Normal biomes only — labrynth is excluded because it uses a separate rare-spawn path
+export const BIOME_KEYS = ['badlands', 'wetlands', 'forest', 'underground', 'plains'];
 
 export const GREAT_BEAST_BIOMES = Object.fromEntries(
   Object.entries(BEAST_REGISTRY).map(([type, def]) => [def.biome, { beastType: type, spawnRate: def.spawnRate }])
 );
 
 export const CLR = {
-  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020',
+  bright: { '@':'#fff','Θ':'#fff080','%':'#e05050','~':'#5090e0','*':'#d060d0','^':'#50c080',',':'#d0a040','$':'#80dfff','■':'#c8a020','Φ':'#f0e8b0',
     ...Object.fromEntries(Object.values(BEAST_REGISTRY).map(b => [b.char, b.colorBright])) },
-  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08',
+  dim:    { '@':'#fff','Θ':'#706020','%':'#601818','~':'#183060','*':'#501850','^':'#185030',',':'#503010','$':'#205060','■':'#5a3a08','Φ':'#605840',
     ...Object.fromEntries(Object.values(BEAST_REGISTRY).map(b => [b.char, b.colorDim])) },
 };
 

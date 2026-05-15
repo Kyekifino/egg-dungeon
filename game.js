@@ -1,12 +1,12 @@
 // Orchestrator: game logic, save/load, startup.
 // All rendering, audio, world, and creature logic lives in modules/.
 
-import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, BIOMES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, HUNGER_STEPS, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST } from './modules/utils.js';
-import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn, markChestOpened, setOpenedChests, getOpenedChests } from './modules/world.js';
+import { VERSION, PATCH_NOTES, BEAST_REGISTRY, BEAST_TYPES, BIOMES, FOOD_NEEDED, FOOD_KEYS, FOOD_INFO, GEM_CHAR, CHEST_CHAR, MAX_LOG, CW, CH, CORR_X, CORR_Y, getRarity, RARITIES, emptyInv, rand, escHtml, DRAGON_GEM_COST, DRAGON_CREATURE_COST, ANGEL_COLOR } from './modules/utils.js';
+import { WORLD_SEED, chunks, resetWorld, getChunk, getChunkBiome, getTile, setTile, isWalkable, chunkX, chunkY, getChunkEggSpawn, getGreatBeastSpawn, getLabrynthAngelPos, markChestOpened, setOpenedChests, getOpenedChests } from './modules/world.js';
 import { generateCreature, buildAnimSeq, regenLines, generateGreatBeast, buildGreatBeastAnimSeq, regenGreatBeastLines, BEAST_EGG_STAGES_MAP } from './modules/creature.js';
 import { G, setG, selectedFood, setSelectedFood } from './modules/state.js';
-import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, SFX_BEAST_HATCH, renderControls } from './modules/audio.js';
-import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, BEAST_WORLD_ART } from './modules/render.js';
+import { getMuted, setMuted, toggleMute, sfxPickup, sfxGem, sfxHatch, sfxChestOpen, sfxBeastAwaken, sfxSacrifice, sfxAngelOffer, SFX_BEAST_HATCH, renderControls } from './modules/audio.js';
+import { render, renderAnimFrame, stopIdleAnims, stopColAnims, getAdjacentEgg, getAdjacentBeast, getAdjacentAngel, BEAST_WORLD_ART, ANGEL_COLLECTION_ART } from './modules/render.js';
 import * as Input from './modules/input.js';
 import * as Feedback from './modules/feedback.js';
 
@@ -80,6 +80,14 @@ function spawnChunkGreatBeast(cx, cy) {
   });
 }
 
+function spawnChunkAngel(cx, cy) {
+  const pos = getLabrynthAngelPos(cx, cy);
+  if (!pos) return;
+  const wKey = `${pos.wx},${pos.wy}`;
+  if (G.worldAngels.has(wKey)) return;
+  G.worldAngels.set(wKey, { x: pos.wx, y: pos.wy, phase: 'present' });
+}
+
 function updateFOV() {
   const { revealed, spawnedChunks, px, py } = G;
   const R = 6;
@@ -89,7 +97,7 @@ function updateFOV() {
       if (Math.hypot(dx, dy) > R) continue;
       revealed.add(`${nx},${ny}`);
       const ck = `${chunkX(nx)},${chunkY(ny)}`;
-      if (!spawnedChunks.has(ck)) { spawnedChunks.add(ck); spawnChunkEgg(chunkX(nx), chunkY(ny)); spawnChunkGreatBeast(chunkX(nx), chunkY(ny)); }
+      if (!spawnedChunks.has(ck)) { spawnedChunks.add(ck); spawnChunkEgg(chunkX(nx), chunkY(ny)); spawnChunkGreatBeast(chunkX(nx), chunkY(ny)); spawnChunkAngel(chunkX(nx), chunkY(ny)); }
     }
 }
 
@@ -108,17 +116,21 @@ function newGame() {
     inventory:      emptyInv(),
     worldEggs:      new Map(),
     worldBeasts:    new Map(),
+    worldAngels:    new Map(),
     spawnedChunks:  new Set([startChunk]),
     phase:          'playing',
     creature:       null,
     collection:     [],
     greatBeasts:    [],
+    angel:          null,
+    completed:      false,
     revealed:       new Set(),
     showCollection: false,
     colSelectedIdx: 0,
     collectionTab:  'creatures',
     gbSelectedIdx:  0,
     dragonInteract: null,
+    angelInteract:  null,
     sacrificeMode:  false,
     steps:          0,
     animFrames:     [],
@@ -146,9 +158,13 @@ function tryMove(dx, dy) {
   if (G.phase === 'animating') return;
   const nx = G.px + dx, ny = G.py + dy;
   const nKey = `${nx},${ny}`;
-  if (!isWalkable(nx, ny) || G.worldEggs?.has(nKey) || G.worldBeasts?.has(nKey)) {
+  if (!isWalkable(nx, ny) || G.worldEggs?.has(nKey) || G.worldBeasts?.has(nKey) || G.worldAngels?.has(nKey)) {
     if (getTile(nx, ny) === CHEST_CHAR) { addLog('A chest! Press E to pick the lock.'); render(); }
-    else if (G.worldBeasts?.has(nKey)) {
+    else if (G.worldAngels?.has(nKey)) {
+      const ang = G.worldAngels.get(nKey);
+      addLog(ang.phase === 'completed' ? 'The Angel regards you serenely.' : 'The Angel awaits an offering. Press E to approach.');
+      render();
+    } else if (G.worldBeasts?.has(nKey)) {
       const beast = G.worldBeasts.get(nKey);
       const bName = beast.beastType ?? 'dragon';
       if (beast.phase === 'sleeping') addLog(`An ancient ${bName} slumbers here. Press E to approach.`);
@@ -174,15 +190,6 @@ function tryMove(dx, dy) {
       setTile(nx, ny, '.');
       addLog(`Picked up ${info.name}!`);
       sfxPickup();
-    }
-  }
-
-  if (G.steps % HUNGER_STEPS === 0) {
-    const available = FOOD_KEYS.filter(k => G.inventory[k] > 0);
-    if (available.length > 0) {
-      const k = available[Math.floor(Math.random() * available.length)];
-      G.inventory[k]--;
-      addLog(`Hungry! You ate some ${k}.`);
     }
   }
 
@@ -306,14 +313,17 @@ function buildSaveData() {
   const savedChunkKeys = new Set(recentChunks.map(([k]) => k));
   const chunkData = Object.fromEntries(recentChunks.map(([k, c]) => [k, c.grid]));
   return {
-    version: 5, worldSeed: WORLD_SEED, selectedFood, muted: getMuted(),
+    version: 6, worldSeed: WORLD_SEED, selectedFood, muted: getMuted(),
     player:  { x: G.px, y: G.py, inventory: G.inventory },
     phase:   G.phase === 'animating' ? 'playing' : G.phase,
     creature: G.creature ? { ...G.creature, lines: undefined } : null,
     collection:  G.collection.map(({ lines: _, ...c }) => c),
     greatBeasts: G.greatBeasts.map(({ lines: _, ...b }) => b),
+    angel:       G.angel ? { ...G.angel, lines: undefined } : null,
+    completed:   G.completed || false,
     worldEggs:   [...G.worldEggs.entries()],
     worldBeasts: [...G.worldBeasts.entries()],
+    worldAngels: [...G.worldAngels.entries()],
     spawnedChunks: [...G.spawnedChunks],
     collectionTab: G.collectionTab,
     gbSelectedIdx: G.gbSelectedIdx,
@@ -333,6 +343,9 @@ function applySaveData(data) {
     chunks.set(key, { grid });
   setSelectedFood(data.selectedFood || 'meat');
   setMuted(data.muted ?? false);
+  const loadedAngel = data.angel || null;
+  if (loadedAngel && !loadedAngel.lines) loadedAngel.lines = ANGEL_COLLECTION_ART;
+
   setG({
     px: data.player.x, py: data.player.y,
     inventory:     { ...emptyInv(), ...(data.player.inventory || {}) },
@@ -340,8 +353,11 @@ function applySaveData(data) {
     creature:      data.creature || null,
     collection:    data.collection || [],
     greatBeasts:   data.greatBeasts || [],
+    angel:         loadedAngel,
+    completed:     data.completed || false,
     worldEggs:     new Map(data.worldEggs || []),
     worldBeasts:   new Map(data.worldBeasts || []),
+    worldAngels:   new Map(data.worldAngels || []),
     spawnedChunks: new Set(data.spawnedChunks || []),
     revealed:      new Set(data.revealed || []),
     showCollection: false,
@@ -349,6 +365,7 @@ function applySaveData(data) {
     collectionTab:  data.collectionTab || 'creatures',
     gbSelectedIdx:  data.gbSelectedIdx || 0,
     dragonInteract: null,
+    angelInteract:  null,
     sacrificeMode:  false,
     steps:         data.steps || 0,
     animFrames: [], animFrame: 0,
@@ -406,6 +423,8 @@ async function loadGame() {
 
 function tryE() {
   if (G.phase === 'animating') return;
+  const adjAngel = getAdjacentAngel();
+  if (adjAngel) { openAngelOverlay(adjAngel); return; }
   const adjBeast = getAdjacentBeast();
   if (adjBeast) { openBeastOverlay(adjBeast); return; }
   tryChest();
@@ -423,6 +442,73 @@ function closeBeastOverlay() {
   G.sacrificeMode  = false;
   G.showCollection = false;
   render();
+}
+
+// ── Angel interaction ─────────────────────────────────────────────
+
+function openAngelOverlay(angel) {
+  G.angelInteract  = `${angel.x},${angel.y}`;
+  G.dragonInteract = null;
+  G.showCollection = false;
+  G.sacrificeMode  = false;
+  render();
+}
+
+function closeAngelOverlay() {
+  G.angelInteract = null;
+  render();
+}
+
+function offerToAngel() {
+  if (!G.angelInteract) return;
+  const angel = G.worldAngels.get(G.angelInteract);
+  if (!angel || angel.phase !== 'present') return;
+
+  const heldTypes = new Set(G.greatBeasts.map(b => b.beastType));
+  const missing   = BEAST_TYPES.filter(t => !heldTypes.has(t));
+  if (missing.length > 0) {
+    addLog(`You are missing: ${missing.join(', ')}.`);
+    render();
+    return;
+  }
+
+  // Consume one of each Great Beast type
+  for (const beastType of BEAST_TYPES) {
+    const idx = G.greatBeasts.findIndex(b => b.beastType === beastType);
+    if (idx >= 0) G.greatBeasts.splice(idx, 1);
+  }
+
+  angel.phase     = 'completed';
+  G.angelInteract = null;
+
+  G.angel = {
+    isAngel: true,
+    name:    'The Angel',
+    date:    new Date().toLocaleDateString(),
+    lines:   ANGEL_COLLECTION_ART,
+    color:   ANGEL_COLOR,
+  };
+  G.completed     = true;
+  G.collectionTab = 'divine';
+
+  sfxAngelOffer();
+  autoSave();
+  showCompletionScreen();
+  render();
+}
+
+function showCompletionScreen() {
+  const el = document.getElementById('completion-overlay');
+  if (!el) return;
+  el.removeAttribute('hidden');
+  function dismiss(e) {
+    e.stopPropagation();
+    el.setAttribute('hidden', '');
+    document.removeEventListener('keydown', dismiss, true);
+    el.removeEventListener('click', dismiss);
+  }
+  document.addEventListener('keydown', dismiss, true);
+  el.addEventListener('click', dismiss);
 }
 
 function tryFeedBeastGem() {
@@ -698,6 +784,9 @@ Input.init({
   exitSacrificeMode,
   sacrificeCreature,
   closeBeastOverlay,
+  isAngelOverlayActive: () => !!G?.angelInteract,
+  closeAngelOverlay,
+  offerToAngel,
   render,
   stopColAnims,
 });
@@ -743,6 +832,7 @@ if (isDev) {
     { label: 'Awaken adjacent beast',type: 'awakenBeast'                     },
     { label: 'Max feed adjacent egg',type: 'maxFeedEgg'                      },
     { label: 'Force shiny',          type: 'toggleShiny'                     },
+    { label: 'Go to Labrynth',       type: 'goToLabrynth'                    },
   ];
 
   let devIdx = 0;
@@ -791,6 +881,30 @@ if (isDev) {
     if (item.type === 'toggleShiny') {
       devForceShiny = !devForceShiny;
       addLog(`[DEV] Force shiny: ${devForceShiny ? 'ON' : 'OFF'}.`);
+      render(); return;
+    }
+    if (item.type === 'goToLabrynth') {
+      const pzx = Math.floor(chunkX(G.px) / 3);
+      const pzy = Math.floor(chunkY(G.py) / 3);
+      let found = null;
+      outer: for (let r = 0; r <= 25 && !found; r++) {
+        for (let dzx = -r; dzx <= r && !found; dzx++) {
+          for (let dzy = -r; dzy <= r; dzy++) {
+            if (Math.abs(dzx) !== r && Math.abs(dzy) !== r) continue;
+            if (getChunkBiome((pzx + dzx) * 3, (pzy + dzy) * 3) === 'labrynth') {
+              found = { zx: pzx + dzx, zy: pzy + dzy };
+              break outer;
+            }
+          }
+        }
+      }
+      if (!found) { addLog('[DEV] No Labrynth found within 25 zones.'); render(); return; }
+      // Place player one tile above the top-left CORR entrance of the zone
+      G.px = found.zx * 3 * CW + CORR_X;
+      G.py = found.zy * 3 * CH - 1;
+      devOpen = false; devRender();
+      updateFOV();
+      addLog(`[DEV] Teleported outside Labrynth at zone (${found.zx},${found.zy}).`);
       render(); return;
     }
     if (item.type === 'addCreatures') {
