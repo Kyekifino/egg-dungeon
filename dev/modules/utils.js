@@ -1,7 +1,7 @@
 // Pure constants and utility functions shared across all modules.
 // No side effects, no DOM access, no mutable state.
 
-export const VERSION = '1.24';
+export const VERSION = '1.25';
 
 export const PATCH_NOTES = {
   '1.13': [
@@ -56,6 +56,14 @@ export const PATCH_NOTES = {
     'Toolbar added at the top right: quick buttons for Collection, Mute, Save, Load, and Feedback',
     'All key interactions clickable — feed hints, interact prompts, beast overlay actions, and collection controls',
     'Missing a chest lockpick now destroys the chest — one attempt only',
+  ],
+  '1.25': [
+    'The Labrynth: a rare hidden biome containing a maze of hallways and no worldly distractions',
+    'At the heart of the Labrynth stands a biblically accurate Angel — vast, ringed, and covered in eyes',
+    'Offer one of each Great Beast to the Angel to obtain it and complete Egg Dungeon',
+    'Completing the game turns your avatar gold — persists across saves',
+    'Angel unlocks a Divine tab in your collection',
+    'Fixed: compass arrows no longer visible over the collection screen',
   ],
 };
 
