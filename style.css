@@ -534,6 +534,8 @@ body {
   }
 
   #header { padding: 3px 6px; }
+  #controls { display: none; }
+  .tbtn { font-size: 1.2rem; padding: 8px 14px; }
 
   /* Stack viewport above sidebar */
   #mid-area { height: auto; }
@@ -556,9 +558,8 @@ body {
   #inv-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 2px; }
   #inv-list div { font-size: 0.7rem; padding: 4px 6px; white-space: nowrap; border: 1px solid #1e1e1e; }
 
-  /* Bigger compass touch targets */
-  #compass { grid-template-columns: repeat(3, 52px); gap: 3px; padding: 5px; }
-  .dir-btn  { padding: 14px 0; font-size: 1rem; }
+  /* Compass hidden on mobile — swipe gestures replace it */
+  #compass { display: none; }
 
   /* Collection overlay: remove absolute positioning so it flows normally */
   #collection-overlay { position: static; width: 100%; height: auto; min-height: 320px; }
