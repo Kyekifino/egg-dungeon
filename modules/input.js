@@ -227,14 +227,16 @@ export function init({
   {
     const vp = document.getElementById('viewport');
     let tx = 0, ty = 0;
-    let moveTimer = null;
+    let holdTimer  = null; // setTimeout before repeat begins
+    let repeatTimer = null; // setInterval for repeat moves
     let locked = false;
     const SWIPE_MIN   = 20;
     const HOLD_DELAY  = 500; // ms after first step before repeat begins
     const MOVE_REPEAT = 150; // ms between repeated moves while holding
 
     const stopMove = () => {
-      if (moveTimer) { clearInterval(moveTimer); moveTimer = null; }
+      clearTimeout(holdTimer);  holdTimer  = null;
+      clearInterval(repeatTimer); repeatTimer = null;
       locked = false;
     };
 
@@ -262,8 +264,9 @@ export function init({
       const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
       const mdy = Math.abs(dx) > Math.abs(dy) ? 0 : (dy > 0 ? 1 : -1);
       tryMove(mdx, mdy);
-      moveTimer = setTimeout(() => {
-        moveTimer = setInterval(() => {
+      holdTimer = setTimeout(() => {
+        holdTimer = null;
+        repeatTimer = setInterval(() => {
           if (!canMove()) { stopMove(); return; }
           tryMove(mdx, mdy);
         }, MOVE_REPEAT);
