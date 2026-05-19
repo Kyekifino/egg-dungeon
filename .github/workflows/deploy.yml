@@ -16,8 +16,9 @@ jobs:
       - name: Prepare game files
         run: |
           mkdir dist
-          cp index.html game.js style.css dist/
+          cp index.html game.js style.css manifest.json sw.js dist/
           cp -r modules dist/
+          cp -r icons dist/
 
       - name: Deploy to production
         if: github.ref == 'refs/heads/master'
