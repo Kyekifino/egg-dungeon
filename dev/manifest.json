@@ -1,0 +1,14 @@
+{
+  "name": "Egg Dungeon",
+  "short_name": "Egg Dungeon",
+  "description": "An infinite ASCII dungeon crawler. Explore, find eggs, hatch creatures.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
