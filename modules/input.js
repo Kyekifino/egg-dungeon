@@ -221,33 +221,64 @@ export function init({
     });
   }
 
-  // Touch: swipe to move, tap to click — preventDefault on touchstart stops
-  // scroll and suppresses synthetic mouse/click events so there's no double-fire.
+  // Touch: swipe-and-hold for continuous movement, tap for click.
+  // Direction locks on the first significant touchmove; releases on lift.
+  // preventDefault on touchstart suppresses scroll and synthetic mouse events.
   {
     const vp = document.getElementById('viewport');
     let tx = 0, ty = 0;
-    const SWIPE_MIN = 25;
+    let moveTimer = null;
+    let locked = false;
+    const SWIPE_MIN   = 20;
+    const MOVE_REPEAT = 150; // ms between repeated moves while holding
+
+    const stopMove = () => {
+      if (moveTimer) { clearInterval(moveTimer); moveTimer = null; }
+      locked = false;
+    };
+
+    const canMove = () => {
+      const G = getG();
+      return G && G.phase !== 'animating' && !G.showCollection &&
+             !isChestActive() && !isBeastOverlayActive() && !isAngelOverlayActive();
+    };
+
     vp.addEventListener('touchstart', e => {
       tx = e.touches[0].clientX;
       ty = e.touches[0].clientY;
+      stopMove();
       e.preventDefault();
     }, { passive: false });
+
+    vp.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (locked) return;
+      const dx = e.touches[0].clientX - tx;
+      const dy = e.touches[0].clientY - ty;
+      if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) return;
+      if (!canMove()) return;
+      locked = true;
+      const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
+      const mdy = Math.abs(dx) > Math.abs(dy) ? 0 : (dy > 0 ? 1 : -1);
+      tryMove(mdx, mdy);
+      moveTimer = setInterval(() => {
+        if (!canMove()) { stopMove(); return; }
+        tryMove(mdx, mdy);
+      }, MOVE_REPEAT);
+    }, { passive: false });
+
     vp.addEventListener('touchend', e => {
-      const dx = e.changedTouches[0].clientX - tx;
-      const dy = e.changedTouches[0].clientY - ty;
-      if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) {
+      const wasDragging = locked;
+      stopMove();
+      if (!wasDragging && onViewportClick) {
         const G = getG();
-        if (onViewportClick && G && G.phase !== 'animating') {
+        if (G && G.phase !== 'animating') {
           const coords = getWorldCoordsFromViewportClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
           if (coords) onViewportClick(coords.wx, coords.wy, 0);
         }
-        return;
       }
-      const G = getG();
-      if (!G || G.phase === 'animating' || G.showCollection ||
-          isChestActive() || isBeastOverlayActive() || isAngelOverlayActive()) return;
-      if (Math.abs(dx) > Math.abs(dy)) tryMove(dx > 0 ? 1 : -1, 0);
-      else tryMove(0, dy > 0 ? 1 : -1);
     }, { passive: false });
+
+    vp.addEventListener('touchcancel', stopMove);
   }
 }
