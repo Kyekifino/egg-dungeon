@@ -230,6 +230,7 @@ export function init({
     let moveTimer = null;
     let locked = false;
     const SWIPE_MIN   = 20;
+    const HOLD_DELAY  = 500; // ms after first step before repeat begins
     const MOVE_REPEAT = 150; // ms between repeated moves while holding
 
     const stopMove = () => {
@@ -261,10 +262,12 @@ export function init({
       const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
       const mdy = Math.abs(dx) > Math.abs(dy) ? 0 : (dy > 0 ? 1 : -1);
       tryMove(mdx, mdy);
-      moveTimer = setInterval(() => {
-        if (!canMove()) { stopMove(); return; }
-        tryMove(mdx, mdy);
-      }, MOVE_REPEAT);
+      moveTimer = setTimeout(() => {
+        moveTimer = setInterval(() => {
+          if (!canMove()) { stopMove(); return; }
+          tryMove(mdx, mdy);
+        }, MOVE_REPEAT);
+      }, HOLD_DELAY);
     }, { passive: false });
 
     vp.addEventListener('touchend', e => {
