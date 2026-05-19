@@ -524,52 +524,61 @@ body {
 
 /* ── Mobile / narrow viewport ─────────────────────────────── */
 @media (max-width: 659px) {
-  body { align-items: flex-start; }
+  /* Lock to full screen height — no page scroll */
+  html { height: 100%; }
+  body { height: 100dvh; overflow: hidden; align-items: flex-start; }
 
-  #app { width: 100vw; gap: 3px; }
+  /* App fills screen as a vertical flex column */
+  #app { width: 100vw; height: 100dvh; overflow: hidden; gap: 0; }
 
-  /* Remove fixed widths on all top-level sections */
-  #header, #mid-area, #game-area, #bottom-panel, #app-footer {
-    width: 100%;
-  }
+  /* All top-level sections go full width */
+  #header, #mid-area, #game-area, #bottom-panel, #app-footer { width: 100%; }
 
-  #header { padding: 3px 6px; }
-  #controls { display: none; }
-  .tbtn { font-size: 1.2rem; padding: 8px 14px; }
+  /* Header: compact, hide keyboard hints, enlarge tap targets */
+  #header    { padding: 3px 6px; flex-shrink: 0; }
+  #controls  { display: none; }
+  .tbtn      { font-size: 1.2rem; padding: 8px 14px; }
 
-  /* Stack viewport above sidebar */
-  #mid-area { height: auto; }
+  /* mid-area grows to fill remaining vertical space */
+  #mid-area  { flex: 1; min-height: 0; overflow: hidden; height: auto; }
 
-  #game-area { height: auto; flex-direction: column; gap: 3px; }
+  /* game-area fills mid-area, stacks viewport above inventory strip */
+  #game-area { height: 100%; flex-direction: column; gap: 0; overflow: hidden; }
 
-  /* Scale the ASCII grid to exactly fill viewport width.
-     VW=50 cols, Courier char width ≈ 0.6×font-size → font-size = 100vw/30.
-     Height = 22 rows × 1.2 line-height × (100vw/30) = 88vw. */
+  /* Viewport grows to fill available game-area height.
+     Font-size keeps VW=50 cols fitting the screen width exactly:
+     Courier char width ≈ 0.6×font-size → font-size = 100vw/30. */
   #viewport {
+    flex: 1;
+    min-height: 0;
     width: 100%;
-    height: 88vw;
     font-size: calc(100vw / 30);
-    flex-shrink: unset;
+    overflow: hidden;
   }
 
-  /* Compact horizontal inventory strip; hide log/biome panels */
-  #sidebar { width: 100%; flex-direction: row; height: auto; }
-  #world-panel, #log-panel { display: none; }
-  #inv-list { display: flex; flex-direction: row; flex-wrap: wrap; gap: 2px; }
-  #inv-list div { font-size: 0.7rem; padding: 4px 6px; white-space: nowrap; border: 1px solid #1e1e1e; }
-
-  /* Compass hidden on mobile — swipe gestures replace it */
+  /* Compass hidden — swipe gestures replace it */
   #compass { display: none; }
 
-  /* Collection overlay: remove absolute positioning so it flows normally */
-  #collection-overlay { position: static; width: 100%; height: auto; min-height: 320px; }
-  #col-body           { flex-direction: column; }
-  #col-list           { width: 100%; max-height: 160px; }
-  #col-detail         { border-left: none; border-top: 1px solid #111; padding-left: 0; padding-top: 8px; align-items: flex-start; }
+  /* Compact horizontal inventory strip below the viewport */
+  #sidebar      { flex-shrink: 0; width: 100%; flex-direction: row; height: auto; }
+  #world-panel, #log-panel { display: none; }
+  #inv-list     { display: flex; flex-direction: row; flex-wrap: wrap; gap: 2px; padding: 3px 0; }
+  #inv-list div { font-size: 0.7rem; padding: 4px 6px; white-space: nowrap; border: 1px solid #1e1e1e; }
 
-  /* Bottom panel: auto height, smaller egg art */
-  #bottom-panel { height: auto; padding: 8px 12px; gap: 14px; }
+  /* Collection overlay: static so it flows in mid-area, fills its height */
+  #collection-overlay { position: static; width: 100%; height: 100%; overflow: hidden; }
+  #col-header  { flex-wrap: wrap; gap: 4px; }
+  #col-close   { display: none; }   /* keyboard-only hint; close via toolbar ≡ */
+  #col-body    { flex: 1; min-height: 0; flex-direction: column; overflow: hidden; }
+  #col-list    { width: 100%; max-height: 45%; }
+  #col-detail  { border-left: none; border-top: 1px solid #111; padding-left: 0; padding-top: 8px; align-items: flex-start; overflow-y: auto; }
+
+  /* Bottom panel: compact, don't let it grow or shrink unexpectedly */
+  #bottom-panel { flex-shrink: 0; height: auto; padding: 8px 12px; gap: 14px; }
   #egg-display  { font-size: 0.78rem; min-width: unset; line-height: 1.25; }
+
+  /* Footer wastes vertical space on mobile */
+  #app-footer { display: none; }
 
   /* Modals: fit within screen width */
   #patch-box, #feedback-box, #beast-box, #angel-box, #completion-box {
