@@ -220,4 +220,34 @@ export function init({
       if (coords) onViewportClick(coords.wx, coords.wy, e.button);
     });
   }
+
+  // Touch: swipe to move, tap to click — preventDefault on touchstart stops
+  // scroll and suppresses synthetic mouse/click events so there's no double-fire.
+  {
+    const vp = document.getElementById('viewport');
+    let tx = 0, ty = 0;
+    const SWIPE_MIN = 25;
+    vp.addEventListener('touchstart', e => {
+      tx = e.touches[0].clientX;
+      ty = e.touches[0].clientY;
+      e.preventDefault();
+    }, { passive: false });
+    vp.addEventListener('touchend', e => {
+      const dx = e.changedTouches[0].clientX - tx;
+      const dy = e.changedTouches[0].clientY - ty;
+      if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) {
+        const G = getG();
+        if (onViewportClick && G && G.phase !== 'animating') {
+          const coords = getWorldCoordsFromViewportClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+          if (coords) onViewportClick(coords.wx, coords.wy, 0);
+        }
+        return;
+      }
+      const G = getG();
+      if (!G || G.phase === 'animating' || G.showCollection ||
+          isChestActive() || isBeastOverlayActive() || isAngelOverlayActive()) return;
+      if (Math.abs(dx) > Math.abs(dy)) tryMove(dx > 0 ? 1 : -1, 0);
+      else tryMove(0, dy > 0 ? 1 : -1);
+    }, { passive: false });
+  }
 }
