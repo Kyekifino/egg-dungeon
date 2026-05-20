@@ -281,19 +281,26 @@ export function init({
       setTimeout(step, MOVE_REPEAT);
     }, { passive: false });
 
-    vp.addEventListener('touchend', e => {
+    // Listen on document so we catch the end of the touch no matter where
+    // the finger lifts — the browser can route touchend away from the
+    // originating element if it takes over the gesture (e.g. for scroll).
+    // Guard with touchActive so we only act on touches that started on vp.
+    const endTouch = (e) => {
+      if (!touchActive) return;
       touchActive = false;
       const wasDragging = curDir !== null;
       stopMove();
-      if (!wasDragging && onViewportClick) {
+      if (e.type === 'touchend' && !wasDragging && onViewportClick
+          && e.changedTouches?.length) {
         const G = getG();
         if (G && G.phase !== 'animating') {
-          const coords = getWorldCoordsFromViewportClick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+          const coords = getWorldCoordsFromViewportClick(
+            e.changedTouches[0].clientX, e.changedTouches[0].clientY);
           if (coords) onViewportClick(coords.wx, coords.wy, 0);
         }
       }
-    }, { passive: false });
-
-    vp.addEventListener('touchcancel', () => { touchActive = false; stopMove(); });
+    };
+    document.addEventListener('touchend',    endTouch, { passive: true });
+    document.addEventListener('touchcancel', endTouch, { passive: true });
   }
 }
