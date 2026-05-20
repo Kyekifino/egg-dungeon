@@ -183,6 +183,7 @@ function tryMove(dx, dy) {
     setTile(nx, ny, '.');
     addLog('Found a gem! Feed it to the egg (key 6, then F).');
     sfxGem();
+    autoSave();
   } else {
     const info = FOOD_INFO[tile];
     if (info) {
@@ -190,6 +191,7 @@ function tryMove(dx, dy) {
       setTile(nx, ny, '.');
       addLog(`Picked up ${info.name}!`);
       sfxPickup();
+      autoSave();
     }
   }
 

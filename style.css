@@ -542,6 +542,7 @@ body {
   #header    { padding: 3px 6px; flex-shrink: 0; }
   #controls  { display: none; }
   .tbtn      { font-size: 1.2rem; padding: 8px 14px; }
+  [data-toolbar="save"], [data-toolbar="load"] { display: none; }
 
   /* mid-area grows to fill remaining vertical space */
   #mid-area  { flex: 1; min-height: 0; overflow: hidden; height: auto; }
