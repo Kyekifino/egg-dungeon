@@ -281,10 +281,9 @@ export function init({
       setTimeout(step, MOVE_REPEAT);
     }, { passive: false });
 
-    // Listen on document so we catch the end of the touch no matter where
-    // the finger lifts — the browser can route touchend away from the
-    // originating element if it takes over the gesture (e.g. for scroll).
-    // Guard with touchActive so we only act on touches that started on vp.
+    // Two touchend listeners: one on vp (normal case) and one on document
+    // (fallback if Chrome reroutes the event).  endTouch guards with
+    // touchActive so only the first call does anything.
     const endTouch = (e) => {
       if (!touchActive) return;
       touchActive = false;
@@ -300,6 +299,7 @@ export function init({
         }
       }
     };
+    vp.addEventListener(      'touchend',    endTouch, { passive: true });
     document.addEventListener('touchend',    endTouch, { passive: true });
     document.addEventListener('touchcancel', endTouch, { passive: true });
   }

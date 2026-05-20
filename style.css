@@ -85,7 +85,6 @@ body {
   background: #050505;
   border: 1px solid #1a1a1a;
   cursor: default;
-  touch-action: none; /* tell browser we handle all touch gestures ourselves */
 }
 
 /* ── Sidebar ──────────────────────────────────────────────── */
