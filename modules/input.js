@@ -234,7 +234,7 @@ export function init({
     const MOVE_REPEAT = 150;
 
     const stopMove = () => {
-      clearInterval(repeatTimer); repeatTimer = null;
+      clearTimeout(repeatTimer); repeatTimer = null;
       curDir = null;
     };
 
@@ -267,9 +267,11 @@ export function init({
       tryMove(mdx, mdy);
       tx = e.touches[0].clientX;
       ty = e.touches[0].clientY;
-      repeatTimer = setInterval(() => {
+      repeatTimer = setTimeout(function step() {
+        if (!curDir || curDir[0] !== mdx || curDir[1] !== mdy) return;
         if (!canMove()) { stopMove(); return; }
         tryMove(mdx, mdy);
+        repeatTimer = setTimeout(step, MOVE_REPEAT);
       }, MOVE_REPEAT);
     }, { passive: false });
 
