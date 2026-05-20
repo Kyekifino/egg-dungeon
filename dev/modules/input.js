@@ -221,23 +221,19 @@ export function init({
     });
   }
 
-  // Touch: swipe to step; swipe-and-hold for continuous movement.
-  // Swipe a different direction mid-gesture to change direction immediately.
-  // touchActive prevents phantom touchmove events that fire after touchend
-  // from restarting movement on their own.
+  // Touch: swipe to move; hold to keep moving; swipe a new direction to
+  // change immediately. touchActive prevents phantom touchmove events
+  // that fire after touchend from restarting movement.
   {
     const vp = document.getElementById('viewport');
     let tx = 0, ty = 0;
-    let holdTimer   = null; // setTimeout before repeat begins
-    let repeatTimer = null; // setInterval for repeat moves
+    let repeatTimer = null;
     let touchActive = false;
     let curDir      = null; // [mdx, mdy] while moving, null when stopped
     const SWIPE_MIN   = 20;
-    const HOLD_DELAY  = 500;
     const MOVE_REPEAT = 150;
 
     const stopMove = () => {
-      clearTimeout(holdTimer);    holdTimer   = null;
       clearInterval(repeatTimer); repeatTimer = null;
       curDir = null;
     };
@@ -266,28 +262,15 @@ export function init({
       const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
       const mdy = Math.abs(dx) > Math.abs(dy) ? 0 : (dy > 0 ? 1 : -1);
       if (curDir && curDir[0] === mdx && curDir[1] === mdy) return;
-      const wasMoving = curDir !== null;
       stopMove();
       curDir = [mdx, mdy];
       tryMove(mdx, mdy);
-      // Reset reference so next direction change needs a fresh 20px swipe.
       tx = e.touches[0].clientX;
       ty = e.touches[0].clientY;
-      if (wasMoving) {
-        // Direction change while already moving — skip hold delay.
-        repeatTimer = setInterval(() => {
-          if (!canMove()) { stopMove(); return; }
-          tryMove(mdx, mdy);
-        }, MOVE_REPEAT);
-      } else {
-        holdTimer = setTimeout(() => {
-          holdTimer = null;
-          repeatTimer = setInterval(() => {
-            if (!canMove()) { stopMove(); return; }
-            tryMove(mdx, mdy);
-          }, MOVE_REPEAT);
-        }, HOLD_DELAY);
-      }
+      repeatTimer = setInterval(() => {
+        if (!canMove()) { stopMove(); return; }
+        tryMove(mdx, mdy);
+      }, MOVE_REPEAT);
     }, { passive: false });
 
     vp.addEventListener('touchend', e => {
