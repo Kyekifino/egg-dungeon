@@ -221,20 +221,24 @@ export function init({
     });
   }
 
-  // Touch: swipe to move; hold to keep moving; swipe a new direction to
-  // change immediately. touchActive prevents phantom touchmove events
-  // that fire after touchend from restarting movement.
+  // Touch: swipe to step; hold to repeat; swipe a new direction to change.
+  //
+  // Uses a generation counter (moveGen) instead of clearTimeout.
+  // stopMove() just increments moveGen; each step() closure captures its
+  // own gen at birth and self-terminates when moveGen no longer matches.
+  // This means stale callbacks can never "win" against a newer gesture
+  // regardless of whether clearTimeout fires reliably on the device.
   {
     const vp = document.getElementById('viewport');
     let tx = 0, ty = 0;
-    let repeatTimer = null;
     let touchActive = false;
-    let curDir      = null; // [mdx, mdy] while moving, null when stopped
+    let curDir  = null; // [mdx, mdy] while moving, null when stopped
+    let moveGen = 0;
     const SWIPE_MIN   = 20;
     const MOVE_REPEAT = 150;
 
     const stopMove = () => {
-      clearTimeout(repeatTimer); repeatTimer = null;
+      moveGen++;
       curDir = null;
     };
 
@@ -267,12 +271,14 @@ export function init({
       tryMove(mdx, mdy);
       tx = e.touches[0].clientX;
       ty = e.touches[0].clientY;
-      repeatTimer = setTimeout(function step() {
-        if (!curDir || curDir[0] !== mdx || curDir[1] !== mdy) return;
+      const gen = moveGen;
+      const step = () => {
+        if (moveGen !== gen) return; // cancelled by stopMove()
         if (!canMove()) { stopMove(); return; }
         tryMove(mdx, mdy);
-        repeatTimer = setTimeout(step, MOVE_REPEAT);
-      }, MOVE_REPEAT);
+        setTimeout(step, MOVE_REPEAT);
+      };
+      setTimeout(step, MOVE_REPEAT);
     }, { passive: false });
 
     vp.addEventListener('touchend', e => {
