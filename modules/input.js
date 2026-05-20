@@ -266,19 +266,28 @@ export function init({
       const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
       const mdy = Math.abs(dx) > Math.abs(dy) ? 0 : (dy > 0 ? 1 : -1);
       if (curDir && curDir[0] === mdx && curDir[1] === mdy) return;
+      const wasMoving = curDir !== null;
       stopMove();
       curDir = [mdx, mdy];
       tryMove(mdx, mdy);
       // Reset reference so next direction change needs a fresh 20px swipe.
       tx = e.touches[0].clientX;
       ty = e.touches[0].clientY;
-      holdTimer = setTimeout(() => {
-        holdTimer = null;
+      if (wasMoving) {
+        // Direction change while already moving — skip hold delay.
         repeatTimer = setInterval(() => {
           if (!canMove()) { stopMove(); return; }
           tryMove(mdx, mdy);
         }, MOVE_REPEAT);
-      }, HOLD_DELAY);
+      } else {
+        holdTimer = setTimeout(() => {
+          holdTimer = null;
+          repeatTimer = setInterval(() => {
+            if (!canMove()) { stopMove(); return; }
+            tryMove(mdx, mdy);
+          }, MOVE_REPEAT);
+        }, HOLD_DELAY);
+      }
     }, { passive: false });
 
     vp.addEventListener('touchend', e => {
