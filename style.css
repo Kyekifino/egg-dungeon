@@ -76,6 +76,10 @@ body {
 }
 .dir-btn:hover { color: #c8c4a8; border-color: #505050; }
 
+/* ── Joystick (hidden on desktop, shown on mobile) ───────── */
+#joystick      { display: none; }
+#joystick-knob { display: none; }
+
 /* ── Viewport ─────────────────────────────────────────────── */
 #viewport {
   width: 450px;
@@ -556,8 +560,36 @@ body {
     overflow: hidden;
   }
 
-  /* Compass hidden — swipe gestures replace it */
+  /* Compass hidden on mobile */
   #compass { display: none; }
+
+  /* Virtual joystick — overlays bottom-left of the viewport */
+  #joystick {
+    display: block;
+    position: absolute;
+    bottom: 40px;
+    left: 8px;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: rgba(200, 196, 168, 0.07);
+    border: 1px solid rgba(200, 196, 168, 0.18);
+    z-index: 10;
+    touch-action: none;
+  }
+  #joystick-knob {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(200, 196, 168, 0.20);
+    border: 1px solid rgba(200, 196, 168, 0.35);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
 
   /* Compact horizontal inventory strip below the viewport */
   #sidebar      { flex-shrink: 0; width: 100%; flex-direction: row; height: auto; }
