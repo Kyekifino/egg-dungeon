@@ -532,7 +532,7 @@ function renderBottomPlaying() {
     document.getElementById('egg-info').innerHTML = `
       <div style="color:${aColor};font-size:.9rem">${escHtml(ANGEL_CHAR)}  The Angel</div>
       <div style="font-size:.75rem;color:#888;margin-bottom:4px">${awaiting ? 'Awaits an offering.' : 'Regards you serenely.'}</div>
-      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:6px">Press E to approach</div>`;
+      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:6px"><span class="key-hint">E: </span>Approach</div>`;
     startAngelAnim();
     return;
   }
@@ -553,7 +553,7 @@ function renderBottomPlaying() {
       <div style="font-size:.75rem;color:#888;margin-bottom:4px">${asleep ? 'Slumbering' : `<span style="color:${bDef.awakenColor}">Awoken</span>`}</div>
       <div style="font-size:.75rem;color:#666">${adjBeast.gemsReceived}/${DRAGON_GEM_COST} gems &nbsp;<span style="color:${GEM_COLOR}">${gemBar}</span></div>
       ${asleep ? '' : `<div style="font-size:.72rem;color:#666;margin-top:2px">${offered}/${DRAGON_CREATURE_COST} creatures offered</div>`}
-      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:6px">Press E to interact</div>`;
+      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:6px"><span class="key-hint">E: </span>Interact</div>`;
     return;
   }
 
@@ -569,7 +569,7 @@ function renderBottomPlaying() {
     document.getElementById('egg-info').innerHTML = `
       <div style="color:#c8a020;font-size:.85rem">${escHtml(CHEST_CHAR)} Locked Chest</div>
       <div style="font-size:.72rem;color:#666;margin-top:4px">A chest lies nearby.</div>
-      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:8px">Press E to pick the lock</div>`;
+      <div data-action="interact" style="font-size:.72rem;color:#555;margin-top:8px"><span class="key-hint">E: </span>Pick Lock</div>`;
     return;
   }
 
@@ -594,8 +594,8 @@ function renderBottomPlaying() {
     const beastEggChar  = beastEggDef.char;
     const beastEggColor = CLR.bright[beastEggChar];
     const feedMsg = isGem
-      ? (isGreatBeastEgg ? `<span style="color:#e05050">${beastEggLabel}s cannot be enhanced with gems.</span>` : 'Press F to boost rarity!')
-      : 'Press F to feed!';
+      ? (isGreatBeastEgg ? `<span style="color:#e05050">${beastEggLabel}s cannot be enhanced with gems.</span>` : '<span class="key-hint">F: </span>Boost rarity')
+      : '<span class="key-hint">F: </span>Feed';
     const currRarity = getRarity(adjEgg.rarityRoll);
     const eggBiome = adjEgg.biome ? BIOMES[adjEgg.biome] : null;
     const biomeLabel = isGreatBeastEgg
@@ -862,10 +862,10 @@ export function renderBeastOverlay() {
 
   const noCreatures = !G.collection?.length;
   const hint = phase === 'sleeping'
-    ? '<span data-action="gem" style="white-space:nowrap">F:&nbsp;offer gem</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>'
+    ? '<span data-action="gem" style="white-space:nowrap"><span class="key-hint">F: </span>Offer gem</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap"><span class="key-hint">ESC: </span>Leave</span>'
     : (noCreatures
-        ? '<span style="white-space:nowrap">No creatures to offer &mdash; hatch some eggs first!</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>'
-        : '<span data-action="sacrifice" style="white-space:nowrap">C:&nbsp;offer a creature</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap">ESC:&nbsp;leave</span>');
+        ? '<span style="white-space:nowrap">No creatures to offer &mdash; hatch some eggs first!</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap"><span class="key-hint">ESC: </span>Leave</span>'
+        : '<span data-action="sacrifice" style="white-space:nowrap"><span class="key-hint">C: </span>Offer creature</span> &nbsp;&middot;&nbsp; <span data-action="close-overlay" style="white-space:nowrap"><span class="key-hint">ESC: </span>Leave</span>');
   document.getElementById('beast-hint').innerHTML = hint;
 }
 
@@ -887,7 +887,7 @@ export function renderAngelOverlay() {
       `<span style="color:${ANGEL_COLOR}">The Angel regards you serenely.</span>`;
     document.getElementById('angel-beasts').innerHTML = '';
     document.getElementById('angel-hint').innerHTML =
-      '<span data-action="close-angel" style="white-space:nowrap">ESC:&nbsp;leave</span>';
+      '<span data-action="close-angel" style="white-space:nowrap"><span class="key-hint">ESC: </span>Leave</span>';
     return;
   }
 
@@ -909,8 +909,8 @@ export function renderAngelOverlay() {
 
   const canOffer = BEAST_TYPES.every(t => heldTypes.has(t));
   document.getElementById('angel-hint').innerHTML = canOffer
-    ? '<span data-action="offer-angel" style="white-space:nowrap">F:&nbsp;offer all</span> &nbsp;&middot;&nbsp; <span data-action="close-angel" style="white-space:nowrap">ESC:&nbsp;leave</span>'
-    : '<span style="color:#555">Seek all five Great Beasts.</span> &nbsp;&middot;&nbsp; <span data-action="close-angel" style="white-space:nowrap">ESC:&nbsp;leave</span>';
+    ? '<span data-action="offer-angel" style="white-space:nowrap"><span class="key-hint">F: </span>Offer all</span> &nbsp;&middot;&nbsp; <span data-action="close-angel" style="white-space:nowrap"><span class="key-hint">ESC: </span>Leave</span>'
+    : '<span style="color:#555">Seek all five Great Beasts.</span> &nbsp;&middot;&nbsp; <span data-action="close-angel" style="white-space:nowrap"><span class="key-hint">ESC: </span>Leave</span>';
 }
 
 export function render() {
