@@ -221,23 +221,25 @@ export function init({
     });
   }
 
-  // Touch: swipe-and-hold for continuous movement, tap for click.
-  // Direction locks on the first significant touchmove; releases on lift.
-  // preventDefault on touchstart suppresses scroll and synthetic mouse events.
+  // Touch: swipe to step; swipe-and-hold for continuous movement.
+  // Swipe a different direction mid-gesture to change direction immediately.
+  // touchActive prevents phantom touchmove events that fire after touchend
+  // from restarting movement on their own.
   {
     const vp = document.getElementById('viewport');
     let tx = 0, ty = 0;
-    let holdTimer  = null; // setTimeout before repeat begins
+    let holdTimer   = null; // setTimeout before repeat begins
     let repeatTimer = null; // setInterval for repeat moves
-    let locked = false;
+    let touchActive = false;
+    let curDir      = null; // [mdx, mdy] while moving, null when stopped
     const SWIPE_MIN   = 20;
-    const HOLD_DELAY  = 500; // ms after first step before repeat begins
-    const MOVE_REPEAT = 150; // ms between repeated moves while holding
+    const HOLD_DELAY  = 500;
+    const MOVE_REPEAT = 150;
 
     const stopMove = () => {
-      clearTimeout(holdTimer);  holdTimer  = null;
+      clearTimeout(holdTimer);    holdTimer   = null;
       clearInterval(repeatTimer); repeatTimer = null;
-      locked = false;
+      curDir = null;
     };
 
     const canMove = () => {
@@ -247,6 +249,7 @@ export function init({
     };
 
     vp.addEventListener('touchstart', e => {
+      touchActive = true;
       tx = e.touches[0].clientX;
       ty = e.touches[0].clientY;
       stopMove();
@@ -255,15 +258,20 @@ export function init({
 
     vp.addEventListener('touchmove', e => {
       e.preventDefault();
-      if (locked) return;
+      if (!touchActive) return;
       const dx = e.touches[0].clientX - tx;
       const dy = e.touches[0].clientY - ty;
       if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) return;
       if (!canMove()) return;
-      locked = true;
       const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
       const mdy = Math.abs(dx) > Math.abs(dy) ? 0 : (dy > 0 ? 1 : -1);
+      if (curDir && curDir[0] === mdx && curDir[1] === mdy) return;
+      stopMove();
+      curDir = [mdx, mdy];
       tryMove(mdx, mdy);
+      // Reset reference so next direction change needs a fresh 20px swipe.
+      tx = e.touches[0].clientX;
+      ty = e.touches[0].clientY;
       holdTimer = setTimeout(() => {
         holdTimer = null;
         repeatTimer = setInterval(() => {
@@ -274,7 +282,8 @@ export function init({
     }, { passive: false });
 
     vp.addEventListener('touchend', e => {
-      const wasDragging = locked;
+      touchActive = false;
+      const wasDragging = curDir !== null;
       stopMove();
       if (!wasDragging && onViewportClick) {
         const G = getG();
@@ -285,6 +294,6 @@ export function init({
       }
     }, { passive: false });
 
-    vp.addEventListener('touchcancel', stopMove);
+    vp.addEventListener('touchcancel', () => { touchActive = false; stopMove(); });
   }
 }

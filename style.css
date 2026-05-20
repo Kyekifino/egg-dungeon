@@ -580,6 +580,26 @@ body {
   /* Footer wastes vertical space on mobile */
   #app-footer { display: none; }
 
+  /* Hide keyboard key labels; make action elements proper tap targets */
+  .key-hint { display: none; }
+  #bottom-panel [data-action],
+  #chest-hint [data-action],
+  #beast-hint [data-action],
+  #angel-hint [data-action] {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 1px solid #2a2a2a;
+    font-size: 0.9rem !important;
+    cursor: pointer;
+  }
+  #beast-hint, #angel-hint, #chest-hint {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-top: 12px;
+  }
+
   /* Modals: fit within screen width */
   #patch-box, #feedback-box, #beast-box, #angel-box, #completion-box {
     width: calc(100vw - 24px);
