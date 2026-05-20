@@ -219,88 +219,109 @@ export function init({
       const coords = getWorldCoordsFromViewportClick(e.clientX, e.clientY);
       if (coords) onViewportClick(coords.wx, coords.wy, e.button);
     });
-  }
-
-  // Touch: swipe to step; hold to repeat; swipe a new direction to change.
-  //
-  // Uses a generation counter (moveGen) instead of clearTimeout.
-  // stopMove() just increments moveGen; each step() closure captures its
-  // own gen at birth and self-terminates when moveGen no longer matches.
-  // This means stale callbacks can never "win" against a newer gesture
-  // regardless of whether clearTimeout fires reliably on the device.
-  {
-    const vp = document.getElementById('viewport');
-    let tx = 0, ty = 0;
-    let touchActive = false;
-    let curDir  = null; // [mdx, mdy] while moving, null when stopped
-    let moveGen = 0;
-    const SWIPE_MIN   = 20;
-    const MOVE_REPEAT = 150;
-
-    const stopMove = () => {
-      moveGen++;
-      curDir = null;
-    };
-
-    const canMove = () => {
-      const G = getG();
-      return G && G.phase !== 'animating' && !G.showCollection &&
-             !isChestActive() && !isBeastOverlayActive() && !isAngelOverlayActive();
-    };
-
+    // Mobile tap on viewport — movement is via joystick, this only fires clicks
+    let tapX = 0, tapY = 0;
     vp.addEventListener('touchstart', e => {
-      touchActive = true;
-      tx = e.touches[0].clientX;
-      ty = e.touches[0].clientY;
-      stopMove();
+      tapX = e.touches[0].clientX;
+      tapY = e.touches[0].clientY;
       e.preventDefault();
     }, { passive: false });
-
-    vp.addEventListener('touchmove', e => {
-      e.preventDefault();
-      if (!touchActive) return;
-      const dx = e.touches[0].clientX - tx;
-      const dy = e.touches[0].clientY - ty;
-      if (Math.abs(dx) < SWIPE_MIN && Math.abs(dy) < SWIPE_MIN) return;
-      if (!canMove()) return;
-      const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
-      const mdy = Math.abs(dx) > Math.abs(dy) ? 0 : (dy > 0 ? 1 : -1);
-      if (curDir && curDir[0] === mdx && curDir[1] === mdy) return;
-      stopMove();
-      curDir = [mdx, mdy];
-      tryMove(mdx, mdy);
-      tx = e.touches[0].clientX;
-      ty = e.touches[0].clientY;
-      const gen = moveGen;
-      const step = () => {
-        if (moveGen !== gen) return; // cancelled by stopMove()
-        if (!canMove()) { stopMove(); return; }
-        tryMove(mdx, mdy);
-        setTimeout(step, MOVE_REPEAT);
-      };
-      setTimeout(step, MOVE_REPEAT);
-    }, { passive: false });
-
-    // Two touchend listeners: one on vp (normal case) and one on document
-    // (fallback if Chrome reroutes the event).  endTouch guards with
-    // touchActive so only the first call does anything.
-    const endTouch = (e) => {
-      if (!touchActive) return;
-      touchActive = false;
-      const wasDragging = curDir !== null;
-      stopMove();
-      if (e.type === 'touchend' && !wasDragging && onViewportClick
-          && e.changedTouches?.length) {
+    vp.addEventListener('touchend', e => {
+      const t = e.changedTouches[0];
+      if (Math.abs(t.clientX - tapX) < 12 && Math.abs(t.clientY - tapY) < 12) {
         const G = getG();
         if (G && G.phase !== 'animating') {
-          const coords = getWorldCoordsFromViewportClick(
-            e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+          const coords = getWorldCoordsFromViewportClick(t.clientX, t.clientY);
           if (coords) onViewportClick(coords.wx, coords.wy, 0);
         }
       }
-    };
-    vp.addEventListener(      'touchend',    endTouch, { passive: true });
-    document.addEventListener('touchend',    endTouch, { passive: true });
-    document.addEventListener('touchcancel', endTouch, { passive: true });
+    }, { passive: true });
+  }
+
+  // Virtual joystick — bottom-left of viewport on mobile
+  {
+    const stick = document.getElementById('joystick');
+    const knob  = document.getElementById('joystick-knob');
+    if (stick && knob) {
+      let joyId  = null; // touch identifier tracking this joystick
+      let joyRect = null;
+      let joyGen  = 0;
+      let joyDir  = null;
+      const DEADZONE    = 10;
+      const MOVE_REPEAT = 150;
+      const KNOB_LIMIT  = 26;
+
+      const canMove = () => {
+        const G = getG();
+        return G && G.phase !== 'animating' && !G.showCollection &&
+               !isChestActive() && !isBeastOverlayActive() && !isAngelOverlayActive();
+      };
+
+      const stopJoy = () => {
+        joyGen++;
+        joyDir = null;
+        knob.style.transform = 'translate(-50%, -50%)';
+      };
+
+      const applyJoy = (dx, dy) => {
+        const kx = Math.max(-KNOB_LIMIT, Math.min(KNOB_LIMIT, dx));
+        const ky = Math.max(-KNOB_LIMIT, Math.min(KNOB_LIMIT, dy));
+        knob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
+
+        if (Math.hypot(dx, dy) < DEADZONE) { if (joyDir) stopJoy(); return; }
+
+        const mdx = Math.abs(dx) >= Math.abs(dy) ? Math.sign(dx) : 0;
+        const mdy = Math.abs(dx) >= Math.abs(dy) ? 0 : Math.sign(dy);
+        if (joyDir && joyDir[0] === mdx && joyDir[1] === mdy) return;
+
+        joyGen++;
+        joyDir = [mdx, mdy];
+        if (!canMove()) return;
+        tryMove(mdx, mdy);
+        const gen = joyGen;
+        const step = () => {
+          if (joyGen !== gen) return;
+          if (!canMove()) { stopJoy(); return; }
+          tryMove(mdx, mdy);
+          setTimeout(step, MOVE_REPEAT);
+        };
+        setTimeout(step, MOVE_REPEAT);
+      };
+
+      stick.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (joyId !== null) return;
+        const t = e.changedTouches[0];
+        joyId   = t.identifier;
+        joyRect = stick.getBoundingClientRect();
+        applyJoy(t.clientX - (joyRect.left + joyRect.width / 2),
+                 t.clientY - (joyRect.top  + joyRect.height / 2));
+      }, { passive: false });
+
+      stick.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (joyId === null) return;
+        for (const t of e.changedTouches) {
+          if (t.identifier !== joyId) continue;
+          applyJoy(t.clientX - (joyRect.left + joyRect.width / 2),
+                   t.clientY - (joyRect.top  + joyRect.height / 2));
+          return;
+        }
+      }, { passive: false });
+
+      const endJoy = (e) => {
+        if (joyId === null) return;
+        for (const t of e.changedTouches) {
+          if (t.identifier !== joyId) { continue; }
+          joyId = null;
+          stopJoy();
+          return;
+        }
+      };
+      stick.addEventListener(   'touchend',    endJoy, { passive: true });
+      stick.addEventListener(   'touchcancel', endJoy, { passive: true });
+      document.addEventListener('touchend',    endJoy, { passive: true });
+      document.addEventListener('touchcancel', endJoy, { passive: true });
+    }
   }
 }
